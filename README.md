@@ -1,6 +1,8 @@
 # How to compile:
-requirements: linux distribution (i use archlinux), clang, mingw-w64-clang wrapper for clang, mingw32 compiler libs, WINE, nasm
+requirements: linux distribution (i use archlinux), clang, mingw-w64-clang wrapper for clang, mingw32 compiler libs, WINE, nasm.
+
 Download splice engine (https://github.com/Vityacv/splice-engine) and compile it with ./build -c. Place it together with fearservmod folder.
+
 compile:
 ```
 ./build -w #Initialization of symbolic links for ulink

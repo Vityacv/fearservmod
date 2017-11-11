@@ -95,7 +95,7 @@ void regcall hookSwitchToMP(reg *p) {
 void regcall hookStoryModeOn(reg *p) {
   appData *aData = &handleData::instance()->aData;
   //*(aData->aFreeMovement)=0xE9;
-  *(unsigned short *)(aData->aFreeMovement) = 0x8B50;
+  *(unsigned short *)(aData->aFreeMovement) = 0x09EB;
   //*(uintptr_t*)(aData->aMPMovement1+1)=getRel4FromVal((aData->aMPMovement1+1),aData->aMPMovement2);
 }
 
@@ -120,13 +120,10 @@ void regcall hookStoryModeOff(reg *p) {
   aData->storyModeCnt++;
   if (lvlName) {
     if (hash_rta(lvlName) == hash_ct("XP2_W01")) {
-      // if(aData->storyModeCnt==3){
       return;  // no one will notice this xD
-               //((void (__stdcall *)(unsigned))aData->aServTeleport)(1);
-      //}
     }
   }
-  *(unsigned short *)(aData->aFreeMovement) = 0x06EB;
+  *(unsigned short *)(aData->aFreeMovement) = 0x9090;
 }
 
 void regcall hookFilterObjMessage(reg *p) {
@@ -498,7 +495,7 @@ void appData::configHandle() {
           buf = (unsigned char *)AllocateBuffer(tmp);
           unsigned char *func = getVal4FromRel(tmp + 15);
           memcpy(buf, tmp, 15);
-          *(uintptr_t *)((unsigned char *)buf + 1) = 0x44480000;
+          *(uintptr_t *)((unsigned char *)buf + 1) = 0x43160000;
           *(uintptr_t *)(buf + 15) = getRel4FromVal((buf + 15), func);
           *(unsigned short *)((unsigned char *)buf + 19) = 0xc388;
           memcpy(buf + 21, tmp, 15);
@@ -530,8 +527,25 @@ void appData::configHandle() {
               scanBytes((unsigned char *)gServer, gServerSz,
                         (char *)"508B????50FF????E9????????D9");
           if (adr) {
-            aFreeMovement = (adr);
-            *(unsigned short *)(aFreeMovement) = 0x06EB;
+            uintptr_t LadderObjOffset =
+                *(uintptr_t *)(scanBytes((unsigned char *)gServer, gServerSz,
+                                         (char *)"8B86????????85C08BBE????????"
+                                                 "7405BFC8000000") +
+                               2);
+            memcpy(buf + 14,
+                   (unsigned char *)(const unsigned char[]){
+                       0x90, 0x90, 0x83, 0xBF, 0x00, 0x00, 0x00, 0x00, 0x00,
+                       0x74, 0x08},
+                   11);
+            *(uintptr_t *)(buf + 14 + 4) = LadderObjOffset;
+            memcpy(buf + 14 + 11, adr, 8);
+            *(unsigned char *)(adr) = 0xe9;
+            *(uintptr_t *)(adr + 1) = getRel4FromVal((adr + 1), buf + 14);
+            *(unsigned char *)(buf + 14 + 19) = 0xe9;
+            aFreeMovement = (buf + 14);
+            *(unsigned short *)(aFreeMovement) = 0x9090;
+            *(uintptr_t *)(buf + 14 + 20) =
+                getRel4FromVal((buf + 14 + 20), adr + 8);
             adr += 8;
             *(uintptr_t *)(adr) = 0x850fdb84;
             *(uintptr_t *)(adr + 4) = getRel4FromVal((adr + 4), updEnd);

@@ -312,6 +312,7 @@ void regcall fearData::hookCheckpointEvent(reg *p) {
   pSdk->g_pLTServer->GetObjectPos((HOBJECT)p->v0, &pSdk->checkPointPos);
   pSdk->checkPointState = 2;
 }
+
 void regcall fearData::hookOnMapLoaded(reg *p) {
   appData *aData = &handleData::instance()->aData;
   fearData *pSdk = aData->pSdk;
@@ -341,7 +342,7 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
     *aData->aSkinStr = (char *)"Player";
     aData->storyModeCnt = 0;
     if (aData->bPreventNoclip)
-      *(unsigned short *)(aData->aFreeMovement) = 0x06EB;
+      *(unsigned short *)(aData->aFreeMovement) = 0x9090;
   }
 }
 

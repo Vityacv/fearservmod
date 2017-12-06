@@ -14,12 +14,12 @@ bool regcall IsMemoryExist(void *adr) {
 
 void regcall unprotectCode(unsigned char *adr, unsigned sz) {
   unsigned char *tmp;
-  VirtualProtect(adr, 100, PAGE_EXECUTE_READWRITE, (PDWORD)&tmp);
+  VirtualProtect(adr, sz, PAGE_EXECUTE_READWRITE, (PDWORD)&tmp);
 }
 
 void regcall unprotectMem(unsigned char *adr, unsigned sz) {
   unsigned char *tmp;
-  VirtualProtect(adr, 100, PAGE_READWRITE, (PDWORD)&tmp);
+  VirtualProtect(adr, sz, PAGE_READWRITE, (PDWORD)&tmp);
 }
 
 unsigned char *regcall scanBytes(unsigned char *pBuff, uintptr_t pBuffSize,

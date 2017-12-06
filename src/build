@@ -54,4 +54,4 @@ spliceobjdir=C:/$splice/obj
 cd $src
 #ulink from officical ftp site won't work with latest wine. So i provide patched version.
 #official ftp site: ftp://ftp.styx.cabel.net/pub/UniLink/
-WINEDEBUG=-all wine $extra/ulink.exe -ZO"$bin/StringEditRuntime.dll" --gcc -e_DllMainCRT@12 -q -Z- -ZX- -W5.1 -U5.1 -V5.1 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -GS:*=*  -Tpd -q -B- -b* -N -LC:/extra -LC:/mingw32lib $obj/app.o $obj/handle.o $obj/feardata.o $obj/main.o $obj/conv.o $spliceobjdir/splicealloc.o $spliceobjdir/dizahex.o $spliceobjdir/splice.o $obj/memory.o $spliceobjdir/tramp.obj $obj/stl.o $extra/msvcrt.lib $cfsharedlibs export.def 
+WINEDEBUG=-all wine $extra/ulink.exe -ZO"$bin/StringEditRuntime.dll" --gcc -e_DllMainCRT@12 -q -Z- -ZX- -W5.1 -U5.1 -V5.1 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -GS:*=*  -Tpd -q -B- -b* -N -LC:/extra -LC:/mingw32lib $obj/app.o $obj/handle.o $obj/feardata.o $obj/main.o $obj/conv.o $spliceobjdir/splicealloc.o $spliceobjdir/dizahex.o $spliceobjdir/splice.o $obj/memory.o $spliceobjdir/tramp.o $obj/stl.o $extra/msvcrt.lib $cfsharedlibs export.def 

@@ -6,7 +6,7 @@ extern "C" {
 
 #ifndef _T
 #if defined(UNICODE)
-#define _T(x) (wchar_t *)L##x
+#define _T(x) (wchar_t *)L ##x
 #else
 #define _T(x) x
 #endif
@@ -28,31 +28,43 @@ uintptr_t getUTF16size(wchar_t *s);
   _conv2w(x, (wchar_t *)alloca(sizeof(wchar_t) * getUTF8size(x) + \
                                sizeof(wchar_t)))
 
+
 #define MK_FNV32_OFFSET_BASIS 0x811c9dc5;
 #define MK_FNV32_PRIME 16777619;
 
-constexpr static unsigned hash_ct(const char *str) {
-  unsigned hash = MK_FNV32_OFFSET_BASIS;
-  while (*str) {
-    hash = hash ^ (unsigned)(*str++);
-    hash = hash * MK_FNV32_PRIME;
-  }
+constexpr static unsigned
+hash_ct(const char* str)
+{
+    unsigned hash = MK_FNV32_OFFSET_BASIS;
+    while (*str)
+    {
+        hash = hash ^ (unsigned)(*str++);
+        hash = hash * MK_FNV32_PRIME;
+    }
 
-  return hash;
+    return hash;
 }
 
-constexpr static unsigned hash_ct(wchar_t *str) {
-  unsigned hash = MK_FNV32_OFFSET_BASIS;
-  while (*str) {
-    hash = hash ^ (unsigned)(*str++);
-    hash = hash * MK_FNV32_PRIME;
-  }
+constexpr static unsigned
+hash_ct(wchar_t* str)
+{
+    unsigned hash = MK_FNV32_OFFSET_BASIS;
+    while (*str)
+    {
+        hash = hash ^ (unsigned)(*str++);
+        hash = hash * MK_FNV32_PRIME;
+    }
 
-  return hash;
+    return hash;
 }
 
-extern "C" unsigned hash_rta(char *str);
-extern "C" unsigned hash_rtw(wchar_t *str);
-extern "C" unsigned hash_rtws(wchar_t *str, uintptr_t sz);
-extern "C" unsigned hash_rtas(char *str, uintptr_t sz);
+extern "C" unsigned hash_rta(char * str);
+extern "C" unsigned hash_rtai(char * str);
+extern "C" unsigned hash_rtw(wchar_t * str);
+extern "C" unsigned hash_rtwi(wchar_t * str);
+extern "C" unsigned hash_rtws(wchar_t * str,uintptr_t sz);
+extern "C" unsigned hash_rtwsi(wchar_t * str,uintptr_t sz);
+extern "C" unsigned hash_rtas(char * str,uintptr_t sz);
+extern "C" unsigned hash_rtasi(char * str,uintptr_t sz);
 #endif /* FUNCS_H */
+

@@ -15,7 +15,7 @@ obj=$subdir1/obj
 src=$PWD
 
 cfsharedulink="-std=gnu++2a -fno-threadsafe-statics -static -static-libgcc -static-libstdc++ -I$splicedir -D_UNICODE -DUNICODE  -D_crt -mwindows -municode -s -O3 -fomit-frame-pointer -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib"
-#options for standart linker
+#options for standard linker
 # -Wl,-Bstatic,-dll,-pic-executable,-disable-runtime-pseudo-reloc,--major-os-version,6,--minor-os-version,0,--major-image-version,6,--minor-image-versio,0,--major-subsystem-version,6,--minor-subsystem-version,0,-image-base=0x10000000,-dynamicbase,-nxcompat,-e_DllMainCRT@12,--disable-stdcall-fixup,--gc-sections"
 
 cfsharedlibs="-lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll"
@@ -35,6 +35,7 @@ case $i in
     -w|-win)
     echo "initializing wine links for ulink"
     ln -s `$cppld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingw32lib
+    ln -s $subdir0/$thisdir $win/$thisdir
     ln -s $splicedir $win
     ln -s $subdir1/extra $win
     exit;

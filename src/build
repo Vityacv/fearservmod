@@ -1,43 +1,66 @@
 #!/bin/sh
-#cppcomp=i686-w64-mingw32-g++
-#cppcomp64=x86_64-w64-mingw32-g++
-cppcomp=i686-w64-mingw32-clang++
-cppld=i686-w64-mingw32-ld
+
+ccomp32=i686-w64-mingw32-gcc
+ccomp64=x86_64-w64-mingw32-gcc
+cppcomp32=i686-w64-mingw32-g++
+cppcomp64=x86_64-w64-mingw32-g++
+ld=i686-w64-mingw32-ld
+ld64=x86_64-w64-mingw32-ld
+objcopy=x86_64-w64-mingw32-objcopy
 subdir1=`dirname $PWD`
 subdir0=`dirname $subdir1`
-splice=splice
+splice=libsplice
+misc=libmisc
 thisdir=${subdir1##*/}
 
 splicedir=$subdir0/$splice
-spliceobjdir=$splicedir/obj
+splicesrcdir=$splicedir/src
+miscdir=$subdir0/$misc
+miscsrcdir=$miscdir/src
+spliceobj32dir=$splicedir/obj32
+spliceobj64dir=$splicedir/obj64
 win=$HOME/.wine/drive_c
+bin=$subdir1/bin
 obj=$subdir1/obj
+extra=$subdir1/extra
 src=$PWD
 
-cfsharedulink="-std=gnu++2a -fno-threadsafe-statics -static -static-libgcc -static-libstdc++ -I$splicedir -D_UNICODE -DUNICODE  -D_crt -mwindows -municode -s -O3 -fomit-frame-pointer -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib"
-#options for standard linker
-# -Wl,-Bstatic,-dll,-pic-executable,-disable-runtime-pseudo-reloc,--major-os-version,6,--minor-os-version,0,--major-image-version,6,--minor-image-versio,0,--major-subsystem-version,6,--minor-subsystem-version,0,-image-base=0x10000000,-dynamicbase,-nxcompat,-e_DllMainCRT@12,--disable-stdcall-fixup,--gc-sections"
+wobj=C:/$thisdir/obj
+wbin=C:/$thisdir/bin
+wsrc=C:/$thisdir/src
+wlibsplice32=C:/$splice/obj32
+wlibsplice64=C:/$splice/obj64
+wlibmisc32=C:/$misc/obj32
+wlibmisc64=C:/$misc/obj64
+wextra=C:/extra
 
-cfsharedlibs="-lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll"
+
+noalign="-falign-labels=1 -falign-functions=1 -falign-loops=1 -falign-jumps=1 -flimit-function-alignment"
+sizeopt="-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
+cppopt="-fno-threadsafe-statics -fno-rtti"
+cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -D_crt -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
+
+cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll "
 
 cd $obj
+
 for i in "$@"
 do
 case $i in
     -c)
-    $cppcomp -c $cfsharedulink -include-pch $obj/pch.h.gch $src/main.cpp $src/conv.cpp $src/memory.cpp $src/handle.cpp $src/stl.cpp 
+    echo "recompiling..."
+    $cppcomp32 -c $cfsharedulink -include $src/pch.h $src/handle.cpp $src/start.cpp
     ;;
     -g|-gch)
     echo "generating pch.h.gch"
-    $cppcomp $cfsharedulink -x c++-header -o $obj/pch.h.gch -c $src/pch.cpp
+    $cppcomp32 $cfsharedulink -x c++-header -o $obj/pch.h.gch -c $src/pch.cpp
     exit;
     ;;
     -w|-win)
     echo "initializing wine links for ulink"
-    ln -s `$cppld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingw32lib
+    ln -s `$ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingwlib32
+    ln -s `$ld64 --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingwlib64
     ln -s $subdir0/$thisdir $win/$thisdir
-    ln -s $splicedir $win
-    ln -s $subdir1/extra $win
     exit;
     ;;
     *)
@@ -45,14 +68,9 @@ case $i in
     ;;
 esac
 done
-#compile only frequently changing source if no options specified
-$cppcomp -c $cfsharedulink -include-pch $obj/pch.h.gch $src/app.cpp $src/feardata.cpp 
-obj=C:/$thisdir/obj
-bin=C:/$thisdir/bin
-extra=C:/extra
-spliceobjdir=C:/$splice/obj
 
-cd $src
-#ulink from officical ftp site won't work with latest wine. So i provide patched version.
-#official ftp site: ftp://ftp.styx.cabel.net/pub/UniLink/
-WINEDEBUG=-all wine $extra/ulink.exe -ZO"$bin/StringEditRuntime.dll" --gcc -e_DllMainCRT@12 -q -Z- -ZX- -W5.1 -U5.1 -V5.1 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -GS:*=*  -Tpd -q -B- -b* -N -LC:/extra -LC:/mingw32lib $obj/app.o $obj/handle.o $obj/feardata.o $obj/main.o $obj/conv.o $spliceobjdir/splicealloc.o $spliceobjdir/dizahex.o $spliceobjdir/splice.o $obj/memory.o $spliceobjdir/tramp.o $obj/stl.o $extra/msvcrt.lib $cfsharedlibs export.def 
+$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
+cd $bin
+
+WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+

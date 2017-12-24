@@ -43,7 +43,7 @@ class appData {
   unsigned char *aFlashlight[1];
   unsigned char *aPatchHoleKillHives;
   unsigned char *aFreeMovement;
-  unsigned char *doConnectIpAdrTramp;
+  //unsigned char *doConnectIpAdrTramp;
   unsigned char *aIsMultiplayerGameClient;
   unsigned char *aSPModeSpawn;
   unsigned char *aRunGameModeXP;

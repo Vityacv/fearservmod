@@ -8,7 +8,8 @@
 #include "feardata.h"
 #include "app.h"
 #include "handle.h"
-
+#include "conv.h"
+unsigned char *doConnectIpAdrTramp;
 void regcall hookChangeStr(reg *p) {
   p->state = 2;
   memcpy((void *)p->tax, "fear", sizeof("fear"));
@@ -72,10 +73,11 @@ void regcall appData::setFlashlight(bool state) {
 
 extern "C" void
 hookOnConnectServerRet() {  //-fomit-frame-pointer required :troll:
-  appData *aData = &handleData::instance()->aData;
+  //appData *aData = &handleData::instance()->aData;
   asm volatile("push %ebx");
-  asm volatile("mov %0,%%eax" : "=m"(aData->doConnectIpAdrTramp));
+  asm volatile("mov %0,%%eax" : "=m"(doConnectIpAdrTramp));
   asm volatile("jmp *%eax");
+  __builtin_unreachable();
 }
 
 void regcall hookSwitchToSP(reg *p) {

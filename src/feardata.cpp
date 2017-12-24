@@ -9,6 +9,30 @@
 #include "app.h"
 #include "handle.h"
 #include "main.h"
+#include "conv.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef inet_pton
+int __stdcall inet_pton(INT Family, LPCSTR pStringBuf, PVOID pAddr);
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+extern unsigned char *doConnectIpAdrTramp;
+bool regcall isValidIpAddressPort(char *ipAddress) {
+  unsigned char ip[16];
+  char *pStr = strstr(ipAddress, ":"), *pSep;
+  if (!pStr) return 0;
+  if (atoi(pStr + 1) >= 0x10000) return 0;
+  *pStr = 0;
+  int result = inet_pton(AF_INET, ipAddress, ip);
+  *pStr = ':';
+  return result != 0;
+}
 
 char *fearData::getCurrentLevelName() {
   if (g_pServerMissionMgrAdr && *g_pServerMissionMgrAdr) {
@@ -162,7 +186,7 @@ void fearData::fearDataInit() {
   spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
                      (char *)"A1????????81EC????????85C0558BAC"),
            (void *)fearDataUpdate);
-  if (aData->doConnectIpAdrTramp) {
+  if (doConnectIpAdrTramp) {
     {
       void *tmp = scanBytes((unsigned char *)gFearExe, gFearExeSz,
                             (char *)"6A00??6A00E8????????8B??85??7417");

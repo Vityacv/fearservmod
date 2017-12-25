@@ -72,12 +72,12 @@ case $i in
 esac
 done
 
-#$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
+$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
 
-$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/testdecode.cpp 
+#$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/testdecode.cpp 
 cd $bin
 
-WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"core.exe" --gcc -e_wmainCRT -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpe -q -B- -b* -N -LC:/mingwlib32 $wobj/testdecode.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
+#WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"core.exe" --gcc -e_wmainCRT -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpe -q -B- -b* -N -LC:/mingwlib32 $wobj/testdecode.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
 
-#WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
 

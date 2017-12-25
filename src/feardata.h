@@ -16,6 +16,7 @@ class fearData {
   CGameDatabaseMgr *g_pGameDatabaseMgr;
   HCATEGORY m_hMissionCat;
   HCATEGORY m_hModelsCat;
+  unsigned char uDT_CRUSH=0;
   unsigned char *g_pScreenMultiAdr;
   unsigned char *g_pScreenMulti = 0;
   void *g_pGameSpyBrowser_RequestServerList = 0;

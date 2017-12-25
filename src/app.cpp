@@ -147,6 +147,33 @@ void regcall hookFilterObjMessage(reg *p) {
   p->argcnt = 0;
 }
 
+struct readMsg {
+  int8_t pad4[4];
+  int32_t f4;
+  int32_t f8;
+  uint32_t f12;
+  void * f16;
+  uint32_t f20;
+  uint32_t f24;
+};
+
+void regcall hookMID_PLAYER_CLIENTMSG(reg *p){
+  fearData *pSdk = &handleData::instance()->pSdk;
+  readMsg* pMsg=(readMsg *)((unsigned char *)p->tsi+8);
+  uintptr_t v1 = pMsg->f12, v2 = (uintptr_t)pMsg->f16, v3 = pMsg->f20,v4 = pMsg->f24;
+  CAutoMessageBase_Read * pMsgRead = (CAutoMessageBase_Read *)p->tsi;
+  unsigned dmgId = pMsgRead->ReadBits(8);
+  if(p->tax == CP_DAMAGE && dmgId != pSdk->uDT_CRUSH)
+    p->tax = -1;
+  unsigned dmg = pMsgRead->ReadBits(0x20);
+  pMsg->f12=v1;
+  pMsg->f16=(void*)v2;
+  pMsg->f20=v3;
+  pMsg->f24=v4;
+  if(dmg==-1)
+    p->tax = -1;
+}
+
 void appData::configHandle() {
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   if (bCoop) {
@@ -564,7 +591,13 @@ void appData::configHandle() {
                                    (char *)"568B??????85F674??8B068BCE");
     unprotectCode(tmp);
     *(uintptr_t *)tmp = 0x900008C2;
-    // spliceUp(tmp,(void *)hookFilterObjMessage);
+    unsigned char * StringToDamageType =
+      scanBytes((unsigned char *)gServer, gServerSz,
+                (char *)"538B????????????8B????????33FF??8B");
+  if(StringToDamageType){
+    pSdk->uDT_CRUSH = ((unsigned (__cdecl *)(char *))StringToDamageType)((char*)"CRUSH");
+  }
+    spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char *)"8AD80FB6C34883F808"),(void *)hookMID_PLAYER_CLIENTMSG);
   }
   if (bSyncObjects) {
     {

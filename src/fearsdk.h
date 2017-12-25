@@ -361,7 +361,35 @@ class ILTServer {
   virtual LTRESULT SetObjectPos(HLOCALOBJ hObj, const LTVector& vPos);
 };
 
-class CAutoMessageBase {
+class CAutoMessageBase_Read {
+ public:
+  virtual void v1();
+  virtual void increasePacketCnt();
+  virtual void* free();
+  virtual void v4();
+  virtual void v5();
+  virtual void v6();
+  virtual void v7();
+  virtual CLTMsgRef_Read Read1();
+  virtual void v9();
+  virtual void WriteBits(unsigned nValue, unsigned nSize);
+  virtual void WriteBits64(unsigned nValue, unsigned nSize);
+  virtual void WriteData(void* pData, unsigned nSize);
+  // virtual void v12();
+  virtual void v13();
+  virtual void v14();
+  virtual void v15();
+  virtual uint32_t ReadBits(uint32_t nBits);
+  virtual uint64_t ReadBits64(uint32_t nBits);
+  //virtual void v17();
+  virtual void v18();
+  virtual void v19();
+  virtual void WriteObject(HOBJECT);
+  virtual void v21();
+  virtual void WriteDatabaseRecord(IDatabaseMgr*, HGEAR);
+};
+
+class CAutoMessageBase_Write {
  public:
   virtual void v1();
   virtual void increasePacketCnt();
@@ -451,7 +479,7 @@ class CServerMissionMgr {
 };
 
 class CAutoMessage {
-  CAutoMessageBase* cntx;
+  CAutoMessageBase_Write* cntx;
   CLTMsgRef_Read pMsg;
   fearData* pSdk;
 

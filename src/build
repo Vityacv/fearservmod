@@ -36,12 +36,15 @@ wextra=C:/extra
 
 
 noalign="-falign-labels=1 -falign-functions=1 -falign-loops=1 -falign-jumps=1 -flimit-function-alignment"
-sizeopt="-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
+sizeopt="" #"-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
 cppopt="-fno-threadsafe-statics -fno-rtti"
 cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -D_crt -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
 
 cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll "
 
+if [ ! -d "$obj" ]; then
+mkdir $obj
+fi
 cd $obj
 
 for i in "$@"
@@ -69,8 +72,12 @@ case $i in
 esac
 done
 
-$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
+#$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
+
+$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/testdecode.cpp 
 cd $bin
 
-WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"core.exe" --gcc -e_wmainCRT -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpe -q -B- -b* -N -LC:/mingwlib32 $wobj/testdecode.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
+
+#WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
 

@@ -2,6 +2,31 @@
 class appData;
 class handleData;
 
+struct playerData {
+  float fMovementMultiplier;
+  unsigned lastMoveTimeMS;
+  unsigned thisMoveTimeMS;
+  LTVector lastPos;
+  LTVector lastvPathFire;
+  unsigned char movePacketCnt;
+  unsigned moveLimitExceedCnt;
+  HWEAPON lastWep;
+  unsigned onChangeWeaponTime;
+  HWEAPON onChangeWeaponHWEAPON;
+  CWeapon * lastFireWeapon;
+  bool lastFireWeaponDidReload;
+  unsigned char lastFireWeaponReload;
+  unsigned lastFireWeaponIgnored;
+  unsigned lastFireWeaponReloadLength;
+  unsigned lastFireWeaponClipMax;
+  unsigned lastFireWeaponClipAmmo;
+  unsigned lastFireWeaponTimestamp;
+  unsigned lastFireWeaponDelay;
+  unsigned lastVoteTime;
+  unsigned char bResetToUnarmed;
+  unsigned moveLimitLastTimeMS;
+};
+
 class fearData {
  public:
   appData *aData;
@@ -9,16 +34,84 @@ class fearData {
   IDatabaseMgr *g_pLTDatabase;
   ILTClient *g_pLTClient;
   ILTServer *g_pLTServer;
+  ILTPhysics * g_pPhysicsLT;
+  ILTModel * g_pModelLT;
   IGameSpyBrowser *g_pGameSpyBrowser;
+  CWeaponDB* g_pWeaponDB;
+  CServerDB* g_pServerDB;
   CInterfaceMgr *g_pInterfaceMgr;
   ClientConnectionMgr *g_pClientConnectionMgr;
+  ServerConnectionMgr *g_pServerConnectionMgr;
   CServerMissionMgr **g_pServerMissionMgrAdr;
   CGameDatabaseMgr *g_pGameDatabaseMgr;
+  ServerVoteMgr * g_pServerVoteMgr;
+  CArsenal * g_pArsenal;
+  void *g_pGameModeMgr_instance;
+  void *g_pServerVoteMgr_instance;
+  void *g_pServerVoteMgr_ClearVote;
+  void *g_pServerConnectionMgr_instance;
+  void *g_pGetGameClientData;
+  void *g_pBootWithReason;
+  void *g_pGetNetClientData;
+  void *g_pGameServerShell;
+  void *CArsenal_GetAmmoCount;
+  void *CArsenal_SetAmmo;
+  void *CArsenal_GetCurWeapon;
+  void *CArsenal_DecrementAmmo;
   HCATEGORY m_hMissionCat;
   HCATEGORY m_hModelsCat;
+  HCATEGORY m_hCatGlobal;
+  HCATEGORY m_hCatWeapons;
+  HCATEGORY m_hCatAmmo;
+  HRECORD m_hRecGlobal;
+  HRECORD m_hGlobalRecord;
+  HRECORD m_hPlayer;
+  HWEAPON m_hUnarmedRecord; 
+  HAMMO m_hUnarmedRecordAmmo;
+  unsigned ILTServer_GetRealTimeMS;
+  unsigned GameClientData_m_nClientMoveCode;
+  unsigned CPlayerObj_m_Inventory;
+  unsigned CPlayerObj_m_Arsenal;
+  unsigned CPlayerObj_m_hClient;
+  unsigned CPlayerObj_m_eStandingOnSurface;
+  unsigned CPlayerObj_m_vLastVelocity;
+  unsigned CPlayerObj_m_PlayerRigidBody;
+  unsigned CPlayerObj_m_bUseLeash;
+  unsigned CPlayerObj_m_vLastClientPos;
+  unsigned CPlayerObj_m_fMoveMultiplier;
+  unsigned CPlayerObj_m_fJumpMultiplier;
+  unsigned CPlayerObj_DropCurrentWeapon;
+  unsigned CPlayerObj_m_ePlayerState;
+  unsigned CPlayerObj_m_fLeashLen;
+  unsigned CPlayerObj_m_fLeashSpringRate;
+  unsigned CPlayerObj_m_fLeashSpring;
+  unsigned CPlayerObj_m_fLeashScale;
+  unsigned CPlayerObj_m_nLastPositionForcedTime;
+
+  unsigned CArsenal_m_hCurWeapon;
+  unsigned CArsenal_m_pPlayer;
+  unsigned GameModeMgr_ServerSettings;
+  unsigned CCharacter_m_bOnGround;
+  unsigned CCharacter_m_hLadderObject;
+  unsigned ClientConnectionMgr_IGameSpyBrowser;
+  unsigned char CArsenal_m_pAmmo;
   unsigned char uDT_CRUSH=0;
+  unsigned char ukPEDropWeapon;
+  unsigned char ukPENextSpawnPoint;
+  unsigned char ukPEPrevSpawnPoint;
   unsigned char *g_pScreenMultiAdr;
   unsigned char *g_pScreenMulti = 0;
+  bool freeMovement=0;
+  void * CPlayerObj_UpdateMovement=0;
+  void *CPlayerObj_m_PlayerRigidBody_Update;
+  void *CPlayerObj_TeleportClientToServerPos;
+  void *CPlayerObj_ChangeWeapon;
+  void* g_pWeaponDB_GetWeaponData;
+  void* g_pWeaponDB_GetAmmoData;
+  void* g_pWeaponDB_GetInt32;
+  void * g_pLTServer_HandleToObject;
+  void * g_pLTServer_GetClientObject;
+  void * g_pGameServerShell_IsPaused;
   void *g_pGameSpyBrowser_RequestServerList = 0;
   void *g_pGameSpyBrowser_RequestServerListAdr = 0;
   void *g_pScreenMulti_RequestServerDetails = 0;
@@ -30,9 +123,20 @@ class fearData {
   void fearDataInit();
   void fearDataInitServ();
   void Update();
+
+  bool checkPlayerStatus(GameClientData* pGameClientData);
+  GameClientData * getGameClientData(HCLIENT client);
+  void BootWithReason(GameClientData*, unsigned char code, char * reason);
   char *getCurrentLevelName();
+  uint32_t getRealTimeMS();
+  CPlayerObj * GetPlayerFromHClient(HCLIENT hClient);
+  HWEAPONDATA GetWeaponData(HWEAPON hWep);
+  HAMMODATA GetAmmoData(HAMMO);
+  HLOCALOBJ GetClientObject(HCLIENT hClient);
   HRECORD getModelStruct(char *model);
   IDatabaseMgr *getDatabaseMgr();
+  void updateMovement(CPlayerObj * pPlayerObj);
+  inline void handlePlayerPositionMessage(CPlayerObj * pPlayerObj,CAutoMessageBase_Read * pMsg);
   void getLTServerClient(unsigned char *baseMod, uintptr_t szMod);
   void setExeType(bool state);
   void addInternetServer(char *str);
@@ -47,4 +151,10 @@ class fearData {
   static void regcall hookLoadMaps1(reg *p);
   static void regcall hookLoadMaps2(reg *p);
   ~fearData();
+  playerData pPlayerData[64];
+
+  float getFloatDB( HRECORD hRecord, const char *pszAtt, uint32_t nValueIndex = 0, float fDef = 0.0f ) 
+  {
+    return g_pLTDatabase->GetFloat( g_pLTDatabase->GetAttribute( hRecord, pszAtt ), nValueIndex, fDef );
+  }
 };

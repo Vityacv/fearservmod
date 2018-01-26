@@ -35,7 +35,7 @@ class appData {
   bool bPreventNoclip = 0;
   bool bIgnoreUnusedMsgID = 0;
   bool bSyncObjects = 0;
-  bool bCoop = 0;
+  unsigned char bCoop = 0;
   bool bBotsMP = 0;
   bool bPatchHoleKillHives = 0;
   char **aSkinStr;

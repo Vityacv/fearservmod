@@ -5,7 +5,6 @@
 #include "stl.h"
 #include "fearsdk.h"
 #include "feardata.h"
-
 #include "app.h"
 #include "handle.h"
 

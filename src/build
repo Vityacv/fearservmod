@@ -36,11 +36,11 @@ wextra=C:/extra
 
 
 noalign="-falign-labels=1 -falign-functions=1 -falign-loops=1 -falign-jumps=1 -flimit-function-alignment"
-sizeopt="" #"-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
-cppopt="-fno-threadsafe-statics -fno-rtti"
-cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -D_crt -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
+sizeopt="-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
+cppopt="-fno-threadsafe-statics -fno-rtti -Wno-pmf-conversions"
+cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -DDEBUG -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
 
-cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll "
+cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll -ladvapi32"
 
 if [ ! -d "$obj" ]; then
 mkdir $obj

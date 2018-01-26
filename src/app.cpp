@@ -930,6 +930,15 @@ void regcall hookReloadWeapon(reg *p) {
   }
 }
 
+void regcall hookComposeArchives(reg *p){
+  char * str = (char *)p->tsi;
+  if(str){
+    if(strstr(str,"AdditionalContent")){
+      *(unsigned char *)p->tcx=1;
+    }
+  }
+}
+
 void appData::configHandle() {
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
@@ -1019,14 +1028,6 @@ if(bCoop==1){
                        (char *)"5357??FF??????????3B??8B??0F??????????8B???????"
                                "???8B??68??????????FF????8B????????????FF"),
              (void *)fearData::hookLoadMaps2);
-{
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"75??8B????8B????8B??FF??????????8B????8B");
-      if (tmp) {
-        spliceUp(tmp, (void *)fearData::hookUseSkin1);
-      }
-    }
     {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
@@ -1036,7 +1037,21 @@ if(bCoop==1){
         memcpy(tmp, moveax0, 5);
       }
     }
+  }else if(bCoop==2){
+    spliceUp(
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  (char *)"88861C0200008B44243C888E1D020000"),
+        (void *)fearData::hookComposeArchives);
+    
   }
+  {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"75??8B????8B????8B??FF??????????8B????8B");
+      if (tmp) {
+        spliceUp(tmp, (void *)fearData::hookUseSkin1);
+      }
+    }
     {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,

@@ -1569,7 +1569,7 @@ void appData::configParse(char *pathCfg) {
   bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
   //bPreventNoclip = 1;
-  pSdk->freeMovement=bPreventNoclip;
+  //pSdk->freeMovement=bPreventNoclip;
   bIgnoreUnusedMsgID = 1;
   if (bCoop) {
     {

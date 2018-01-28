@@ -217,8 +217,8 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
       if (fDistSqr > fMaxDistance*fMaxDistance)
       {
         //if (s_vtAlwaysForceClientToServerPos.GetFloat())
-        if(!freeMovement && !*(HOBJECT *)((unsigned char *)pPlayerObj +
-                                         CCharacter_m_hLadderObject))
+        if(!freeMovement && !pPlData->bLadderInUse/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
+                                         CCharacter_m_hLadderObject)*/)
         {
           // force the client to our position
           ((void(__thiscall *)(CPlayerObj *,
@@ -960,6 +960,8 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
     char *lvlName = pSdk->getCurrentLevelName();
     unsigned skinState = 9;
     aData->setPatchHoleKillHives(0);
+    aData->setCoopDoSpawn(0);
+    pSdk->checkPointState = 0;
     if (lvlName) {
       switch (hash_rta(lvlName)) {
         case hash_ct("07_ATC_Roof"):
@@ -967,18 +969,20 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
           break;
         case hash_ct("02_Docks"):
           skinState = 0;
+          //aData->setCoopDoSpawn(1);
           break;
         case hash_ct("XP2_W06"):
           skinState = 0;
+          //aData->setCoopDoSpawn(1);
           break;
         case hash_ct("13_Hives"):
           aData->setPatchHoleKillHives(1);
           break;
-        default:
-          aData->setCoopDoSpawn(1);
-          break;
+        //default:
+        //  aData->setCoopDoSpawn(1);
+        //  break;
       }
-      pSdk->checkPointState = 0;
+      
       aData->skinState = skinState;
       *aData->aSkinStr = (char *)"Player";
       aData->storyModeCnt = 0;
@@ -989,86 +993,88 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
 
 }
 
-void regcall fearData::hookRespawnStartPoint(reg *p) {
-  fearData *pSdk = &handleData::instance()->pSdk;
-  HOBJECT startPtObj = (HOBJECT) * (uintptr_t *)((unsigned char *)p->tax + 8);
+
+void fearData::setRespawn(HOBJECT hObjResp){
   LTVector startPt;
-  pSdk->g_pLTServer->GetObjectPos(startPtObj, &startPt);
-  if (pSdk->checkPointState != 2) {
-    if (memcmp(&startPt, &pSdk->checkPointPos, sizeof(LTVector))) {
-      pSdk->checkPointState = 0;
+  g_pLTServer->GetObjectPos(startPtObj, &startPt);
+  if (checkPointState != 2) {
+    if (memcmp(&startPt, &checkPointPos, sizeof(LTVector))) {
+      checkPointState = 0;
     }
   }
 
-  LTVector newPos = pSdk->checkPointPos;
-  if (pSdk->checkPointState != 2) {
-    char *lvlName = pSdk->getCurrentLevelName();
+  LTVector newPos = checkPointPos;
+  if (checkPointState != 2) {
+    char *lvlName = getCurrentLevelName();
     if (lvlName) {
       switch (hash_rta(lvlName)) {
         case hash_ct("07_ATC_Roof"):
           newPos = LTVector{1566.47f, 2085.51f, 3938.72f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("11_Mapes_Elevator"):
           newPos = LTVector{3085.24f, -400.0f, -3066.04f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("02_Docks"):
           newPos = LTVector{-11716.2f, -2833.13f, -10565.7f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("18_Facility_Upper"):
           newPos = LTVector{-1340.0f, -1040.0f, -100.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("09_Bishop_Rescue"):
           newPos = LTVector{18721.3f, 2741.3f, 389.176f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("12_Badge"):
           newPos = LTVector{-8808.6f, -30.0f, -3414.9f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("17_Factory"):
           newPos = LTVector{-117.221f, -929.996f, -16681.2f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("08_Admin"):
           newPos = LTVector{-14026.0f, 2426.0f, 5882.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP_CHU01"):
           newPos = LTVector{-704.0f, -1500.0f, -3072.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP2_W01"):
           newPos = LTVector{15180.0f, 25179.0f, 47028.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP_HOS01"):
           newPos = LTVector{4036.75f, 80.9f, 7598.07f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP_HOS02"):
           newPos = LTVector{512.0f, 21424.1f, -3840.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP2_W06"):
           newPos = LTVector{-24186.0f, -6460.0f, -65997.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP2_W14"):
           newPos = LTVector{-8651.0f, 990.0f, -4160.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP2_W16"):
           newPos = LTVector{-8972.0f, 2070.0f, -3833.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
         case hash_ct("XP2_W17"):
           newPos = LTVector{-21728.0f, 1800.0f, 7588.0f};
-          pSdk->checkPointState = 1;
+          checkPointState = 1;
           break;
+        default:
+          checkPointState = 1;
+          return;
       }
     }
   }
@@ -1076,14 +1082,22 @@ void regcall fearData::hookRespawnStartPoint(reg *p) {
   CPlayerObj * pPlayerObj = (CPlayerObj *)p->tsi;
   if(*(unsigned char*)((unsigned char *)pPlayerObj+0xC5)){
     HCLIENT playerClient = *(HCLIENT*)((unsigned char *)pPlayerObj+0x2880);
-    HOBJECT hPlayerObj = pSdk->GetClientObject(playerClient);
-    pSdk->g_pLTServer->GetObjectPos(hPlayerObj, &pSdk->checkPointPos);
-    newPos = pSdk->checkPointPos;
-    pSdk->checkPointState = 2;
+    HOBJECT hPlayerObj = GetClientObject(playerClient);
+    g_pLTServer->GetObjectPos(hPlayerObj, &checkPointPos);
+    newPos = checkPointPos;
+    checkPointState = 2;
   }*/
-  if (pSdk->checkPointState)
-    pSdk->g_pLTServer->SetObjectPos(startPtObj, newPos);
-  // if (pSdk->checkPointState == 2) pSdk->checkPointState = 1;
+  if (checkPointState)
+    g_pLTServer->SetObjectPos(startPtObj, newPos);
+  // if (checkPointState == 2) checkPointState = 1;
+}
+
+///100175EC crash ebx 0
+void regcall fearData::hookRespawnStartPoint(reg *p) {
+  fearData *pSdk = &handleData::instance()->pSdk;
+  pSdk->startPtObj = (HOBJECT) * (uintptr_t *)((unsigned char *)p->tax + 8);
+  if(pSdk->startPtObj)
+    pSdk->setRespawn(pSdk->startPtObj);
 }
 
 void fearData::setExeType(bool state) {

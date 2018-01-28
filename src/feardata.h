@@ -25,6 +25,8 @@ struct playerData {
   unsigned lastVoteTime;
   unsigned char bResetToUnarmed;
   unsigned moveLimitLastTimeMS;
+  bool bLadderInUse;
+  bool bIsDead;
 };
 
 class fearData {
@@ -58,6 +60,7 @@ class fearData {
   void *CArsenal_SetAmmo;
   void *CArsenal_GetCurWeapon;
   void *CArsenal_DecrementAmmo;
+  HOBJECT startPtObj=0;
   HCATEGORY m_hMissionCat;
   HCATEGORY m_hModelsCat;
   HCATEGORY m_hCatGlobal;
@@ -87,7 +90,6 @@ class fearData {
   unsigned CPlayerObj_m_fLeashSpring;
   unsigned CPlayerObj_m_fLeashScale;
   unsigned CPlayerObj_m_nLastPositionForcedTime;
-
   unsigned CArsenal_m_hCurWeapon;
   unsigned CArsenal_m_pPlayer;
   unsigned GameModeMgr_ServerSettings;
@@ -140,6 +142,7 @@ class fearData {
   void getLTServerClient(unsigned char *baseMod, uintptr_t szMod);
   void setExeType(bool state);
   void addInternetServer(char *str);
+  void regcall setRespawn(HOBJECT hObjResp);
   static void stdcall requestMasterServer(bool, unsigned short, char const *);
   static void regcall fearDataUpdate();
   static void regcall hookOnConnectServer(reg *p);

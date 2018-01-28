@@ -130,6 +130,7 @@ void regcall hookStoryModeOff(reg *p) {
     switch (hash_rta(lvlName)){
       case hash_ct("01_Intro"):
       case hash_ct("XP2_W01"):
+
       return;
     }
   }
@@ -189,6 +190,19 @@ void regcall hookMID(reg *p) {
   playerData *pPlData = &pSdk->pPlayerData[clientId];
   unsigned playerState = *(unsigned *)((unsigned char *)pPlayerObj +
                                        pSdk->CPlayerObj_m_ePlayerState);
+      if (aData->bCoop && !pPlData->bIsDead && playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
+        pPlData->bIsDead=1;
+        if (*(unsigned char *)((unsigned char *)pPlayerObj +
+                               pSdk->CCharacter_m_bOnGround)) { 
+          // HCLIENT playerClient = *(HCLIENT*)((unsigned char
+          // *)pPlayerObj+0x2880);
+          HOBJECT hPlayerObj = pSdk->GetClientObject((HCLIENT)p->v0);
+          pSdk->g_pLTServer->GetObjectPos(hPlayerObj, &pSdk->checkPointPos);
+          pSdk->checkPointPos.y+=50.0f;
+          // newPos = pSdk->checkPointPos;
+          pSdk->checkPointState = 2;
+        }
+      }
 
   switch (pMsgRead->ReadBits(8)) {
     case MID_FRAG_SELF:
@@ -256,7 +270,7 @@ void regcall hookMID(reg *p) {
           break;
         case MID_ACTIVATE_LADDER:
           bPosInvalid = 0;
-          // hObject ? pPlData->bLadderInUse=1 : pPlData->bLadderInUse=0;
+          hObject ? pPlData->bLadderInUse=1 : pPlData->bLadderInUse=0;
           if (pPlData->onChangeWeaponHWEAPON !=
               *(HWEAPON *)((unsigned char *)pArsenal +
                            pSdk->CArsenal_m_hCurWeapon)) {
@@ -333,6 +347,7 @@ void regcall hookMID(reg *p) {
       if (len > (63 * sizeof(wchar_t))) p->state = 1;
     } break;
     case MID_PLAYER_RESPAWN: {
+
       memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (p->state) {
@@ -344,18 +359,6 @@ void regcall hookMID(reg *p) {
           (playerState == ePlayerState_Dying_Stage1)) {
         p->state = 1;
         break;
-      }
-      if (aData->bCoop) {
-        if (*(unsigned char *)((unsigned char *)pPlayerObj +
-                               pSdk->CCharacter_m_bOnGround)) { 
-          // HCLIENT playerClient = *(HCLIENT*)((unsigned char
-          // *)pPlayerObj+0x2880);
-          HOBJECT hPlayerObj = pSdk->GetClientObject((HCLIENT)p->v0);
-          pSdk->g_pLTServer->GetObjectPos(hPlayerObj, &pSdk->checkPointPos);
-          pSdk->checkPointPos.y+=36.0f;
-          // newPos = pSdk->checkPointPos;
-          pSdk->checkPointState = 2;
-        }
       }
     } break;
     case MID_PICKUPITEM_ACTIVATE:
@@ -931,10 +934,10 @@ void regcall hookReloadWeapon(reg *p) {
 }
 
 void regcall hookComposeArchives(reg *p){
-  char * str = (char *)p->tsi;
+  char * str = (char *)p->tdi;
   if(str){
     if(strstr(str,"AdditionalContent")){
-      *(unsigned char *)p->tcx=1;
+      p->tcx=p->tcx | 1;
     }
   }
 }
@@ -1019,6 +1022,15 @@ void appData::configHandle() {
         spliceUp(tmp, (void *)hookStoryModeOff);
       }
     }
+        {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"E8????????84C074??8D??????68??????????E8");//use SP MAPS 
+      if (tmp) {
+        unprotectCode(tmp);
+        memcpy(tmp, moveax0, 5);
+      }
+    }
 if(bCoop==1){
     spliceUp(
         scanBytes((unsigned char *)gServer, gServerSz,
@@ -1028,23 +1040,8 @@ if(bCoop==1){
                        (char *)"5357??FF??????????3B??8B??0F??????????8B???????"
                                "???8B??68??????????FF????8B????????????FF"),
              (void *)fearData::hookLoadMaps2);
-    {
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"E8????????84C074??8D??????68??????????E8");//use SP MAPS 
-      if (tmp) {
-        unprotectCode(tmp);
-        memcpy(tmp, moveax0, 5);
-      }
-    }
-  }else if(bCoop==2){
-    spliceUp(
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"88861C0200008B44243C888E1D020000"),
-        (void *)fearData::hookComposeArchives);
-    
-  }
-  {
+
+      {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
                     (char *)"75??8B????8B????8B??FF??????????8B????8B");
@@ -1052,6 +1049,22 @@ if(bCoop==1){
         spliceUp(tmp, (void *)fearData::hookUseSkin1);
       }
     }
+  }else if(bCoop==2){
+    spliceUp(
+        scanBytes((unsigned char *)gEServer, gEServerSz,
+                  (char *)"88861C0200008B44243C888E1D020000"),
+        (void *)hookComposeArchives);
+          {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"3B7C2410741F8B4E086A006A0351");
+      if (tmp) {
+        patchData::addCode((unsigned char *)tmp+4, 1);
+        *(tmp+4)=0xEB;
+      }
+    }
+  }
+
     {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,

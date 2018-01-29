@@ -184,7 +184,7 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
     return;
   }
   // If we're in multiplayer, handle leashing
-  if(/* IsMultiplayerGameServer( ) && */*(bool *)((unsigned char *)pPlayerObj + CPlayerObj_m_bUseLeash)){
+  if(/* IsMultiplayerGameServer( ) && */ *(bool *)((unsigned char *)pPlayerObj + CPlayerObj_m_bUseLeash) ){
 
     // calculate the difference between the server's position and client's position of the player object
     LTVector curPos;
@@ -208,7 +208,7 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
 
       // determine the maximum allowed distance by scaling the velocity, but don't
       // reduce it below the minimum threshold
-      float fMaxDistance = LTMAX(vVelocity.Mag() * 0.2f/*(*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashScale))*/, (*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashSpring)));
+      float fMaxDistance = LTMAX(vVelocity.Mag() * 0.3f/*(*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashScale))*/, (*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashSpring)));
 
       // recalculate the distance from the client's last reported position
       fDistSqr = vNewPos.DistSqr(*(LTVector *)((unsigned char *)pPlayerObj + CPlayerObj_m_vLastClientPos));
@@ -217,7 +217,7 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
       if (fDistSqr > fMaxDistance*fMaxDistance)
       {
         //if (s_vtAlwaysForceClientToServerPos.GetFloat())
-        if(!freeMovement && !pPlData->bLadderInUse/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
+        if(*(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_ePlayerState) == ePlayerState_Alive && !freeMovement && !pPlData->bLadderInUse/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
                                          CCharacter_m_hLadderObject)*/)
         {
           // force the client to our position
@@ -966,6 +966,7 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
       switch (hash_rta(lvlName)) {
         case hash_ct("07_ATC_Roof"):
           skinState = 0;
+          //aData->setCoopDoSpawn(1);
           break;
         case hash_ct("02_Docks"):
           skinState = 0;
@@ -973,7 +974,7 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
           break;
         case hash_ct("XP2_W06"):
           skinState = 0;
-          //aData->setCoopDoSpawn(1);
+          aData->setCoopDoSpawn(1);
           break;
         case hash_ct("13_Hives"):
           aData->setPatchHoleKillHives(1);

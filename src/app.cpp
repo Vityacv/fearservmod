@@ -129,8 +129,9 @@ void regcall hookStoryModeOff(reg *p) {
   if (lvlName) {
     switch (hash_rta(lvlName)){
       case hash_ct("01_Intro"):
+      case hash_ct("07_ATC_Roof"):
       case hash_ct("XP2_W01"):
-
+      case hash_ct("XP2_W06"):
       return;
     }
   }
@@ -375,6 +376,10 @@ void regcall hookMID(reg *p) {
       // pPlData->lastFireWeaponReload=1;
     } break;
     case MID_WEAPON_FIRE: {
+      if(playerState != ePlayerState_Alive){
+        p->state=1;
+        break;
+      }
       // unsigned char bIsNul=0;
       LTVector firePos, curPos, vPath;
       HWEAPON hWeapon = 0;
@@ -946,6 +951,43 @@ void appData::configHandle() {
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
   patchClientServer(gEServer, gEServerSz);
+
+  
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  (char *)"8D4C24??51505756FF15????????83C410C6????????5F");
+    if (tmp) {
+      unsigned char * pfunc = (unsigned char *)*(uintptr_t*)(tmp+10);
+      patchData::addCode(tmp+8,6);
+      *(unsigned short *)(tmp+8)=0xE890;
+      *(uintptr_t*)(tmp+10) = getRel4FromVal(
+            (tmp + 10),
+            (unsigned char *)(void *)*(uintptr_t*)pfunc);
+      patchData::addCode(pfunc, 4);
+      void * func = (void *)GetProcAddress(GetModuleHandle(_T("ntdll.dll")),_C("_vsnprintf"));
+      if(func)
+        *(uintptr_t*)(pfunc) = (uintptr_t)func;
+    }
+  }
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gEServer, gEServerSz,
+        (char *)"745D8B????????????8B????8B??C1????884C2414");  // show conn client ip
+    if (tmp) {
+      patchData::addCode(tmp, 2);
+      *(unsigned short *)(tmp) = 0x9090;
+    }
+  }
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gEServer, gEServerSz,
+        (char *)"74608B??????????8B??C1????88??????33");  // show disco client ip
+    if (tmp) {
+      patchData::addCode(tmp, 2);
+      *(unsigned short *)(tmp) = 0x9090;
+    }
+  }
   {
     unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
@@ -955,7 +997,6 @@ void appData::configHandle() {
       *(unsigned short *)(tmp + 9) = 0x9090;
     }
   }
-
   {
     unsigned char *tmp = scanBytes(
         (unsigned char *)gServer, gServerSz,
@@ -986,7 +1027,15 @@ void appData::configHandle() {
       spliceUp(tmp, (void *)fearData::hookOnMapLoaded);
     }
   }
-
+          {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"3B7C2410741F8B4E086A006A0351");
+      if (tmp) {
+        patchData::addCode((unsigned char *)tmp+4, 1);//ignore invalid world crc
+        *(tmp+4)=0xEB;
+      }
+    }
   if (bCoop) {
 
     bPreventNoclip = 1;
@@ -1041,28 +1090,20 @@ if(bCoop==1){
                                "???8B??68??????????FF????8B????????????FF"),
              (void *)fearData::hookLoadMaps2);
 
-      {
+      /*{
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
                     (char *)"75??8B????8B????8B??FF??????????8B????8B");
       if (tmp) {
         spliceUp(tmp, (void *)fearData::hookUseSkin1);
       }
-    }
+    }*/
   }else if(bCoop==2){
     spliceUp(
         scanBytes((unsigned char *)gEServer, gEServerSz,
                   (char *)"88861C0200008B44243C888E1D020000"),
         (void *)hookComposeArchives);
-          {
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"3B7C2410741F8B4E086A006A0351");
-      if (tmp) {
-        patchData::addCode((unsigned char *)tmp+4, 1);
-        *(tmp+4)=0xEB;
-      }
-    }
+
   }
 
     {

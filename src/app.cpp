@@ -12,6 +12,13 @@
 #include "patch.h"
 // 0.3125 3EA00000
 
+/*
+74 12 8B 50 28 89 53 20 8B 48 2C 89 4B 24 8B 50 30
+8B 54 24 14 8B 44 24 18 42 3B D0 89 54 24 14 0F 8C EE FE FF FF
+0F 84 E1 00 00 00 8B 4E 08 8B 01 57 FF 50 0C 8B D8 F6 C3 01
+loop
+*/
+
 #define NOINTRO
 
 unsigned char *doConnectIpAdrTramp;
@@ -155,7 +162,7 @@ void regcall hookOnAddClient_CheckNickname(reg *p) {
     int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
     IsTextUnicode((void *)ncd->m_szName,
                   wcslen(ncd->m_szName) * sizeof(wchar_t), &isUni);
-    if (isUni) p->tax = 0;
+    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) p->tax = 0;
   }
 }
 
@@ -179,17 +186,19 @@ void regcall hookMID(reg *p) {
             v4 = pMsg->f24;
   CAutoMessageBase_Read *pMsgRead = (CAutoMessageBase_Read *)p->v1;
   HOBJECT hClientObj = pSdk->GetClientObject((HCLIENT)p->v0);
-  if (!hClientObj) return;
+  //if (!hClientObj) return;
   GameClientData *pGameClientData = pSdk->getGameClientData((HCLIENT)p->v0);
   if (!pGameClientData) return;
   unsigned clientId = pSdk->g_pLTServer->GetClientID((HCLIENT)p->v0);
   CPlayerObj *pPlayerObj = pSdk->GetPlayerFromHClient((HCLIENT)p->v0);
-  if (!pPlayerObj) {
+  /*if (!pPlayerObj) {
     p->state = 1;
     return;
-  }
+  }*/
   playerData *pPlData = &pSdk->pPlayerData[clientId];
-  unsigned playerState = *(unsigned *)((unsigned char *)pPlayerObj +
+  unsigned playerState=0;
+  if(pPlayerObj){
+  playerState = *(unsigned *)((unsigned char *)pPlayerObj +
                                        pSdk->CPlayerObj_m_ePlayerState);
       if (aData->bCoop && !pPlData->bIsDead && playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
         pPlData->bIsDead=1;
@@ -204,6 +213,7 @@ void regcall hookMID(reg *p) {
           pSdk->checkPointState = 2;
         }
       }
+    }
 
   switch (pMsgRead->ReadBits(8)) {
     case MID_FRAG_SELF:
@@ -686,7 +696,7 @@ void regcall hookMID(reg *p) {
                          sizeof(wchar_t);
           int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
           IsTextUnicode((void *)playerName, len, &isUni);
-          if (isUni) {
+          if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
             // GameClientData* pGameClientData =
             // pSdk->getGameClientData((HCLIENT)p->v0);
             pSdk->BootWithReason(pGameClientData,
@@ -751,7 +761,7 @@ void regcall hookMID(reg *p) {
                      sizeof(wchar_t);
       int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
       IsTextUnicode((void *)playerName, len, &isUni);
-      if (isUni) {
+      if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
         // GameClientData* pGameClientData =
         // pSdk->getGameClientData((HCLIENT)p->v0);
         pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,

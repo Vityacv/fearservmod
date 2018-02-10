@@ -58,6 +58,7 @@
 #define MID_WEAPON_FIRE         133
 #define MID_VOTE                191
 #define MID_CLIENTCONNECTION          245
+#define MID_MULTIPLAYER_UPDATE          147
 #define MID_PLAYER_UPDATE 100
 #define MID_OBJECT_MESSAGE 159
 #define MID_SFX_MESSAGE             231

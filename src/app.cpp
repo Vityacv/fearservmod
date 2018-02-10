@@ -17,6 +17,11 @@
 8B 54 24 14 8B 44 24 18 42 3B D0 89 54 24 14 0F 8C EE FE FF FF
 0F 84 E1 00 00 00 8B 4E 08 8B 01 57 FF 50 0C 8B D8 F6 C3 01
 loop
+
+
+56 55 52 57 E8 59 FA FF FF EB 16
+D9 55 F8 D9 55 08 D8 CA D9 5D B8 D8 4D 08 D9 5D BC DD D8 D9 45 B4 D8 4D 08 D9 5D C0
+loop2 engineserver
 */
 
 #define NOINTRO
@@ -188,7 +193,10 @@ void regcall hookMID(reg *p) {
   HOBJECT hClientObj = pSdk->GetClientObject((HCLIENT)p->v0);
   //if (!hClientObj) return;
   GameClientData *pGameClientData = pSdk->getGameClientData((HCLIENT)p->v0);
-  if (!pGameClientData) return;
+  if (!pGameClientData) {
+    p->state=1;
+    return;
+  }
   unsigned clientId = pSdk->g_pLTServer->GetClientID((HCLIENT)p->v0);
   CPlayerObj *pPlayerObj = pSdk->GetPlayerFromHClient((HCLIENT)p->v0);
   /*if (!pPlayerObj) {
@@ -214,8 +222,12 @@ void regcall hookMID(reg *p) {
         }
       }
     }
-
-  switch (pMsgRead->ReadBits(8)) {
+  uint8_t nMessageId = pMsgRead->ReadBits(8);
+  if(!*(unsigned char *)(pGameClientData + 0x7C) /*m_bPassedSecurity*/   && nMessageId != MID_MULTIPLAYER_UPDATE && nMessageId != MID_CLIENTCONNECTION){
+  p->state=1;
+  return;
+}
+  switch (nMessageId) {
     case MID_FRAG_SELF:
       p->state = 1;
       break;
@@ -1377,6 +1389,18 @@ if(bCoop==1){
       }
     }
   }
+    {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"84C07408??8B??E8????????????C20800");
+      if (tmp) {
+        // unprotectCode(tmp);
+        patchData::addCode(tmp + 8, 4);
+        *(unsigned *)(tmp + 8) = getRel4FromVal(
+            (tmp + 8),
+            (unsigned char *)(void *)CPlayerObj::handlePlayerPositionMessage);
+      }
+    }
   if (bPreventNoclip) {
   {
       if (pSdk->CPlayerObj_UpdateMovement) {
@@ -1402,18 +1426,7 @@ if(bCoop==1){
                             10);
       }
     }
-    {
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"84C07408??8B??E8????????????C20800");
-      if (tmp) {
-        // unprotectCode(tmp);
-        patchData::addCode(tmp + 8, 4);
-        *(unsigned *)(tmp + 8) = getRel4FromVal(
-            (tmp + 8),
-            (unsigned char *)(void *)CPlayerObj::handlePlayerPositionMessage);
-      }
-    }
+
 
     /*{
       while (true) {

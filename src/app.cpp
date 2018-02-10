@@ -268,6 +268,10 @@ void regcall hookMID(reg *p) {
       p->state = 1;
       break;
     case MID_PLAYER_ACTIVATE: {
+      if(!pPlayerObj){
+        p->state=1;
+        break;
+      }
       CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
                                         pSdk->CPlayerObj_m_Arsenal);
       if (!pArsenal) {
@@ -292,6 +296,10 @@ void regcall hookMID(reg *p) {
           bPosInvalid = 0;
           break;
         case MID_ACTIVATE_LADDER:
+        if(!pPlayerObj){
+          p->state=1;
+          break;
+        }
           bPosInvalid = 0;
           hObject ? pPlData->bLadderInUse=1 : pPlData->bLadderInUse=0;
           if (pPlData->onChangeWeaponHWEAPON !=
@@ -319,6 +327,10 @@ void regcall hookMID(reg *p) {
 
     } break;
     case MID_WEAPON_CHANGE: {
+      if(!pPlayerObj){
+        p->state=1;
+        break;
+      }
       CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
                                         pSdk->CPlayerObj_m_Arsenal);
       if (!pArsenal) {
@@ -345,6 +357,10 @@ void regcall hookMID(reg *p) {
       }
     } break;
     case MID_SLOWMO: {
+      if(!pPlayerObj){
+        p->state=1;
+        break;
+      }
       void *m_Inventory =
           (((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Inventory));
       HGEAR m_hSlowMoGearRecord =
@@ -573,6 +589,10 @@ void regcall hookMID(reg *p) {
 
     break;
     case MID_DROP_GRENADE: {
+      if(!pPlayerObj){
+        p->state=1;
+        break;
+      }
       pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatWeapons);
       HAMMO hAmmo =
           pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);

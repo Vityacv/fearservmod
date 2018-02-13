@@ -208,7 +208,10 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
 
       // determine the maximum allowed distance by scaling the velocity, but don't
       // reduce it below the minimum threshold
-      float fMaxDistance = LTMAX(vVelocity.Mag() * 0.3f/*(*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashScale))*/, (*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashSpring)));
+      float fLeashScale = 0.14f;
+      if(aData->bPreventNoclip == 2)
+        fLeashScale = 0.3f;
+      float fMaxDistance = LTMAX(vVelocity.Mag() * fLeashScale/*(*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashScale))*/, (*(float *)((unsigned char *)pPlayerObj + CPlayerObj_m_fLeashSpring)));
 
       // recalculate the distance from the client's last reported position
       fDistSqr = vNewPos.DistSqr(*(LTVector *)((unsigned char *)pPlayerObj + CPlayerObj_m_vLastClientPos));
@@ -216,6 +219,7 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
       // check to see if we've exceeded the maximum allowed distance
       if (fDistSqr > fMaxDistance*fMaxDistance)
       {
+        unsigned timeMs = getRealTimeMS(); 
         //if (s_vtAlwaysForceClientToServerPos.GetFloat())
         if(*(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_ePlayerState) == ePlayerState_Alive && !freeMovement && !pPlData->bLadderInUse/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
                                          CCharacter_m_hLadderObject)*/)
@@ -231,13 +235,24 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
 
           // store the current time, which will be used to disregard player updates
           // that were sent by the client prior to the teleport event
-          *(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_nLastPositionForcedTime) = getRealTimeMS( );
+          *(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_nLastPositionForcedTime) = timeMs;
 
           // turn off the leash
           *(bool *)((unsigned char *)pPlayerObj + CPlayerObj_m_bUseLeash) = false;
         }
         else
         {
+
+            pPlData->leashBrokenExceedCnt++;
+            if(pPlData->leashBrokenExceedCnt){
+              unsigned fTimeDelta = timeMs - pPlData->leashBrokenTimeMS;
+              if(fTimeDelta >= 15000)
+                pPlData->leashBrokenExceedCnt = 0;
+            }
+            pPlData->leashBrokenTimeMS = timeMs;
+            if (pPlData->leashBrokenExceedCnt > 10)
+              BootWithReason(pGameClientData, eClientConnectionError_InvalidAssets,
+                             (char *)0);
         // use physics to move the object with collisions
         g_pPhysicsLT->MoveObject(pPlayerObj->m_hObject, *(LTVector *)((unsigned char *)pPlayerObj + CPlayerObj_m_vLastClientPos), 0);
         
@@ -552,6 +567,7 @@ void fearData::fearDataInitServ() {
       *(unsigned *)(tmp) = 0xE8909090;
     }
   }
+
   {
         unsigned char *tmp =
         scanBytes((unsigned char *)gServer, gServerSz,

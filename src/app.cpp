@@ -951,12 +951,125 @@ void regcall hookReadProps(reg *p) {
   }
 }
 
-void regcall hookSetObjFlags (reg *p){
+/*void regcall hookSetObjFlags (reg *p){
   p->state=2;
   uintptr_t * pObj = (uintptr_t*)p->tsi;
   if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY))
     pObj[1]=0x71;
   p->tdx=0x40;
+}*/
+
+// StarCompare() helper function
+bool regcall starCompareHelper( char *str,  char *pat) {
+  if (*pat == '\0') return 1;
+  if (*pat == '*') {
+    if (*str) {
+      // advance str and use the * again
+      if (starCompareHelper(str + 1, pat)) return 1;
+    }
+    // let * match nothing and advacne to the next pattern
+    return starCompareHelper(str, pat + 1);
+  }
+  if (*pat == *str) {
+    return starCompareHelper(str + 1, pat + 1);
+    }
+  return 0;
+}  
+
+bool regcall starCmp( char *str,  char *pat) {
+  if (!str || !pat) return 0;
+  do {
+    if (starCompareHelper(str, pat)) return 1;
+  } while (*str++);
+  return 0;
+}
+
+void regcall hookSetObjFlags (reg *p){
+  fearData *pSdk = &handleData::instance()->pSdk;
+  uintptr_t * pObj = (uintptr_t*)p->tsi;
+    if(pObj){
+      char * objName = (char*)((unsigned char *)pObj + pSdk->ObjectCreateStruct_m_Name);
+    //if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
+      bool isMatch = 0;
+
+if(starCmp(objName,(char*)"VendingMachine*.Base"))isMatch=1;
+if(starCmp(objName,(char*)"VendingMachine*.glow"))isMatch=1;
+if(starCmp(objName,(char*)"Table_Utililty_*.Base"))isMatch=1;
+if(starCmp(objName,(char*)"Table_Utililty_*.glow"))isMatch=1;
+if(starCmp(objName,(char*)"industrial_fridge*.Base"))isMatch=1;
+if(starCmp(objName,(char*)"industrial_fridge*.glow"))isMatch=1;
+if(starCmp(objName,(char*)"Barrel*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"vase_*.Vase"))isMatch=1;
+if(starCmp(objName,(char*)"vase_*.vase_top"))isMatch=1;
+if(starCmp(objName,(char*)"vase_*.vase_bottom"))isMatch=1;
+if(starCmp(objName,(char*)"box_single*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"TrafficBarrel*.TrafficBarrel"))isMatch=1;
+if(starCmp(objName,(char*)"Bucket*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"Bucket*.Bucket"))isMatch=1;
+if(starCmp(objName,(char*)"mopbucket_trans*.Bucket"))isMatch=1;
+if(starCmp(objName,(char*)"junk_cone*.cone"))isMatch=1;
+if(starCmp(objName,(char*)"decor_TrashCan*.trashcan"))isMatch=1;
+if(starCmp(objName,(char*)"Cactus*.Cactus"))isMatch=1;
+if(starCmp(objName,(char*)"Ind_Trashcan*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"decor_TrashCan*.trashcan"))isMatch=1;
+if(starCmp(objName,(char*)"Sofa-2Seat*_Flip*.Sofa2"))isMatch=1;
+if(starCmp(objName,(char*)"apt_TV*_static*.WorldModel00"))isMatch=1;
+
+if(isMatch){
+          pObj[1]=0x71;
+        pObj[2]=0x40;
+}
+switch(hash_rta(objName)){
+case hash_ct("GarbageCan0100.WorldModel01"):
+//case hash_ct("Window-LobbyLrg00.WorldModel00"):
+//hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
+        pObj[1]=0x71;
+        pObj[2]=0x40;
+        break;
+break;
+      }
+      /*switch(hash_rta(objName)){
+case hash_ct("Barrel101.WorldModel00"):
+case hash_ct("Barrel207.WorldModel00"):
+case hash_ct("Barrel214.WorldModel00"):
+case hash_ct("box_single0200.WorldModel00"):
+case hash_ct("TrafficBarrel01.TrafficBarrel"):
+case hash_ct("Bucket200.WorldModel00"):
+case hash_ct("Bucket00.Bucket"):
+case hash_ct("mopbucket_trans0100.Bucket"):
+case hash_ct("junk_cone100.cone"):
+case hash_ct("junk_cone0100.cone"):
+case hash_ct("decor_TrashCan0100.trashcan"):
+case hash_ct("Cactus00.Cactus"):
+case hash_ct("Cactus100.Cactus"):
+case hash_ct("vase_100.Vase"):
+case hash_ct("vase_101.Vase"):
+case hash_ct("vase_102.Vase"):
+case hash_ct("vase_0100.Vase"):
+case hash_ct("vase_103.Vase"):
+case hash_ct("Ind_Trashcan00.WorldModel00"):
+case hash_ct("Ind_Trashcan01.WorldModel00"):
+case hash_ct("Ind_Trashcan02.WorldModel00"):
+case hash_ct("Ind_Trashcan03.WorldModel00"):
+case hash_ct("Sofa-2Seat01_Flip.Sofa2"):
+case hash_ct("Sofa-2Seat01_Flip00.Sofa2"):
+case hash_ct("apt_TV01_static00.WorldModel00"):
+case hash_ct("GarbageCan0100.WorldModel01"):
+case hash_ct("Table_Utililty_101.Base"):
+case hash_ct("Table_Utililty_102.Base"):
+case hash_ct("VendingMachine0200.Base"):
+
+        pObj[1]=0x71;
+        pObj[2]=0x40;
+        break;
+case hash_ct("Powerbox_Explosive0100.Powerbox_EXP_door"):
+case hash_ct("Powerbox_Explosive100.Powerbox_EXP_door"):
+        pObj[1]=0x31;
+        pObj[2]=0x80;
+break;
+      }*/
+    //}
+  }
 }
 
 void regcall hookReloadWeapon(reg *p) {
@@ -1012,6 +1125,7 @@ void appData::configHandle() {
         *(uintptr_t*)(pfunc) = (uintptr_t)func;
     }
   }
+
   {
     unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
@@ -1080,7 +1194,7 @@ void appData::configHandle() {
     }
   if (bCoop) {
 
-    bPreventNoclip = 1;
+    bPreventNoclip = 2;
     // bIgnoreUnusedMsgID=0;
     bSyncObjects = 1;
     bBotsMP = 1;
@@ -1434,7 +1548,7 @@ if(bCoop==1){
       }
     }
     
-    {
+    if(bPreventNoclip==2){
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
                     (char *)"8BCFFF90????????3BC3A3????????7410C705????????????????893D????????391D????????75688B0D????????891D????????891D????????891D????????8B1168????????8BF9FF92????????3BC3A3????????75??8B0753");
@@ -1445,6 +1559,8 @@ if(bCoop==1){
                                 0xB9, 0x00, 0x00, 0x80, 0x3F, 0x90, 0x90, 0x8B, 0x07, 0x51},
                             10);
       }
+    }else{
+      pSdk->freeMovement = 1;
     }
 
 
@@ -1613,7 +1729,24 @@ if(bCoop==1){
       }
     }*/
 
-    {
+  if(bCoop){
+      {
+      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
+                        (char *)"E8????????84C074??F6??????74??68????????8B??E8????????85C074");
+      if (tmp) {
+        unprotectCode(tmp);
+        memcpy(tmp, moveax0, 5);
+      }
+    }
+  }
+  else{
+        unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  (char *)"834E08048D????85??8D??????????74");
+    pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
+    spliceUp(tmp+9 , (void *)hookSetObjFlags);
+  }
+    /*{
       unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
           (char
@@ -1622,13 +1755,13 @@ if(bCoop==1){
         patchData::addCode(tmp,12);
         memset(tmp,0x90,12);
         spliceUp(tmp , (void *)hookSetObjFlags);
-        /*patchData::codeswap((unsigned char *)tmp,
-                            (unsigned char *)(const unsigned char[]){
-                                0xC7, 0x46, 0x04, 0x71, 0x00, 0x00, 0x00, 0xC7,
-                                0x46, 0x08, 0x40, 0x00, 0x00, 0x00, 0x90},
-                            15);*/
+        //patchData::codeswap((unsigned char *)tmp,
+        //                    (unsigned char *)(const unsigned char[]){
+        //                        0xC7, 0x46, 0x04, 0x71, 0x00, 0x00, 0x00, 0xC7,
+        //                        0x46, 0x08, 0x40, 0x00, 0x00, 0x00, 0x90},
+        //                    15);
       }
-    }
+    }*/
 
     if (bCoop) {
       /*{

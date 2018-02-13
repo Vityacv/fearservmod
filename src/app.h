@@ -32,7 +32,7 @@ class appData {
   bool bCoopDoSpawn = 0;
   bool bDoGameSpy = 0;
   bool bConfigInitialized = 0;
-  bool bPreventNoclip = 0;
+  unsigned char bPreventNoclip = 0;
   bool bIgnoreUnusedMsgID = 0;
   bool bSyncObjects = 0;
   unsigned char bCoop = 0;

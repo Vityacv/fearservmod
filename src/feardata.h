@@ -10,6 +10,8 @@ struct playerData {
   LTVector lastvPathFire;
   unsigned char movePacketCnt;
   unsigned moveLimitExceedCnt;
+  unsigned leashBrokenExceedCnt;
+
   HWEAPON lastWep;
   unsigned onChangeWeaponTime;
   HWEAPON onChangeWeaponHWEAPON;
@@ -25,6 +27,7 @@ struct playerData {
   unsigned lastVoteTime;
   unsigned char bResetToUnarmed;
   unsigned moveLimitLastTimeMS;
+  unsigned leashBrokenTimeMS;
   bool bLadderInUse;
   bool bIsDead;
 };
@@ -73,6 +76,7 @@ class fearData {
   HAMMO m_hUnarmedRecordAmmo;
   unsigned ILTServer_GetRealTimeMS;
   unsigned GameClientData_m_nClientMoveCode;
+  unsigned ObjectCreateStruct_m_Name;
   unsigned CPlayerObj_m_Inventory;
   unsigned CPlayerObj_m_Arsenal;
   unsigned CPlayerObj_m_hClient;

@@ -991,7 +991,8 @@ void regcall hookSetObjFlags (reg *p){
       char * objName = (char*)((unsigned char *)pObj + pSdk->ObjectCreateStruct_m_Name);
     //if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
       bool isMatch = 0;
-
+if(starCmp(objName,(char*)"Crate-CardBoard*.Box"))isMatch=1;
+if(starCmp(objName,(char*)"Table-Wall-Cover*.SlideTableAWM"))isMatch=1;
 if(starCmp(objName,(char*)"VendingMachine*.Base"))isMatch=1;
 if(starCmp(objName,(char*)"VendingMachine*.glow"))isMatch=1;
 if(starCmp(objName,(char*)"Table_Utililty_*.Base"))isMatch=1;
@@ -999,6 +1000,7 @@ if(starCmp(objName,(char*)"Table_Utililty_*.glow"))isMatch=1;
 if(starCmp(objName,(char*)"industrial_fridge*.Base"))isMatch=1;
 if(starCmp(objName,(char*)"industrial_fridge*.glow"))isMatch=1;
 if(starCmp(objName,(char*)"Barrel*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"Crate_*.WorldModel00"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.Vase"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.vase_top"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.vase_bottom"))isMatch=1;
@@ -1013,14 +1015,18 @@ if(starCmp(objName,(char*)"Cactus*.Cactus"))isMatch=1;
 if(starCmp(objName,(char*)"Ind_Trashcan*.WorldModel00"))isMatch=1;
 if(starCmp(objName,(char*)"decor_TrashCan*.trashcan"))isMatch=1;
 if(starCmp(objName,(char*)"Sofa-2Seat*_Flip*.Sofa2"))isMatch=1;
-if(starCmp(objName,(char*)"apt_TV*_static*.WorldModel00"))isMatch=1;
+if(starCmp(objName,(char*)"GarbageCan*.WorldModel*"))isMatch=1;
+if(starCmp(objName,(char*)"trash_can*.WorldModel*"))isMatch=1;
+if(starCmp(objName,(char*)"chair_dress*.ChairPhysics"))isMatch=1;
+if(starCmp(objName,(char*)"apt_TV*.WorldModel00"))isMatch=1;
 
 if(isMatch){
           pObj[1]=0x71;
         pObj[2]=0x40;
 }
 switch(hash_rta(objName)){
-case hash_ct("GarbageCan0100.WorldModel01"):
+//case hash_ct("GarbageCan0100.WorldModel01"):
+case hash_ct("40oz00.WorldModel00"):
 //case hash_ct("Window-LobbyLrg00.WorldModel00"):
 //hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
         pObj[1]=0x71;

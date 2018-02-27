@@ -390,8 +390,9 @@ void regcall hookMID(reg *p) {
       memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (p->state) {
-        pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Invalid team");
+        pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+        //pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+        //                     (char *)"Invalid team");
       }
       if ((playerState == ePlayerState_Alive) ||
           (playerState == ePlayerState_Dying_Stage2) ||
@@ -991,6 +992,8 @@ void regcall hookSetObjFlags (reg *p){
       char * objName = (char*)((unsigned char *)pObj + pSdk->ObjectCreateStruct_m_Name);
     //if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
       bool isMatch = 0;
+
+if(starCmp(objName,(char*)"library_chair*.Chair Physics"))isMatch=1;
 if(starCmp(objName,(char*)"Crate-CardBoard*.Box"))isMatch=1;
 if(starCmp(objName,(char*)"Table-Wall-Cover*.SlideTableAWM"))isMatch=1;
 if(starCmp(objName,(char*)"VendingMachine*.Base"))isMatch=1;
@@ -1004,6 +1007,7 @@ if(starCmp(objName,(char*)"Crate_*.WorldModel00"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.Vase"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.vase_top"))isMatch=1;
 if(starCmp(objName,(char*)"vase_*.vase_bottom"))isMatch=1;
+if(starCmp(objName,(char*)"box_single*.Box"))isMatch=1;
 if(starCmp(objName,(char*)"box_single*.WorldModel00"))isMatch=1;
 if(starCmp(objName,(char*)"TrafficBarrel*.TrafficBarrel"))isMatch=1;
 if(starCmp(objName,(char*)"Bucket*.WorldModel00"))isMatch=1;
@@ -1018,10 +1022,12 @@ if(starCmp(objName,(char*)"Sofa-2Seat*_Flip*.Sofa2"))isMatch=1;
 if(starCmp(objName,(char*)"GarbageCan*.WorldModel*"))isMatch=1;
 if(starCmp(objName,(char*)"trash_can*.WorldModel*"))isMatch=1;
 if(starCmp(objName,(char*)"chair_dress*.ChairPhysics"))isMatch=1;
+if(starCmp(objName,(char*)"chair*.ChairPhysics"))isMatch=1;
+if(starCmp(objName,(char*)"apt_TV*.WorldModel00"))isMatch=1;
 if(starCmp(objName,(char*)"apt_TV*.WorldModel00"))isMatch=1;
 
 if(isMatch){
-          pObj[1]=0x71;
+          //pObj[1]=0x71;
         pObj[2]=0x40;
 }
 switch(hash_rta(objName)){
@@ -1029,7 +1035,7 @@ switch(hash_rta(objName)){
 case hash_ct("40oz00.WorldModel00"):
 //case hash_ct("Window-LobbyLrg00.WorldModel00"):
 //hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
-        pObj[1]=0x71;
+        //pObj[1]=0x71;
         pObj[2]=0x40;
         break;
 break;

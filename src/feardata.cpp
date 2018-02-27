@@ -177,12 +177,12 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
                                             CPlayerObj_m_hClient);
     if(!hClient)
       return;
-  GameClientData *pGameClientData = getGameClientData(hClient);
+  //GameClientData *pGameClientData = getGameClientData(hClient);
   unsigned clientId = g_pLTServer->GetClientID(hClient);
   playerData *pPlData = &pPlayerData[clientId];
-  if (!pGameClientData) {
-    return;
-  }
+  //if (!pGameClientData) {
+  //  return;
+  //}
   // If we're in multiplayer, handle leashing
   if(/* IsMultiplayerGameServer( ) && */ *(bool *)((unsigned char *)pPlayerObj + CPlayerObj_m_bUseLeash) ){
 
@@ -246,13 +246,14 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
             pPlData->leashBrokenExceedCnt++;
             if(pPlData->leashBrokenExceedCnt){
               unsigned fTimeDelta = timeMs - pPlData->leashBrokenTimeMS;
-              if(fTimeDelta >= 15000)
+              if(fTimeDelta >= 3000)
                 pPlData->leashBrokenExceedCnt = 0;
             }
             pPlData->leashBrokenTimeMS = timeMs;
-            if (pPlData->leashBrokenExceedCnt > 10)
-              BootWithReason(pGameClientData, eClientConnectionError_InvalidAssets,
-                             (char *)0);
+            if (pPlData->leashBrokenExceedCnt > 2)
+              g_pLTServer->KickClient(hClient);
+              /*BootWithReason(pGameClientData, eClientConnectionError_InvalidAssets,
+                             (char *)0);*/
         // use physics to move the object with collisions
         g_pPhysicsLT->MoveObject(pPlayerObj->m_hObject, *(LTVector *)((unsigned char *)pPlayerObj + CPlayerObj_m_vLastClientPos), 0);
         

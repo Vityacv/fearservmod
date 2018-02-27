@@ -824,6 +824,13 @@ class ILTServer {
   void* p12;
   HCLIENT (*GetClientHandle)(uint32_t clientID);
   uint32_t (*GetClientID)(HCLIENT hClient);
+  void* p15;
+  void* p16;
+  void* p17;
+  void* p18;
+  void* p19;
+  void* p20;
+  LTRESULT (*KickClient)(HCLIENT hClient);
 };
 
 

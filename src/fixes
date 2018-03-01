@@ -38,7 +38,7 @@ immortal player
 send damage
 send sound
 rand pickup (2m limit)
-invalid team
+invalid team (auto kick)
 invalid team kick
 uncharged slowmo
 teleport

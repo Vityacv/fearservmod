@@ -1,5 +1,5 @@
 # Server fixes list
-https://github.com/Vityacv/fearservmod/fixes
+https://raw.githubusercontent.com/Vityacv/fearservmod/master/src/fixes
 
 # How to compile:
 requirements: linux distribution (i use archlinux), clang, mingw-w64-clang wrapper for clang, mingw32 compiler libs, WINE, nasm.

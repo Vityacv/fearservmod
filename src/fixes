@@ -1,0 +1,57 @@
+Server crash fix:
+invalid skey/guid
+negative fRate
+force load new map
+invalid unicode chars in nickname
+FindObjectsCb
+force default mp rules (max players)
+early respawn
+
+Client crash fix:
+vote new map (out of index)
+negative fRate (from server)
+
+Client fix:
+without weapon
+disable logo/video
+grenade throw +5 when move +drop +C
+keyboard reset non english
+full version can connect to combat servers
+check server list
+connect from favorites to remote servers
+
+Server fix:
+invalid kill
+clean vote on map load
+
+Server hacks fix:
+host options
+server pause
+render stimulus
+object alpha
+frag self
+get weapons/health/armor/gear etc
+drop grenade
+noclip
+invalid skin
+immortal player
+send damage
+send sound
+rand pickup (2m limit)
+invalid team
+invalid team kick
+uncharged slowmo
+teleport
+spawn teleport
+spawning of unlisted player (unlisted in game)
+chat size limit
+rapid fire (timer in future)
+camera distance check from player body
+run speed
+ladder animation glitch
+remote flashlight
+
+Server extra:
+objects on map now synchronize
+
+compatible with fearxp2 server/client

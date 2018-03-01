@@ -155,6 +155,36 @@ void regcall hookfRateFix(reg *p) {
   float fRateNew = 1.0f;
   float fRate = reinterpret_cast<float &>(p->tax);
   if (fRate <= 0.0f) p->tax = reinterpret_cast<unsigned &>(fRateNew);
+  /*CPlayerObj * pPlayerObj = (CPlayerObj *)p->tdi;
+  fearData *pSdk = &handleData::instance()->pSdk;
+    HCLIENT hClient = (HCLIENT) * (HCLIENT *)((unsigned char *)pPlayerObj +
+                                            pSdk->CPlayerObj_m_hClient);
+    if(!hClient)
+      return;
+  //GameClientData *pGameClientData = getGameClientData(hClient);
+  unsigned clientId = pSdk->g_pLTServer->GetClientID(hClient);
+  playerData *pPlData = &pSdk->pPlayerData[clientId];
+  switch(p->v3){
+    case 0x3A4: //dual pistols
+    case 0x2DF: //g2a2
+    case 0x366: //submachinegun 
+    case 0x130: //pistol
+    case 0x350: //shotgun
+    case 0x339: //penetrator
+    case 0x384: //asp
+    pPlData->isAimed = 0;
+    //DBGLOG("AIM OFF")
+    break;
+    case 0x39D:
+    case 0x2E0:
+    case 0x367:
+    case 0x12f:
+    case 0x351:
+    case 0x33A:
+    case 0x385:
+    pPlData->isAimed = 1;
+    //DBGLOG("AIM ON")
+  }*/
 }
 
 void regcall hookOnAddClient_CheckNickname(reg *p) {
@@ -469,11 +499,13 @@ void regcall hookMID(reg *p) {
         dist = 150.0f;
       pMsgRead->ReadData((void *)&firePos, 0x60);
       pMsgRead->ReadData((void *)&vPath, 0x60);
-      pMsgRead->ReadBits(8);
-      pMsgRead->ReadBits(8);
-      pMsgRead->ReadBits(8);
+      pMsgRead->ReadBits(8);//random number seed
+      pMsgRead->ReadBits(8);//perturb count
+      pMsgRead->ReadBits(8);//perturb
       unsigned fireTimestamp = pMsgRead->ReadBits(0x20);
       unsigned fireServTimestamp = pSdk->getRealTimeMS();
+
+
       bool bFire = 1;
       // pSdk->g_pLTServer->GetObjectPos(hTarget,&targetPos);
       pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
@@ -487,7 +519,7 @@ void regcall hookMID(reg *p) {
         break;
       }
 
-      pPlData->lastvPathFire = vPath;
+      
       // if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
       //                    hash_ct("Minigun")))
       //  break;
@@ -514,6 +546,8 @@ void regcall hookMID(reg *p) {
             pPlData->lastFireWeaponClipAmmo = 0;
             pPlData->lastFireWeaponTimestamp = 0;
             pPlData->lastFireWeaponReload = 0;
+            pPlData->lastFireWeaponAccuracyFailCnt = 0;
+            pPlData->lastFireWeaponAccuracyFail=0;
             pPlData->lastFireWeapon = pWeapon;
             unsigned dwAni = 8;  // RELOAD
             // pSdk->g_pModelLT->GetAnimIndex(pWeapon->m_hModelObject,"Reload",dwAni);
@@ -534,6 +568,28 @@ void regcall hookMID(reg *p) {
                 uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
                 pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nFireDelay), 0, 0);
           } else {
+            /*if(pPlData->lastFireWeaponAccuracyFailCnt){
+              unsigned fTimeDelta = fireTimestamp - pPlData->lastFireWeaponAccuracyFail;
+              if(fTimeDelta >= 3000)
+                pPlData->lastFireWeaponAccuracyFailCnt = 0;
+            }
+      if (hWeapon &&
+          hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Assault Rifle"))
+        if(pPlData->lastvPathFire[0])
+        if(!pPlData->isAimed){
+          if(pPlData->lastvPathFire.NearlyEquals(vPath,0.003f)){
+            pPlData->lastFireWeaponAccuracyFail=fireTimestamp;
+            pPlData->lastFireWeaponAccuracyFailCnt++;
+            if(pPlData->lastFireWeaponAccuracyFailCnt==5){
+                ((void(__thiscall *)(CPlayerObj *)) *
+                 (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
+                               pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
+            p->state=1;
+            break;
+          }
+          }
+      }*/
+      pPlData->lastvPathFire = vPath;
             /*if(pPlData->lastFireWeaponReload){
               pPlData->lastFireWeaponReload = 0;
               unsigned delta = fireTimestamp - pPlData->lastFireWeaponTimestamp;
@@ -1825,7 +1881,7 @@ void appData::configParse(char *pathCfg) {
   bSyncObjects = getCfgInt(pathCfg, (char *)"SyncObjects");
   bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
-  //bPreventNoclip = 1;
+  bPreventNoclip = 1;
   //pSdk->freeMovement=bPreventNoclip;
   bIgnoreUnusedMsgID = 1;
   if (bCoop) {

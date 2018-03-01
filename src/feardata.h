@@ -30,6 +30,10 @@ struct playerData {
   unsigned leashBrokenTimeMS;
   bool bLadderInUse;
   bool bIsDead;
+  unsigned lastFireWeaponAccuracyFail;
+  unsigned char lastFireWeaponAccuracyFailCnt;
+  unsigned hAnim;
+  bool isAimed;
 };
 
 class fearData {

@@ -32,7 +32,7 @@ object alpha
 frag self
 get weapons/health/armor/gear etc
 drop grenade
-noclip
+noclip (auto kick)
 invalid skin
 immortal player
 send damage
@@ -47,7 +47,7 @@ spawning of unlisted player (unlisted in game)
 chat size limit
 rapid fire (timer in future)
 camera distance check from player body
-run speed
+run speed (auto kick)
 ladder animation glitch
 remote flashlight
 

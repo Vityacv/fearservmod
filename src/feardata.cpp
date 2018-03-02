@@ -606,8 +606,12 @@ void fearData::fearDataInitServ() {
     CPlayerObj_UpdateMovement = tmp;
 
   }
-  
-  
+  {
+    unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
+                          (char *)"8B0D????????535350E8????????8B4424??473BF8");
+    pCmdMgr = **(void ***)(tmp+2);
+    CCommandMgr_QueueCommand = getVal4FromRel(tmp+10);
+  }
   {
         unsigned char *tmp =
         scanBytes((unsigned char *)gServer, gServerSz,
@@ -721,6 +725,7 @@ void fearData::fearDataInitServ() {
     g_pWeaponDB = (CWeaponDB *)*(uintptr_t *)*(uintptr_t *)(tmp + 17);
     g_pWeaponDB_GetWeaponData = getVal4FromRel(tmp + 22);
   }
+
   {
     unsigned char * tmp = scanBytes((unsigned char *)gServer, gServerSz,
                              (char *)"E8????????8B??????????6A006A0068??????????89??????E8????????83");
@@ -766,6 +771,7 @@ void fearData::fearDataInit() {
   aData->gDatabaseSz = GetModuleSize((HMODULE)aData->gDatabase);
   g_pLTDatabase = getDatabaseMgr();
   getLTServerClient(gFearExe, gFearExeSz);
+
   {
     void *tmp = scanBytes((unsigned char *)gClient, gClientSz,
                           (char *)"8B0D????????83C40481C1????????56894C242CE8");

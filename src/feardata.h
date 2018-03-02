@@ -34,6 +34,7 @@ struct playerData {
   unsigned char lastFireWeaponAccuracyFailCnt;
   unsigned hAnim;
   bool isAimed;
+  bool isAnim;
 };
 
 class fearData {
@@ -67,6 +68,8 @@ class fearData {
   void *CArsenal_SetAmmo;
   void *CArsenal_GetCurWeapon;
   void *CArsenal_DecrementAmmo;
+  void *CCommandMgr_QueueCommand;
+  void *pCmdMgr;
   HOBJECT startPtObj=0;
   HCATEGORY m_hMissionCat;
   HCATEGORY m_hModelsCat;
@@ -78,6 +81,8 @@ class fearData {
   HRECORD m_hPlayer;
   HWEAPON m_hUnarmedRecord; 
   HAMMO m_hUnarmedRecordAmmo;
+  unsigned randomWeaponTime=0;
+  HWEAPON currentRandomWeapon;
   unsigned ILTServer_GetRealTimeMS;
   unsigned GameClientData_m_nClientMoveCode;
   unsigned ObjectCreateStruct_m_Name;

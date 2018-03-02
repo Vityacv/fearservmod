@@ -27,6 +27,7 @@ class appData {
   uintptr_t gFearExeSz;
   unsigned storyModeCnt;
   void *hInstance;
+  bool bRandWep=0;
   bool bFlashlight = 0;
   bool bExeType = 0;
   bool bCoopDoSpawn = 0;

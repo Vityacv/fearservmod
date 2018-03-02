@@ -2,7 +2,7 @@
 https://raw.githubusercontent.com/Vityacv/fearservmod/master/src/fixes
 
 # How to compile:
-requirements: linux distributive (i use archlinux), mingw-w64, WINE 3+, nasm.
+requirements: linux distribution (i use archlinux), mingw-w64, WINE 3+, nasm.
 
 Download https://github.com/Vityacv/libsplice and https://github.com/Vityacv/libmisc. Compile it. Place it together with fearservmod folder.
 

@@ -80,8 +80,11 @@ class fearData {
   HRECORD m_hGlobalRecord;
   HRECORD m_hPlayer;
   HWEAPON m_hUnarmedRecord; 
+  unsigned char randomWepTable[20];
+  unsigned char currentRandomWeaponInd;
   HAMMO m_hUnarmedRecordAmmo;
   unsigned randomWeaponTime=0;
+  
   HWEAPON currentRandomWeapon;
   unsigned ILTServer_GetRealTimeMS;
   unsigned GameClientData_m_nClientMoveCode;

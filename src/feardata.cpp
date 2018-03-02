@@ -975,9 +975,35 @@ void regcall fearData::hookCheckpointEvent(reg *p) {
   }
 }
 
+template <typename T>
+void shuffle(T *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
+
 void regcall fearData::hookOnMapLoaded(reg *p) {
   appData *aData = &handleData::instance()->aData;
   fearData *pSdk = aData->pSdk;
+  if(aData->bRandWep){
+    srand(__rdtsc());
+    pSdk->currentRandomWeaponInd=0;
+    unsigned char * in =pSdk->randomWepTable;
+    int i;
+    for(i=0;i!=17;i++){
+      in[i]=i;
+    }
+    shuffle(in,17);
+  }
   ((void(__thiscall *)(void *))pSdk->g_pServerVoteMgr_ClearVote)(pSdk->g_pServerVoteMgr);
   if(aData->bCoop){
     char *lvlName = pSdk->getCurrentLevelName();

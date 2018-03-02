@@ -186,7 +186,8 @@ void regcall hookfRateFix(reg *p) {
     //DBGLOG("AIM ON")
   }*/
 }
-const char *wepsmpstr[] = {"Pistol",
+const char *wepsmpstr[] = {"Remote Charge",
+  "Pistol",
                            "Submachinegun",
                            "Shotgun",
                            "Assault Rifle",
@@ -200,8 +201,8 @@ const char *wepsmpstr[] = {"Pistol",
                            "Turret_Remote",
                            "Turret_Street",
                            "Frag Grenade",
-                           "Remote Charge",
                            "Proximity",
+                           "Unarmed",
                            0
                          };
 
@@ -215,7 +216,7 @@ void regcall hookOnAddClient_CheckNickname(reg *p) {
     int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
     IsTextUnicode((void *)ncd->m_szName,
                   wcslen(ncd->m_szName) * sizeof(wchar_t), &isUni);
-    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) p->tax = 0;
+    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) p->tax = (uintptr_t)pSdk->m_hUnarmedRecord;
   }
 }
 
@@ -223,19 +224,35 @@ void regcall hookRandomWeapon(reg * p){
   p->state=2;
   fearData *pSdk = &handleData::instance()->pSdk;
   unsigned timeMS=pSdk->getRealTimeMS();
-  
-  if(!pSdk->randomWeaponTime || timeMS-pSdk->randomWeaponTime > 30000){
+  if(!pSdk->randomWeaponTime || timeMS-pSdk->randomWeaponTime > 90000){
     pSdk->randomWeaponTime = timeMS;
-    const char * szWep = wepsmpstr[GetRandomInt(16)];
+    const char * szWep = wepsmpstr[pSdk->randomWepTable[pSdk->currentRandomWeaponInd]];
+    if(pSdk->currentRandomWeaponInd==17)
+      pSdk->currentRandomWeaponInd=0;
+    else
+      pSdk->currentRandomWeaponInd++;
     pSdk->currentRandomWeapon = 
             pSdk->g_pLTDatabase->GetRecord(pSdk->m_hCatWeapons, szWep);
                   ((void(__thiscall *)(void *,const char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,"msg Player RESETINVENTORY", 0, 0);
                   char str[64];
                   sprintf(str,"msg Player (ACQUIREWEAPON %s)",szWep);
                   ((void(__thiscall *)(void *,char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,str, 0, 0);
-p->tax=0;
+                  if(!pSdk->randomWepTable[pSdk->currentRandomWeaponInd]){
+                  ((void(__thiscall *)(void *,const char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,"msg Player (CHANGEWEAPON Unarmed)", 0, 0);
+                  }else{
+                  sprintf(str,"msg Player (CHANGEWEAPON %s)",szWep);
+                  ((void(__thiscall *)(void *,char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,str, 0, 0);
+                  }
+
+      p->tax=0;
   }else p->tax=(uintptr_t)pSdk->currentRandomWeapon;
  
+}
+
+void regcall hookPickupRndWeapon(reg * p){
+  fearData *pSdk = &handleData::instance()->pSdk;
+  if(pSdk->currentRandomWeapon!=(HWEAPON)p->tax)
+    p->tax=0;
 }
 
 struct readMsg {
@@ -1344,7 +1361,16 @@ void appData::configHandle() {
         spliceUp(tmp, (void *)hookRandomWeapon);
       }
     }
-    {
+          {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    (char *)"8B0D????????8B168BF88B41??50A1????????508BCEFF52??8B168BD86A20");
+      if (tmp) {
+        spliceUp(tmp, (void *)hookPickupRndWeapon);
+      }
+    }
+    
+        /*{
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
                     (char *)"FF24??????????56558BCBE8????????EB");
@@ -1352,7 +1378,7 @@ void appData::configHandle() {
         patchData::addCode((unsigned char *)tmp+7, 2);
         *(unsigned short *)(tmp+7) = 0x07EB;
       }
-    }
+    }*/
     }
   if (bCoop) {
 

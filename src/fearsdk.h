@@ -54,6 +54,7 @@
 #define MID_DO_DAMAGE             217
 #define MID_PLAYER_CLIENTMSG 119
 #define MID_PLAYER_GEAR 170
+#define MID_DECISION 239
 #define MID_PLAYER_EVENT        123
 #define MID_WEAPON_FIRE         133
 #define MID_VOTE                191

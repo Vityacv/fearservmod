@@ -315,6 +315,9 @@ void regcall hookMID(reg *p) {
     case MID_FRAG_SELF:
       p->state = 1;
       break;
+    case MID_DECISION:
+      p->state=1;
+      break;
     case MID_OBJECT_ALPHA:
       p->state = 1;
       break;

@@ -991,6 +991,10 @@ void regcall hookMID(reg *p) {
           HCLIENT hTargetClient = pSdk->g_pLTServer->GetClientHandle(nTargetId);
           GameClientData *pGameTargetData =
               pSdk->getGameClientData(hTargetClient);
+          if(!pGameTargetData){
+            p->state=1;
+            break;
+          }
           if (*(unsigned char *)(pGameClientData + 0x74) !=
               *(unsigned char *)(pGameTargetData + 0x74))  // team
             p->state = 1;

@@ -1,0 +1,91 @@
+#!/bin/sh
+
+ccomp32=i686-w64-mingw32-gcc
+ccomp64=x86_64-w64-mingw32-gcc
+cppcomp32=i686-w64-mingw32-g++
+cppcomp64=x86_64-w64-mingw32-g++
+ld=ld
+ld64=ld
+objcopy=x86_64-w64-mingw32-objcopy
+subdir1=`dirname $PWD`
+subdir0=`dirname $subdir1`
+splice=libsplice
+misc=libmisc
+thisdir=$subdir1
+#${subdir1##*/}
+
+splicedir=$subdir0/$splice
+splicesrcdir=$splicedir/src
+miscdir=$subdir0/$misc
+miscsrcdir=$miscdir/src
+spliceobj32dir=$splicedir/obj32
+spliceobj64dir=$splicedir/obj64
+win=$HOME/.wine/drive_c
+bin=$subdir1/bin
+obj=$subdir1/obj
+extra=$subdir1/extra
+src=$PWD
+
+wobj=$thisdir/obj
+wbin=$thisdir/bin
+wsrc=$thisdir/src
+wlibsplice32=$subdir0/$splice/obj32
+wlibsplice64=$subdir0/$splice/obj64
+wlibmisc32=$subdir0/$misc/obj32
+wlibmisc64=$subdir0/$misc/obj64
+wextra=extra
+
+
+noalign="-falign-labels=1 -falign-functions=1 -falign-loops=1 -falign-jumps=1 -flimit-function-alignment"
+sizeopt="-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
+cppopt="-fno-threadsafe-statics -fno-rtti -Wno-pmf-conversions"
+cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -DDEBUG -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
+
+cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll -ladvapi32"
+
+if [ ! -d "$obj" ]; then
+mkdir $obj
+fi
+cd $obj
+for i in "$@"
+do
+case $i in
+    -c)
+    echo "recompiling..."
+    $cppcomp32 -c $cfsharedulink -include $src/pch.h $src/handle.cpp $src/start.cpp
+    ;;
+    -g|-gch)
+    echo "generating pch.h.gch"
+    $cppcomp32 $cfsharedulink -x c++-header -o $obj/pch.h.gch -c $src/pch.cpp
+    exit;
+    ;;
+    -w|-win)
+    echo "initializing wine links for ulink"
+    ln -s `$ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingwlib32
+    ln -s `$ld64 --verbose | grep SEARCH_DIR | tr -s ' ;' \\012 | grep -o -P '(?<=DIR\(\").*(?=\"\))'` $win/mingwlib64
+    ln -s $subdir0/$thisdir $win/$thisdir
+    exit;
+    ;;
+    *)
+            # unknown option
+    ;;
+esac
+done
+
+mingwlib32=`gcc -m32 -Xlinker --verbose 2>/dev/null | grep SEARCH | sed 's/SEARCH_DIR("=\?\([^"]\+\)"); */\1\n/g'  | grep -vE '^$' | sed -n '1p'`
+wlibmisc32=`cygpath -w $wlibmisc32`
+wlibsplice32=`cygpath -w $wlibsplice32`
+wsrc=`cygpath -w $wsrc`
+wobj=`cygpath -w $wobj`
+mingwlib32=`cygpath -w $mingwlib32`
+
+$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/app.cpp $src/feardata.cpp 
+
+#$cppcomp32 -include $src/pch.h -c $cfsharedulink $src/testdecode.cpp 
+cd $bin
+
+#WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"core.exe" --gcc -e_wmainCRT -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpe -q -B- -b* -N -L$mingwlib32 $wobj/testdecode.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
+
+#WINEDEBUG=-all wine $win/extra/ulink.exe 
+ulink -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.1 -U6.1 -V6.1 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -L$mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+

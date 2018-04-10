@@ -338,7 +338,7 @@ unsigned timeMs = pPlData->thisMoveTimeMS;
                 float x = (newPos.x - oldPos.x), y = (newPos.y - oldPos.y),
                       z = (newPos.z - oldPos.z);
 
-                // float runSpeed = getFloatDB(m_hPlayer,PLAYER_BUTE_RUNSPEED);
+                float runSpeed = getFloatDB(m_hPlayer,PLAYER_BUTE_RUNSPEED);
 
                 float fMoveMultiplier =
                     *(float *)((unsigned char *)pPlayerObj +
@@ -350,15 +350,16 @@ unsigned timeMs = pPlData->thisMoveTimeMS;
                              0.1;  // metre
                 float speed;       // = 60.0f;
                 if (oldPos.y == newPos.y) {
-                  speed = ((fMoveMultiplier * 2.0f) * 10.0f) *
-                          pPlData->fMovementMultiplier;
+                  //speed = ((fMoveMultiplier * 2.0f) * 10.0f) *
+                  //        pPlData->fMovementMultiplier;
+                  speed = ((runSpeed+24.0f)*0.036f) *(fMoveMultiplier * pPlData->fMovementMultiplier);
                   float predict = (dist / speed) * 3600.0f;
                   float fTimeDelta = (float)(timeMs - pPlData->lastMoveTimeMS);
                   if ((fTimeDelta < predict)) {
+                    //DBGLOG("%lf %lf %lf",predict,fTimeDelta,dist);
                     bMove = 0;
                   }
                 }
-                // DBGLOG("%lf %lf %lf",predict,fdelta,dist);
               }
             }
             pPlData->lastMoveTimeMS = timeMs;

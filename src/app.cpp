@@ -457,9 +457,9 @@ void regcall hookMID(reg *p) {
       memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (p->state) {
-        //pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
-        pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Respawn fail");
+        pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+        //pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+        //                     (char *)"Respawn fail");
       }
       if ((playerState == ePlayerState_Alive) ||
           (playerState == ePlayerState_Dying_Stage2) ||

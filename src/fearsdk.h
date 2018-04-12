@@ -85,6 +85,14 @@
 #define FLAG_SOLID (1 << 5)
 #define ODBF_ACQUIREMASK 0x00FF0000
 #define SFX_PICKUPITEM_ID 10
+#define MID_WEAPON_FINISH           151
+#define MID_WEAPON_FINISH_RAGDOLL       152
+#define MID_DIFFICULTY              240
+#define MID_AIDBUG                249
+#define MID_ADD_GOAL              252 // Client to server
+#define MID_REMOVE_GOAL             253 // Client to server
+
+
 
 #define CLIENTUPDATE_3RDPERSON      (1<<0)
 #define CLIENTUPDATE_3RDPERVAL      (1<<1)

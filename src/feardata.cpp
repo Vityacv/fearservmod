@@ -250,8 +250,9 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
                 pPlData->leashBrokenExceedCnt = 0;
             }
             pPlData->leashBrokenTimeMS = timeMs;
-            if (pPlData->leashBrokenExceedCnt > 2)
+            if (pPlData->leashBrokenExceedCnt > 3)
               g_pLTServer->KickClient(hClient);
+            //DBGLOG("noclip fail")
               /*BootWithReason(pGameClientData, eClientConnectionError_InvalidAssets,
                              (char *)0);*/
         // use physics to move the object with collisions
@@ -375,9 +376,11 @@ unsigned timeMs = pPlData->thisMoveTimeMS;
                 pPlData->moveLimitExceedCnt = 0;
             }
             pPlData->moveLimitLastTimeMS = timeMs;
-            if (pPlData->moveLimitExceedCnt > 10)
+            if (pPlData->moveLimitExceedCnt > 10){
               BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Unstable connection");
+                             (char *)"Unstable connection!");
+              //DBGLOG("runspeed fail")
+            }
               /*((void(__thiscall *)(CPlayerObj *,
                                  bool))CPlayerObj_TeleportClientToServerPos)(
                 pPlayerObj, true);*/

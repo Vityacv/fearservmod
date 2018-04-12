@@ -313,45 +313,25 @@ void regcall hookMID(reg *p) {
 }
   switch (nMessageId) {
     case MID_FRAG_SELF:
-      p->state = 1;
-      break;
     case MID_DECISION:
-      p->state=1;
-      break;
+    case MID_WEAPON_FINISH:
+    case MID_WEAPON_FINISH_RAGDOLL:
     case MID_OBJECT_ALPHA:
-      p->state = 1;
-      break;
     case MID_RENDER_STIMULUS:
-      p->state = 1;
-      break;
     case MID_STIMULUS:
-      p->state = 1;
-      break;
     case MID_PLAYER_TELEPORT:
-      p->state = 1;
-      break;
     case MID_DO_DAMAGE:
-      p->state = 1;
-      break;
     case MID_GAME_PAUSE:
-      p->state = 1;
-      break;
     case MID_GAME_UNPAUSE:
-      p->state = 1;
-      break;
     case MID_SOUND_BROADCAST_DB:
-      p->state = 1;
-      break;
     case MID_START_LEVEL:
-      p->state = 1;
-      break;
     case MID_MULTIPLAYER_OPTIONS:
-      p->state = 1;
-      break;
     case MID_PUNKBUSTER_MSG:
-      p->state = 1;
-      break;
     case MID_SONIC:
+    case MID_AIDBUG:
+    case MID_ADD_GOAL:
+    case MID_REMOVE_GOAL:
+    //case MID_DYNANIMPROP:
       p->state = 1;
       break;
     case MID_PLAYER_ACTIVATE: {
@@ -477,9 +457,9 @@ void regcall hookMID(reg *p) {
       memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (p->state) {
-        pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
-        //pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-        //                     (char *)"Invalid team");
+        //pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+        pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+                             (char *)"Respawn fail");
       }
       if ((playerState == ePlayerState_Alive) ||
           (playerState == ePlayerState_Dying_Stage2) ||
@@ -553,9 +533,13 @@ void regcall hookMID(reg *p) {
           ammoType == TRIGGER)
         break;
       float dist = 256.0f;
+      bool bUnarmed = 0;
       if (hWeapon &&
-          hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed"))
+          hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed")){
         dist = 150.0f;
+        bUnarmed=1;
+      }
+        
       pMsgRead->ReadData((void *)&firePos, 0x60);
       pMsgRead->ReadData((void *)&vPath, 0x60);
       pMsgRead->ReadBits(8);//random number seed
@@ -586,7 +570,8 @@ void regcall hookMID(reg *p) {
                               pSdk->CArsenal_GetCurWeapon)(pArsenal);
       unsigned ammoInClip;
       // bool isLastBullet=0;
-      if (hWpnData && pWeapon) {
+
+      if ((bUnarmed || hWpnData) && pWeapon) {
         ammoInClip = pWeapon->m_nAmmoInClip;
         // if(ammoInClip == 1){
         //  *(bool volatile *)&isLastBullet=1;// bad, bad compiler!
@@ -599,7 +584,7 @@ void regcall hookMID(reg *p) {
           pPlData->lastFireWeaponIgnored = 0;
         }
         p->state = 1;
-        if (ammoInClip != pWeapon->m_nAmmoInClip) {
+        if (bUnarmed || (ammoInClip != pWeapon->m_nAmmoInClip)) {
           ammoInClip = pWeapon->m_nAmmoInClip;
           if (pPlData->lastFireWeapon != pWeapon) {
             pPlData->lastFireWeaponClipAmmo = 0;
@@ -617,7 +602,7 @@ void regcall hookMID(reg *p) {
             if ((int)(pPlData->lastFireWeaponReloadLength) < 0)
               pPlData->lastFireWeaponReloadLength = 0;
 
-            pPlData->lastFireWeaponClipMax = ((unsigned(__thiscall *)(
+            /*pPlData->lastFireWeaponClipMax = ((unsigned(__thiscall *)(
                 CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
                 uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
                 pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nShotsPerClip), 0,
@@ -625,7 +610,7 @@ void regcall hookMID(reg *p) {
             pPlData->lastFireWeaponDelay = ((unsigned(__thiscall *)(
                 CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
                 uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
-                pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nFireDelay), 0, 0);
+                pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nFireDelay), 0, 0);*/
           } else {
             /*if(pPlData->lastFireWeaponAccuracyFailCnt){
               unsigned fTimeDelta = fireTimestamp - pPlData->lastFireWeaponAccuracyFail;
@@ -671,9 +656,9 @@ void regcall hookMID(reg *p) {
             //}
             // if ((ammoInClip > pPlData->lastFireWeaponClipAmmo)) {
             // if(isLastBullet){
-            if (ammoInClip == pPlData->lastFireWeaponClipMax) {
+            /*if (ammoInClip == pPlData->lastFireWeaponClipMax) {
               pPlData->lastFireWeaponReload = 1;
-            }
+            }*/
             unsigned fireServTimestampCheck = 0;
             // unsigned delay = pPlData->lastFireWeaponDelay + 0x800;
             // if (fireServTimestamp > (delay + 1))
@@ -869,6 +854,7 @@ void regcall hookMID(reg *p) {
           if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
             // GameClientData* pGameClientData =
             // pSdk->getGameClientData((HCLIENT)p->v0);
+            //DBGLOG("MID_CLIENTCONNECTION fail")
             pSdk->BootWithReason(pGameClientData,
                                  eClientConnectionError_PunkBuster,
                                  (char *)"Invalid player name");
@@ -1258,6 +1244,8 @@ void regcall hookComposeArchives(reg *p){
 }
 
 void appData::configHandle() {
+  //DBGLOG("init!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  SetPriorityClass((HANDLE)-1,HIGH_PRIORITY_CLASS);
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
   patchClientServer(gEServer, gEServerSz);
@@ -1732,7 +1720,7 @@ if(bCoop==1){
     }
   if (bPreventNoclip) {
   {
-      if (pSdk->CPlayerObj_UpdateMovement) {
+      if (!bCoop && pSdk->CPlayerObj_UpdateMovement) {
         unsigned char * tmp = (unsigned char *)pSdk->CPlayerObj_UpdateMovement;
         // unprotectCode(tmp);
         patchData::addCode(tmp, 5);

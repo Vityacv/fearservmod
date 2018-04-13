@@ -10,7 +10,7 @@
 
 void *GetIStringEditMgrAdr;
 unsigned char *hStringEditRuntimeOrig;
-extern "C" /*__declspec(dllexport)*/ uintptr_t GetIStringEditMgr() {
+extern "C" __declspec(dllexport) uintptr_t GetIStringEditMgr() {
   return ((uintptr_t(__stdcall *)())GetIStringEditMgrAdr)();
 }
 

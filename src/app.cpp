@@ -2129,7 +2129,7 @@ void appData::init() {
           unprotectMem(tmp);
           *(tmp + 1) = *(tmp + 6);
           *(tmp + 2) = '.';
-          memcpy(tmp + 3, "fear-combat.org", sizeof("fear-combat.org"));
+          memcpy(tmp + 3, _C("fear-combat.org"), sizeof("fear-combat.org"));
         }
         tmp++;
         i++;
@@ -2142,13 +2142,13 @@ void appData::init() {
                     (char *)"25732E6D61737465722E67616D657370792E636F6D");
       unprotectMem(tmp);
       *(tmp + 4) = '.';
-      memcpy(tmp + 5, "fear-combat.org", sizeof("fear-combat.org"));
+      memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
       unsigned char * tmp = scanBytes((unsigned char *)gEServer, gEServerSz,
                       (char *)"687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572636865636B2E6173703F7573657269643D25642670726F6475637469643D25642676657273696F6E756E6971756569643D2573266469737469643D256426756E6971756569643D25732667616D656E616D653D2573");
       unprotectMem(tmp);
-      memcpy(tmp + 7, "fear-combat.org", sizeof("fear-combat.org") - 1);
+      memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
       *(tmp + 22) = '/';
       memcpy(tmp + 23, tmp + 24, 94);
     }
@@ -2158,7 +2158,7 @@ void appData::init() {
                     (char *)"25732E617661696C61626C652E67616D657370792E636F6D");
       unprotectMem(tmp);
       *(tmp + 8) = '.';
-      memcpy(tmp + 9, "fear-combat.org", sizeof("fear-combat.org"));
+      memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
       unsigned char *tmp = scanBytes(

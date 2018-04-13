@@ -948,7 +948,7 @@ void stdcall fearData::requestMasterServer(bool, unsigned short, char const *) {
   IsMasterServerRequestWorking = 1;
   *((unsigned char *)pSdk->g_pGameSpyBrowser + 0x84) = 0;
   pSdk->g_pGameSpyBrowser->RequestURLData(
-      "http://master.fear-combat.org/api/serverlist-ingame.php",
+      _C("http://master.fear-combat.org/api/serverlist-ingame.php"),
       (void *)requestMasterServerCallback, nullptr);
 }
 

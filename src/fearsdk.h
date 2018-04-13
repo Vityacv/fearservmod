@@ -45,6 +45,7 @@
 #define MID_FRAG_SELF             213
 #define MID_OBJECT_ALPHA            254
 #define MID_RENDER_STIMULUS           251
+#define MID_PLAYER_BROADCAST            146
 #define MID_STIMULUS              250
 #define MID_GAME_PAUSE              160
 #define MID_WEAPON_RELOAD       134

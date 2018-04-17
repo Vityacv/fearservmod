@@ -51,6 +51,7 @@ class appData {
   unsigned char *aServTeleport;
   unsigned char *aStoryModeStruct;
   unsigned char skinState;
+  unsigned char bSettingsLoaded=0;
   unsigned timerGamespyServ;
   void init();
   void configParse(char *pathCfg);

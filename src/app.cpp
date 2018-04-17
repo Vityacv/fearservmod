@@ -2096,6 +2096,71 @@ void regcall hookModelMsg(reg *p) {
     }
 }
 
+void regcall hookClientSettingsLoad(reg *p){
+  appData *aData = &handleData::instance()->aData;
+  if(!aData->bSettingsLoaded){
+    aData->bSettingsLoaded=1;
+    {
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+          (char *)"8B0D????????85C9A3????????A1????????0F95C3"));
+      if (tmp) {
+        if(**(uintptr_t**)(tmp+2)){
+          {
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+                (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+                (char *)"0F95C385C0885C24??74??B9"));
+            if (tmp) {
+              unprotectCode(tmp,3);
+              *(unsigned short *)(tmp) = 0xDB30;
+              *(unsigned char *)(tmp+2) = 0x90;
+            }
+          }
+          {
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+                (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+                (char *)"0F????????89??????????8B??????????89"));
+            if (tmp) {
+              unprotectCode(tmp,5);
+              memcpy((unsigned char *)tmp,
+         (unsigned char *)(const unsigned char[]){0xB9, 0x01, 0x00, 0x00, 0x00}, 5);
+            }
+          }
+          {
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+                (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+                (char *)"7402B0018B????8B????E8????????E8????????5F"));
+            if (tmp) {
+              unprotectCode(tmp,2);
+              *(unsigned short *)(tmp) = 0x9090;
+            }
+          }
+          {
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+                (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+                (char *)"6A00C705????????01000000C705????????000000008B116A06FF520C"));
+            if (tmp) {
+              unprotectCode(tmp,15);
+              *(unsigned short *)(tmp) = 0x9090;
+              *(unsigned short *)(tmp+12) = 0x43EB;
+            }
+          }
+          {
+            tmp = (unsigned char *)(unsigned *)(scanBytes(
+                (unsigned char *)aData->gFearExe, aData->gFearExeSz,
+                (char *)"753468????????FF15????????E8????????85C074206A006A30"));
+            if (tmp) {
+              unprotectCode(tmp,1);
+              *tmp=0xEB;
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
+
 void appData::init() {
   srand(__rdtsc());
   pSdk->aData = this;
@@ -2175,6 +2240,15 @@ void appData::init() {
     wchar_t str[1024];
     gFearExe = (unsigned char *)GetModuleHandle(0);
     gFearExeSz = GetModuleSize((HMODULE)gFearExe);
+    
+    {
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)gFearExe, gFearExeSz,
+          (char *)"8B??????????85F60F??????????A1????????F6C40174"));
+      if (tmp) {
+        spliceUp(tmp, (void *)hookClientSettingsLoad);
+      }
+    }
     {
       unsigned char *tmp =
           scanBytes((unsigned char *)gFearExe, gFearExeSz,
@@ -2411,7 +2485,6 @@ void appData::init() {
         spliceUp(tmp, (void *)hookClientGameMode);
       }
     }
-
     {
       unsigned char *tmp = gClient;
       unsigned i = 0;

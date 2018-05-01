@@ -690,10 +690,7 @@ void regcall hookMID(reg *p) {
 
     break;
     case MID_DROP_GRENADE: {
-      if(!pPlayerObj || playerState != ePlayerState_Dying_Stage2){
-        p->state=1;
-        break;
-      }
+      if(pPlayerObj && (playerState == ePlayerState_Dying_Stage1 || playerState == ePlayerState_Dying_Stage2)){
       pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatWeapons);
       HAMMO hAmmo =
           pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);
@@ -732,6 +729,10 @@ void regcall hookMID(reg *p) {
         m_pAmmo[nAmmoIndex]=0;
       }
       //CWeapon * cWep = pSdk->g_pArsenal->GetWeapon(hWep);*/
+    }else{
+      p->state=1;
+        break;
+    }
     } break;
     /*case MID_WEAPON_SOUND_LOOP:
         if(pPlData->bResetToUnarmed){

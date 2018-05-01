@@ -177,12 +177,12 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
                                             CPlayerObj_m_hClient);
     if(!hClient)
       return;
-  //GameClientData *pGameClientData = getGameClientData(hClient);
+  GameClientData *pGameClientData = getGameClientData(hClient);
   unsigned clientId = g_pLTServer->GetClientID(hClient);
   playerData *pPlData = &pPlayerData[clientId];
-  //if (!pGameClientData) {
-  //  return;
-  //}
+  if (!pGameClientData) {
+    return;
+  }
   // If we're in multiplayer, handle leashing
   if(/* IsMultiplayerGameServer( ) && */ *(bool *)((unsigned char *)pPlayerObj + CPlayerObj_m_bUseLeash) ){
 
@@ -250,8 +250,10 @@ void fearData::updateMovement(CPlayerObj * pPlayerObj){
                 pPlData->leashBrokenExceedCnt = 0;
             }
             pPlData->leashBrokenTimeMS = timeMs;
-            if (pPlData->leashBrokenExceedCnt > 3)
-              g_pLTServer->KickClient(hClient);
+            if (pPlData->leashBrokenExceedCnt > 4)
+              //g_pLTServer->KickClient(hClient);
+              BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+                             (char *)"Unstable connection or noclip");
             //DBGLOG("noclip fail")
               /*BootWithReason(pGameClientData, eClientConnectionError_InvalidAssets,
                              (char *)0);*/
@@ -353,7 +355,7 @@ unsigned timeMs = pPlData->thisMoveTimeMS;
                 if (oldPos.y == newPos.y) {
                   //speed = ((fMoveMultiplier * 2.0f) * 10.0f) *
                   //        pPlData->fMovementMultiplier;
-                  speed = ((runSpeed+24.0f)*0.036f) *(fMoveMultiplier * pPlData->fMovementMultiplier);
+                  speed = ((runSpeed+60.0f)*0.036f) *(fMoveMultiplier * pPlData->fMovementMultiplier);
                   float predict = (dist / speed) * 3600.0f;
                   float fTimeDelta = (float)(timeMs - pPlData->lastMoveTimeMS);
                   if ((fTimeDelta < predict)) {
@@ -378,7 +380,7 @@ unsigned timeMs = pPlData->thisMoveTimeMS;
             pPlData->moveLimitLastTimeMS = timeMs;
             if (pPlData->moveLimitExceedCnt > 10){
               BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Unstable connection!");
+                             (char *)"Unstable connection or speedhack");
               //DBGLOG("runspeed fail")
             }
               /*((void(__thiscall *)(CPlayerObj *,

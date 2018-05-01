@@ -25,21 +25,20 @@ obj=$subdir1/obj
 extra=$subdir1/extra
 src=$PWD
 
-wobj=C:/$thisdir/obj
-wbin=C:/$thisdir/bin
-wsrc=C:/$thisdir/src
-wlibsplice32=C:/$splice/obj32
-wlibsplice64=C:/$splice/obj64
-wlibmisc32=C:/$misc/obj32
-wlibmisc64=C:/$misc/obj64
-wextra=C:/extra
+wobj=$thisdir/obj
+wbin=$thisdir/bin
+wsrc=$thisdir/src
+wlibsplice32=$subdir0/$splice/obj32
+wlibsplice64=$subdir0/$splice/obj64
+wlibmisc32=$subdir0/$misc/obj32
+wlibmisc64=$subdir0/$misc/obj64
+wextra=extra
 
 
 noalign="-falign-labels=1 -falign-functions=1 -falign-loops=1 -falign-jumps=1 -flimit-function-alignment"
 sizeopt="-Os -fomit-frame-pointer -fno-stack-protector -mno-stack-arg-probe"
 cppopt="-fno-threadsafe-statics -fno-rtti -Wno-pmf-conversions"
-cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -DDEBUG -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation $cppopt $sizeopt"
-
+cfsharedulink=" -I$miscsrcdir -I$splicesrcdir -std=c++17 -static -static-libgcc -static-libstdc++ -D_UNICODE -DUNICODE -DDEBUG -municode -s -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -nostdlib -fno-exceptions -fno-sized-deallocation -flimit-function-alignment -march=core2 -mfpmath=sse -flto $cppopt $sizeopt"
 cfsharedlibs="-lmsvcrt -lkernel32 -luser32 -lgdi32 -lpsapi -lwinmm -ldbghelp -lshell32 -lws2_32 -lntdll -ladvapi32"
 
 if [ ! -d "$obj" ]; then
@@ -79,5 +78,6 @@ cd $bin
 
 #WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"core.exe" --gcc -e_wmainCRT -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x10000 -Sc:0x10000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpe -q -B- -b* -N -LC:/mingwlib32 $wobj/testdecode.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
 
-WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+#WINEDEBUG=-all wine $win/extra/ulink.exe -ZO"StringEditRuntime.dll" --gcc -e_DllMain@12  -q -Z- -ZX- -W6.0 -U6.0 -V6.0 -S:0x1000 -Sc:0x1000 -H:0x10000 -Hc:0x0 -GF:NXCOMPAT -Gh -Gz -Tpd -q -B- -b* -N -GS:*=* -LC:/mingwlib32 $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs $wsrc/export.def
+$cppcomp32 -o "StringEditRuntime.dll" $cfsharedulink -municode -mwindows -s -flto -fno-ident -fno-asynchronous-unwind-tables -fdata-sections -ffunction-sections -mno-stack-arg-probe -fno-exceptions -Wl,-dll,-pic-executable,-disable-runtime-pseudo-reloc,--major-os-version,6,--minor-os-version,1,--major-image-version,0,--minor-image-version,0,--major-subsystem-version,6,--minor-subsystem-version,1,-image-base=0x10000000,-dynamicbase,-nxcompat,-e_DllMain@12 -nostdlib $wobj/handle.o $wobj/start.o $wobj/app.o $wobj/feardata.o $wlibmisc32/main.o $wlibmisc32/$misc.a $wlibsplice32/$splice.a $cfsharedlibs
 

@@ -75,6 +75,7 @@ class fearData {
   HCATEGORY m_hModelsCat;
   HCATEGORY m_hCatGlobal;
   HCATEGORY m_hCatWeapons;
+  HCATEGORY m_hCatGear;
   HCATEGORY m_hCatAmmo;
   HRECORD m_hRecGlobal;
   HRECORD m_hGlobalRecord;

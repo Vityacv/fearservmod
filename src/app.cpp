@@ -331,7 +331,7 @@ void regcall hookMID(reg *p) {
     case MID_AIDBUG:
     case MID_ADD_GOAL:
     case MID_REMOVE_GOAL:
-    //case MID_DYNANIMPROP:
+    case MID_DYNANIMPROP:
       p->state = 1;
       break;
     case MID_PLAYER_ACTIVATE: {
@@ -458,6 +458,7 @@ void regcall hookMID(reg *p) {
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (p->state) {
         pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+        p->state = 1;
         //pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
         //                     (char *)"Respawn fail");
       }
@@ -689,6 +690,16 @@ void regcall hookMID(reg *p) {
     }
 
     break;
+    case MID_PLAYER_GEAR: {
+      if(!pPlayerObj){
+        p->state=1;
+        break;
+      }
+      HGEAR hGear = pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatGear);
+      if (hGear && hash_rta((char *)*(uintptr_t *)(hGear)) != hash_ct("MedKit"))
+        p->state=1;
+        break;
+    } break;
     case MID_DROP_GRENADE: {
       if(pPlayerObj && (playerState == ePlayerState_Dying_Stage1 || playerState == ePlayerState_Dying_Stage2)){
       pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatWeapons);
@@ -2280,6 +2291,15 @@ void appData::init() {
     uintptr_t gFearExeSz = this->gFearExeSz;
     uintptr_t gClientSz = this->gClientSz;
     int tmp;
+    {
+      unsigned char *tmp = (unsigned char *)(scanBytes(
+          (unsigned char *)gClient, gClientSz,
+          (char *)"740E8B??????????85C00F??????????A1"));  // MOTD info
+      if (tmp) {
+        patchData::addCode(tmp, 2);
+        *(unsigned short *)(tmp) = 0x9090;
+      }
+    }
     patchClientServer(gFearExe, gFearExeSz);
     {
       unsigned char *tmp = (unsigned char *)(scanBytes(
@@ -2422,6 +2442,7 @@ void appData::init() {
         *(unsigned short *)(tmp + 2) = 0x007D;
       }
     }
+
     {
       unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,

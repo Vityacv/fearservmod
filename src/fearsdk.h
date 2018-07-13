@@ -43,6 +43,7 @@
 #define MID_MULTIPLAYER_OPTIONS         148
 #define MID_START_LEVEL             185
 #define MID_FRAG_SELF             213
+#define MID_WEAPON_SOUND             131
 #define MID_OBJECT_ALPHA            254
 #define MID_RENDER_STIMULUS           251
 #define MID_PLAYER_BROADCAST            146
@@ -80,6 +81,7 @@
 #define MID_PLAYER_MESSAGE 106
 #define MID_PLAYER_GHOSTMESSAGE     125
 #define MID_PUNKBUSTER_MSG            201
+#define MID_DYNANIMPROP 162
 #define USRFLG_CAN_ACTIVATE (1 << 8)
 #define USRFLG_MOVEABLE (1 << 5)
 #define FLAG_GOTHRUWORLD (1 << 18)

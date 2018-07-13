@@ -754,6 +754,9 @@ void fearData::fearDataInitServ() {
   m_hCatAmmo = g_pLTDatabase->GetCategory(
       *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
       "Arsenal/Ammo");
+  m_hCatGear = g_pLTDatabase->GetCategory(
+      *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
+      "Arsenal/Gear");
    m_hCatGlobal = g_pLTDatabase->GetCategory(
       *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
       "Arsenal/Global");

@@ -542,7 +542,15 @@ void regcall hookMID(reg *p) {
       }
         
       pMsgRead->ReadData((void *)&firePos, 0x60);
+          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
+            p->state=1;
+          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+            p->state=1;
       pMsgRead->ReadData((void *)&vPath, 0x60);
+          if(vPath.x==0.0 && vPath.y == 0.0 && vPath.z ==0.0)
+            p->state=1;
+          if(isnan(vPath.x) && isnan(vPath.y) || isnan(vPath.z))
+            p->state=1;
       pMsgRead->ReadBits(8);//random number seed
       pMsgRead->ReadBits(8);//perturb count
       pMsgRead->ReadBits(8);//perturb
@@ -554,15 +562,17 @@ void regcall hookMID(reg *p) {
       // pSdk->g_pLTServer->GetObjectPos(hTarget,&targetPos);
       pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
 
+
       if (!curPos.NearlyEquals(firePos, dist)) {
         p->state = 1;
-        if (hAmmo) {
-          ((unsigned(__thiscall *)(
-              CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
-        }
-        break;
       }
 
+        if (p->state) {
+          if(hAmmo)
+          ((unsigned(__thiscall *)(
+              CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
+          break;
+        }
       
       // if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
       //                    hash_ct("Minigun")))
@@ -724,10 +734,19 @@ void regcall hookMID(reg *p) {
           LTVector firePos, curPos;
           pMsgRead->ReadData((void *)&firePos, 0x60);  // flash pos
           pMsgRead->ReadData((void *)&firePos, 0x60);  // fire pos
+          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
+            p->state=1;
+          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+            p->state=1;
           pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
           if (!curPos.NearlyEquals(firePos, 128.0f)) {
             p->state = 1;
           }
+          pMsgRead->ReadData((void *)&firePos, 0x60);
+          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
+            p->state=1;
+          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+            p->state=1;
         }
       } else {
         p->state = 1;
@@ -1043,9 +1062,9 @@ void regcall hookMID(reg *p) {
 void regcall patchClientServer(unsigned char *mod, unsigned modSz) {
   // limit loop (synch) to 2^16 coz it may cause infinte loop
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)mod, modSz,
-        (char *)"DFE0F6C4057A2BC784248400000000000000C744241C00000000C744241800000000C744241000000000C74424140000803F");
+        BYTES_SEARCH_FORMAT("DFE0F6C4057A2BC784248400000000000000C744241C00000000C744241800000000C744241000000000C74424140000803F"));
     if (tmp) {
       patchData::codeswap(
           (unsigned char *)tmp,
@@ -1059,8 +1078,8 @@ void regcall patchClientServer(unsigned char *mod, unsigned modSz) {
     }
   }
   {
-    unsigned char *tmp = scanBytes((unsigned char *)mod, modSz,
-                                   (char *)"C784248400000000000000E9F5FEFFFF");
+    unsigned char *tmp = scanBytes2((unsigned char *)mod, modSz,
+                                   BYTES_SEARCH_FORMAT("C784248400000000000000E9F5FEFFFF"));
     if (tmp) {
       patchData::codeswap((unsigned char *)tmp,
                           (unsigned char *)(const unsigned char[]){
@@ -1265,8 +1284,8 @@ void appData::configHandle() {
   
   {
     unsigned char *tmp =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"8D4C24??51505756FF15????????83C410C6????????5F");
+        scanBytes2((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("8D4C24??51505756FF15????????83C410C6????????5F"));
     if (tmp) {
       unsigned char * pfunc = (unsigned char *)*(uintptr_t*)(tmp+10);
       patchData::addCode(tmp+8,6);
@@ -1282,36 +1301,36 @@ void appData::configHandle() {
   }
 
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)gEServer, gEServerSz,
-        (char *)"745D8B????????????8B????8B??C1????884C2414");  // show conn client ip
+        BYTES_SEARCH_FORMAT("745D8B????????????8B????8B??C1????884C2414"));  // show conn client ip
     if (tmp) {
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)gEServer, gEServerSz,
-        (char *)"74608B??????????8B??C1????88??????33");  // show disco client ip
+        BYTES_SEARCH_FORMAT("74608B??????????8B??C1????88??????33"));  // show disco client ip
     if (tmp) {
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)gEServer, gEServerSz,
-        (char *)"8B5E0C81FB80000000732E8B06578B7C2410");  // FindObjects spam
+        BYTES_SEARCH_FORMAT("8B5E0C81FB80000000732E8B06578B7C2410"));  // FindObjects spam
     if (tmp) {
       patchData::addCode(tmp + 9, 2);
       *(unsigned short *)(tmp + 9) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)gServer, gServerSz,
-        (char *)"D8??????????DF??F6????75??80????88??????????B001");  // combo
+        BYTES_SEARCH_FORMAT("D8??????????DF??F6????75??80????88??????????B001"));  // combo
                                                                       // death
                                                                       // fix
     if (tmp) {
@@ -1333,8 +1352,8 @@ void appData::configHandle() {
   
 
   {
-    unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
-                                   (char *)"8A42??84C076??33C90FB6D0");
+    unsigned char *tmp = scanBytes2((unsigned char *)gServer, gServerSz,
+                                   BYTES_SEARCH_FORMAT("8A42??84C076??33C90FB6D0"));
     if (tmp) {
       patchData::addCode((unsigned char *)tmp + 5, 1);
       *(tmp + 5) =
@@ -1343,16 +1362,16 @@ void appData::configHandle() {
   }
   {
     unsigned char *tmp =
-        scanBytes((unsigned char *)gEServer, gEServerSz,
-                  (char *)"83C404F6????74??8B??E8????????6A00E8????????8B??E8");
+        scanBytes2((unsigned char *)gEServer, gEServerSz,
+                  BYTES_SEARCH_FORMAT("83C404F6????74??8B??E8????????6A00E8????????8B??E8"));
     if (tmp) {
       spliceUp(tmp, (void *)fearData::hookOnMapLoaded);
     }
   }
           {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"3B7C2410741F8B4E086A006A0351");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("3B7C2410741F8B4E086A006A0351"));
       if (tmp) {
         patchData::addCode((unsigned char *)tmp+4, 1);//ignore invalid world crc
         *(tmp+4)=0xEB;
@@ -1362,16 +1381,16 @@ void appData::configHandle() {
 
           {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"6A005256FF90??0000008BF085F60F84????????8B");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("6A005256FF90??0000008BF085F60F84????????8B"));
       if (tmp) {
         spliceUp(tmp, (void *)hookRandomWeapon);
       }
     }
           {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"8B0D????????8B168BF88B41??50A1????????508BCEFF52??8B168BD86A20");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B0D????????8B168BF88B41??50A1????????508BCEFF52??8B168BD86A20"));
       if (tmp) {
         spliceUp(tmp, (void *)hookPickupRndWeapon);
       }
@@ -1395,8 +1414,8 @@ void appData::configHandle() {
     bBotsMP = 1;
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"753F8D??????E8????????8B??????????8B");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("753F8D??????E8????????8B??????????8B"));
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 1);
         *(tmp) = 0xEB;  // dont crush players on player
@@ -1404,10 +1423,9 @@ void appData::configHandle() {
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char
-               *)"8B??????85????8B??74??8B??????????85??74??3B??74??68");  // story
+          BYTES_SEARCH_FORMAT("8B??????85????8B??74??8B??????????85??74??3B??74??68"));  // story
                                                                            // mode
                                                                            // on
       if (tmp) {
@@ -1416,16 +1434,16 @@ void appData::configHandle() {
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"8B??8B??????????85??75??68????????6A00E8????????");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B??8B??????????85??75??68????????6A00E8????????"));
       if (tmp) {
         spliceUp(tmp, (void *)hookStoryModeOff);
       }
     }
         {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"E8????????84C074??8D??????68??????????E8");//use SP MAPS 
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("E8????????84C074??8D??????68??????????E8"));//use SP MAPS 
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1433,12 +1451,12 @@ void appData::configHandle() {
     }
 if(bCoop==1){
     spliceUp(
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"6A00????FF??????????8B??85??74??E8????????84??74"),
+        scanBytes2((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("6A00????FF??????????8B??85??74??E8????????84??74")),
         (void *)fearData::hookLoadMaps1);
-    spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
-                       (char *)"5357??FF??????????3B??8B??0F??????????8B???????"
-                               "???8B??68??????????FF????8B????????????FF"),
+    spliceUp(scanBytes2((unsigned char *)gServer, gServerSz,
+                       BYTES_SEARCH_FORMAT("5357??FF??????????3B??8B??0F??????????8B???????"
+                               "???8B??68??????????FF????8B????????????FF")),
              (void *)fearData::hookLoadMaps2);
 
       /*{
@@ -1451,34 +1469,33 @@ if(bCoop==1){
     }*/
   }else if(bCoop==2){
     spliceUp(
-        scanBytes((unsigned char *)gEServer, gEServerSz,
-                  (char *)"88861C0200008B44243C888E1D020000"),
+        scanBytes2((unsigned char *)gEServer, gEServerSz,
+                  BYTES_SEARCH_FORMAT("88861C0200008B44243C888E1D020000")),
         (void *)hookComposeArchives);
 
   }
 
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"8B??????????F6????74????8D??????????8B");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B??????????F6????74????8D??????????8B"));
       if (tmp) {
         unprotectCode(tmp);
         *(tmp + 9) = 0xEB;
       }
     }
     {
-      unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
-                                     (char *)"83E0FB68????????8B??89");
+      unsigned char *tmp = scanBytes2((unsigned char *)gServer, gServerSz,
+                                     BYTES_SEARCH_FORMAT("83E0FB68????????8B??89"));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp + 1) = 0x0BC8;
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char
-               *)"8B??????83????3B????75??8B??E8??????????????83????C3");  // cutscene
+          BYTES_SEARCH_FORMAT("8B??????83????3B????75??8B??E8??????????????83????C3"));  // cutscene
                                                                            // player
                                                                            // numbers
       if (tmp) {
@@ -1487,9 +1504,9 @@ if(bCoop==1){
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"8A5C2408F6DB565768000100008BF9");  // CANACTIVATE always 1
+          BYTES_SEARCH_FORMAT("8A5C2408F6DB565768000100008BF9"));  // CANACTIVATE always 1
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 4);
         *(unsigned *)(tmp) = 0x909001B3;
@@ -1497,8 +1514,8 @@ if(bCoop==1){
     }
 
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"D9????EB??D9??????8B??????????D9??????????89??????68????????8B??E8????????85??74??83??0375??D9??24EB??D9????0C");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("D9????EB??D9??????8B??????????D9??????????89??????68????????8B??E8????????85??74??83??0375??D9??24EB??D9????0C"));
       if (tmp) {
         // unprotectCode(tmp);
 
@@ -1508,8 +1525,8 @@ if(bCoop==1){
     }
 
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"EB??D9????0C8B??????????D9??????????68????????8B??89??????E8????????85??74??83????75??D9????EB??D9??????68????????D9??????????8B");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("EB??D9????0C8B??????????D9??????????68????????8B??89??????E8????????85??74??83????75??D9????EB??D9??????68????????D9??????????8B"));
       if (tmp) {
         spliceUp(tmp + 29, (void *)hookDoorTimer);
       }
@@ -1519,8 +1536,8 @@ if(bCoop==1){
 
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                        (char *)"D9??24EB??D9????0C8B??????????D9??????????68");
+        tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                        BYTES_SEARCH_FORMAT("D9??24EB??D9????0C8B??????????D9??????????68"));
         if (tmp) {
           spliceUp(tmp - 14, (void *)hookDoorTimer);
         }
@@ -1535,8 +1552,8 @@ if(bCoop==1){
       unsigned i = 0;
       while (true) {
         tmp =
-            scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                      (char *)"508B??FF??????????8B??E8????????88??????????8A");
+            scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                      BYTES_SEARCH_FORMAT("508B??FF??????????8B??E8????????88??????????8A"));
         if (tmp) {
           spliceUp(tmp, (void *)fearData::hookUseSkin1);
         }
@@ -1547,8 +1564,8 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"75??8B??????????68????????E8??????????8B??FF");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("75??8B??????????68????????E8??????????8B??FF"));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp) = 0x9090;
@@ -1557,8 +1574,8 @@ if(bCoop==1){
       }
     }
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"75??E8????????84??74??8B??????????8B??6A006A0068??????????FF");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A006A0068??????????FF"));
       if (tmp) {
         tmp += 2;
         unprotectCode(tmp);
@@ -1567,8 +1584,8 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"75??E8????????84??74??8B??????????8B??6A00");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A00"));
       if (tmp) {
         tmp += 2;
         unprotectCode(tmp);
@@ -1577,17 +1594,17 @@ if(bCoop==1){
     }
 
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"E8????????84C074??8A??????????84C075??83??????75??8B");
+          BYTES_SEARCH_FORMAT("E8????????84C074??8A??????????84C075??83??????75??8B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp,
@@ -1598,37 +1615,37 @@ if(bCoop==1){
     }
 
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"8B??85??????????????????C7??????????????C7??????????????74");
+          BYTES_SEARCH_FORMAT("8B??85??????????????????C7??????????????C7??????????????74"));
       if (tmp) {
         spliceUp(tmp, (void *)fearData::hookRespawnStartPoint);
       }
     }
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"A1????????8B??????????8B????????????8B????????????E8????????C3");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("A1????????8B??????????8B????????????8B????????????E8????????C3"));
       if (tmp) {
         spliceUp(tmp, (void *)fearData::hookCheckpointEvent);
       }
     }
     {
       unsigned char *tmp = gServer;
-      tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                      (char *)"8A8424A000000084C074");
+      tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                      BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
       tmp += 9;
       unprotectCode(tmp);
       *(unsigned short *)(tmp) = 0x9090;
-      tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                      (char *)"8A8424A000000084C074");
+      tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                      BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
       tmp += 9;
       unprotectCode(tmp);
       *(unsigned short *)(tmp) = 0x9090;
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"56E8????????8B??????????E8????????8B??????????8B");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("56E8????????8B??????????E8????????8B??????????8B"));
       if (tmp) {
         unprotectCode(tmp);
         *(uintptr_t *)(tmp) = 0x90c301b0;
@@ -1636,16 +1653,16 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"8B????????????8D????????????83C4183B??74");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B????????????8D????????????83C4183B??74"));
       if (tmp) {
         spliceUp(tmp + 7, (void *)hookGameMode);
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"E8????????84C074??8B0D????????68????????E8????????D9");
+          BYTES_SEARCH_FORMAT("E8????????84C074??8B0D????????68????????E8????????D9"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1653,25 +1670,25 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"E8????????84C08B??????????74??68????????EB??68");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68????????EB??68"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"E8????????84C075??8B??????????8B0D??????????6A01E8");
+          BYTES_SEARCH_FORMAT("E8????????84C075??8B??????????8B0D??????????6A01E8"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"E8????????84C08B??????????74??68????????EB??68????????E8????????83EC08");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68????????EB??68????????E8????????83EC08"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1679,8 +1696,8 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"E8????????84C074??8B??????????6A????6A00E8");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("E8????????84C074??8B??????????6A????6A00E8"));
       if (tmp) {
         unprotectCode(tmp);
         aSPModeSpawn = tmp;
@@ -1690,8 +1707,8 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"75??8D??????E8????????8B????8B????8B????89");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("75??8D??????E8????????8B????8B????8B????89"));
       if (tmp) {
         unprotectCode(tmp);
         aPatchHoleKillHives = tmp;
@@ -1701,17 +1718,17 @@ if(bCoop==1){
   }
   if (bBotsMP) {
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gServer, gServerSz,
-          (char *)"E8????????84C074??8B??8B??FF??????????84??74??E8????????8A");
+          BYTES_SEARCH_FORMAT("E8????????84C074??8B??8B??FF??????????84??74??E8????????8A"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"E8????????84??0F??????????E8????????8A??????????05????????84??74??8B");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("E8????????84??0F??????????E8????????8A??????????05????????84??74??8B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1720,8 +1737,8 @@ if(bCoop==1){
   }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"84C07408??8B??E8????????????C20800");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("84C07408??8B??E8????????????C20800"));
       if (tmp) {
         // unprotectCode(tmp);
         patchData::addCode(tmp + 8, 4);
@@ -1745,8 +1762,8 @@ if(bCoop==1){
     
     if(bPreventNoclip==2){
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"8BCFFF90????????3BC3A3????????7410C705????????????????893D????????391D????????75688B0D????????891D????????891D????????891D????????8B1168????????8BF9FF92????????3BC3A3????????75??8B0753");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8BCFFF90????????3BC3A3????????7410C705????????????????893D????????391D????????75688B0D????????891D????????891D????????891D????????8B1168????????8BF9FF92????????3BC3A3????????75??8B0753"));
       if (tmp) {
         tmp+=82;
         patchData::codeswap((unsigned char *)tmp,
@@ -1857,21 +1874,21 @@ if(bCoop==1){
     // unprotectCode(tmp);
     //*(uintptr_t *)tmp = 0x900008C2;
     unsigned char *StringToDamageType =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"538B????????????8B????????33FF??8B");
+        scanBytes2((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("538B????????????8B????????33FF??8B"));
     if (StringToDamageType) {
       pSdk->uDT_CRUSH =
           ((unsigned(__cdecl *)(char *))StringToDamageType)((char *)"CRUSH");
     }
     // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
     // *)"83????3D????????0F??????????0F"),(void *)hookMID_);
-    spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
-                       (char *)"53568B74????85F68BD90F??????????578B??????56"),
+    spliceUp(scanBytes2((unsigned char *)gServer, gServerSz,
+                       BYTES_SEARCH_FORMAT("53568B74????85F68BD90F??????????578B??????56")),
              (void *)hookMID);
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"508B??E8????????84C074??8D??????50");
+          scanBytes2((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("508B??E8????????84C074??8D??????50"));
       pSdk->g_pGetNetClientData = getVal4FromRel(tmp + 4);
       spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
     }
@@ -1926,8 +1943,8 @@ if(bCoop==1){
 
   if(bCoop){
       {
-      unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"E8????????84C074??F6??????74??68????????8B??E8????????85C074");
+      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
+                        BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????????8B??E8????????85C074"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1936,8 +1953,8 @@ if(bCoop==1){
   }
   else{
         unsigned char *tmp =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"834E08048D????85??8D??????????74");
+        scanBytes2((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
     pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
     spliceUp(tmp+9 , (void *)hookSetObjFlags);
   }
@@ -1977,19 +1994,18 @@ if(bCoop==1){
           }*/
 
       {
-        unsigned char *tmp = scanBytes(
+        unsigned char *tmp = scanBytes2(
             (unsigned char *)gServer, gServerSz,
-            (char
-                 *)"E8????????88??????8D??????????8B??8B??8B????8B????89");  // ragdoll time Multi/SP
+            BYTES_SEARCH_FORMAT("E8????????88??????8D??????????8B??8B??8B????8B????89"));  // ragdoll time Multi/SP
         if (tmp) {
           patchData::addCode(tmp, 5);
           memcpy(tmp, moveax0, 5);
         }
       }
       {
-        unsigned char *tmp = scanBytes(
+        unsigned char *tmp = scanBytes2(
             (unsigned char *)gServer, gServerSz,
-            (char *)"E8????????8B????8A??88??????8B????????????E8");  // ragdoll
+            BYTES_SEARCH_FORMAT("E8????????8B????8A??88??????8B????????????E8"));  // ragdoll
                                                                       // type
                                                                       // Multi/SP
         if (tmp) {
@@ -2015,8 +2031,8 @@ void appData::configParse(char *pathCfg) {
   if (bCoop) {
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServerExe, gServerExeSz,
-                    (char *)"8B??????????????FF????8B??????89??????????8B");
+          scanBytes2((unsigned char *)gServerExe, gServerExeSz,
+                    BYTES_SEARCH_FORMAT("8B??????????????FF????8B??????89??????????8B"));
       if (tmp) {
         spliceUp(tmp, (void *)hookGameMode2);
       }
@@ -2047,9 +2063,9 @@ void regcall hookLoadGameServer(reg *p) {
   aData->gServerSz = GetModuleSize((HMODULE)aData->gServer);
   // aData->configHandle();
   {
-    unsigned char *tmp = scanBytes(
+    unsigned char *tmp = scanBytes2(
         (unsigned char *)aData->gServer, aData->gServerSz,
-        (char *)"E8????????8BC8E8????????8D4C????FF15????????8B");  // Reset
+        BYTES_SEARCH_FORMAT("E8????????8BC8E8????????8D4C????FF15????????8B"));  // Reset
                                                                     // Config
                                                                     // fix
     if (tmp) {
@@ -2057,9 +2073,9 @@ void regcall hookLoadGameServer(reg *p) {
       *(unsigned short *)(tmp) = 0x0AEB;
     }
   }
-  spliceUp(scanBytes((unsigned char *)aData->gServer, aData->gServerSz,
-                     (char *)"558BEC83E4??81EC????????????8B????85????89??????"
-                             "0F??????????8B????85??0F??????????33C0"),
+  spliceUp(scanBytes2((unsigned char *)aData->gServer, aData->gServerSz,
+                     BYTES_SEARCH_FORMAT("558BEC83E4??81EC????????????8B????85????89??????"
+                             "0F??????????8B????85??0F??????????33C0")),
            (void *)hookConfigLoad2);
 }
 
@@ -2113,15 +2129,15 @@ void regcall hookClientSettingsLoad(reg *p){
   if(!aData->bSettingsLoaded){
     aData->bSettingsLoaded=1;
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
           (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-          (char *)"8B0D????????85C9A3????????A1????????0F95C3"));
+          BYTES_SEARCH_FORMAT("8B0D????????85C9A3????????A1????????0F95C3")));
       if (tmp) {
         if(**(uintptr_t**)(tmp+2)){
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                (char *)"0F95C385C0885C24??74??B9"));
+                BYTES_SEARCH_FORMAT("0F95C385C0885C24??74??B9")));
             if (tmp) {
               unprotectCode(tmp,3);
               *(unsigned short *)(tmp) = 0xDB30;
@@ -2129,9 +2145,9 @@ void regcall hookClientSettingsLoad(reg *p){
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                (char *)"0F????????89??????????8B??????????89"));
+                BYTES_SEARCH_FORMAT("0F????????89??????????8B??????????89")));
             if (tmp) {
               unprotectCode(tmp,5);
               memcpy((unsigned char *)tmp,
@@ -2139,18 +2155,18 @@ void regcall hookClientSettingsLoad(reg *p){
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                (char *)"7402B0018B????8B????E8????????E8????????5F"));
+                BYTES_SEARCH_FORMAT("7402B0018B????8B????E8????????E8????????5F")));
             if (tmp) {
               unprotectCode(tmp,2);
               *(unsigned short *)(tmp) = 0x9090;
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                (char *)"6A00C705????????01000000C705????????000000008B116A06FF520C"));
+                BYTES_SEARCH_FORMAT("6A00C705????????01000000C705????????000000008B116A06FF520C")));
             if (tmp) {
               unprotectCode(tmp,15);
               *(unsigned short *)(tmp) = 0x9090;
@@ -2158,9 +2174,9 @@ void regcall hookClientSettingsLoad(reg *p){
             }
           }
           {
-            tmp = (unsigned char *)(unsigned *)(scanBytes(
+            tmp = (unsigned char *)(unsigned *)(scanBytes2(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                (char *)"753468????????FF15????????E8????????85C074206A006A30"));
+                BYTES_SEARCH_FORMAT("753468????????FF15????????E8????????85C074206A006A30")));
             if (tmp) {
               unprotectCode(tmp,1);
               *tmp=0xEB;
@@ -2182,17 +2198,17 @@ void appData::init() {
     gEServerSz = GetModuleSize((HMODULE)gEServer);
     {
       spliceUp(
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    (char *)"84??75????68??????????E8????????8B??83C40885??74"),
+          scanBytes2((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT("84??75????68??????????E8????????8B??83C40885??74")),
           (void *)hookLoadGameServer);
     }
     gServerExe = (unsigned char *)GetModuleHandle(nullptr);
     gServerExeSz = GetModuleSize((HMODULE)gServerExe);
 
     spliceUp(
-        scanBytes(
+        scanBytes2(
             (unsigned char *)gServerExe, gServerExeSz,
-            (char *)"8D????????????8B??E8????????8B????85C075??E8????????8B"),
+            BYTES_SEARCH_FORMAT("8D????????????8B??E8????????8B????85C075??E8????????8B")),
         (void *)hookConfigLoad);
 
     {
@@ -2200,8 +2216,8 @@ void appData::init() {
 
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes((unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
-                        (char *)"6E61746E6567??2E67616D657370792E636F6D");
+        tmp = scanBytes2((unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
+                        BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
         if (tmp) {
           unprotectMem(tmp);
           *(tmp + 1) = *(tmp + 6);
@@ -2215,15 +2231,15 @@ void appData::init() {
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    (char *)"25732E6D61737465722E67616D657370792E636F6D");
+          scanBytes2((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
       unprotectMem(tmp);
       *(tmp + 4) = '.';
       memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
-      unsigned char * tmp = scanBytes((unsigned char *)gEServer, gEServerSz,
-                      (char *)"687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572636865636B2E6173703F7573657269643D25642670726F6475637469643D25642676657273696F6E756E6971756569643D2573266469737469643D256426756E6971756569643D25732667616D656E616D653D2573");
+      unsigned char * tmp = scanBytes2((unsigned char *)gEServer, gEServerSz,
+                      BYTES_SEARCH_FORMAT("687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572636865636B2E6173703F7573657269643D25642670726F6475637469643D25642676657273696F6E756E6971756569643D2573266469737469643D256426756E6971756569643D25732667616D656E616D653D2573"));
       unprotectMem(tmp);
       memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
       *(tmp + 22) = '/';
@@ -2231,22 +2247,22 @@ void appData::init() {
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    (char *)"25732E617661696C61626C652E67616D657370792E636F6D");
+          scanBytes2((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT("25732E617661696C61626C652E67616D657370792E636F6D"));
       unprotectMem(tmp);
       *(tmp + 8) = '.';
       memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gEServer, gEServerSz,
-          (char *)"8B??????508D??????68??????????FF??????????83C4??8D??????68");
+          BYTES_SEARCH_FORMAT("8B??????508D??????68??????????FF??????????83C4??8D??????68"));
       unprotectCode(tmp);
       *(tmp) = 0x68;
       *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
     }
-    spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
-                       (char *)"4084C975??C7??????????FFFFFFFFE8????????0FBE"),
+    spliceUp(scanBytes2((unsigned char *)gEServer, gEServerSz,
+                       BYTES_SEARCH_FORMAT("4084C975??C7??????????FFFFFFFFE8????????0FBE")),
              (void *)hookChangeStr);
   } else {
     wchar_t str[1024];
@@ -2254,17 +2270,17 @@ void appData::init() {
     gFearExeSz = GetModuleSize((HMODULE)gFearExe);
     
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
           (unsigned char *)gFearExe, gFearExeSz,
-          (char *)"8B??????????85F60F??????????A1????????F6C40174"));
+          BYTES_SEARCH_FORMAT("8B??????????85F60F??????????A1????????F6C40174")));
       if (tmp) {
         spliceUp(tmp, (void *)hookClientSettingsLoad);
       }
     }
     {
       unsigned char *tmp =
-          scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                    (char *)"A1????????8B??????????8B????FF????33");
+          scanBytes2((unsigned char *)gFearExe, gFearExeSz,
+                    BYTES_SEARCH_FORMAT("A1????????8B??????????8B????FF????33"));
       uintptr_t adr;
       aGameClientStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
       while (true) {
@@ -2292,9 +2308,9 @@ void appData::init() {
     uintptr_t gClientSz = this->gClientSz;
     int tmp;
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"740E8B??????????85C00F??????????A1"));  // MOTD info
+          BYTES_SEARCH_FORMAT("740E8B??????????85C00F??????????A1")));  // MOTD info
       if (tmp) {
         patchData::addCode(tmp, 2);
         *(unsigned short *)(tmp) = 0x9090;
@@ -2302,8 +2318,8 @@ void appData::init() {
     }
     patchClientServer(gFearExe, gFearExeSz);
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz, (char *)"837C24??0175??33D2"));
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
+          (unsigned char *)gFearExe, gFearExeSz, BYTES_SEARCH_FORMAT("837C24??0175??33D2")));
       if (tmp) {
         patchData::codeswap(tmp + 5,
                             (unsigned char *)(const unsigned char[]){0xEB},
@@ -2311,9 +2327,9 @@ void appData::init() {
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gFearExe, gFearExeSz,
-          (char *)"8B??74??E8????????68????????FF??????????85??89"));
+          BYTES_SEARCH_FORMAT("8B??74??E8????????68????????FF??????????85??89")));
       if (tmp) {
         patchData::codeswap(tmp + 2,
                             (unsigned char *)(const unsigned char[]){0xEB},
@@ -2322,20 +2338,19 @@ void appData::init() {
     }
     {
       unsigned char *tmp =
-          (unsigned char *)(scanBytes(
+          (unsigned char *)(scanBytes2(
               (unsigned char *)gFearExe, gFearExeSz,
-              (
-                  char *)"B9????????E8????????B9????????E8????????B9????????"
-                         "C7"));  // Punkbuster disable
+              BYTES_SEARCH_FORMAT("B9????????E8????????B9????????E8????????B9????????"
+                         "C7")));  // Punkbuster disable
       if (tmp) {
         tmp = (unsigned char *)*(unsigned *)(tmp + 11);
         *(uintptr_t *)(tmp + 0x10) = 0;
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gFearExeSz,
-          (char *)"E8????????8A??????????B8????????33FF84C875"));  // fix
+          BYTES_SEARCH_FORMAT("E8????????8A??????????B8????????33FF84C875")));  // fix
                                                                    // keyboard
       if (tmp) {
         patchData::codeswap((unsigned char *)tmp,
@@ -2345,18 +2360,18 @@ void appData::init() {
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"74??8B????FF????????????6A"));  // no weapon bug
+          BYTES_SEARCH_FORMAT("74??8B????FF????????????6A")));  // no weapon bug
       if (tmp) {
         patchData::addCode(tmp+1, 1);
         *(unsigned char *)(tmp+1) -= 7;
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"6A1BFF??????????0FBFC085C079??E8????????"));  // No escape
+          BYTES_SEARCH_FORMAT("6A1BFF??????????0FBFC085C079??E8????????")));  // No escape
                                                                  // handling on
                                                                  // downloading
                                                                  // content
@@ -2377,9 +2392,9 @@ void appData::init() {
       }
     }*/
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"5155568BF18B0D????????8B01FF90????????8BE8"));  // no splash
+          BYTES_SEARCH_FORMAT("5155568BF18B0D????????8B01FF90????????8BE8")));  // no splash
                                                                    // videos
       if (tmp) {
         patchData::addCode(tmp, 4);
@@ -2389,8 +2404,8 @@ void appData::init() {
 
     {
       void *tmp =
-          (unsigned *)(scanBytes((unsigned char *)gClient, gClientSz,
-                                 (char *)"8B0D??????????FF57??85ED89??????76"));
+          (unsigned *)(scanBytes2((unsigned char *)gClient, gClientSz,
+                                 BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
       if (tmp) {
         patchData::codeswap((unsigned char *)tmp + 16,
                             (unsigned char *)(const unsigned char[]){
@@ -2400,9 +2415,9 @@ void appData::init() {
     }
 #endif
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"FF????84??75??A1????????6A01??8D????????8B"));  // MOTD
+          BYTES_SEARCH_FORMAT("FF????84??75??A1????????6A01??8D????????8B")));  // MOTD
       if (tmp) {
         patchData::addCode(tmp + 5, 1);
         *(tmp + 5) = 0xEB;
@@ -2418,25 +2433,25 @@ void appData::init() {
       }
     }*/
     {
-      void *tmp = (unsigned *)(scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                                         (char *)"0F94C16A01518B8E??00000052"));
+      void *tmp = (unsigned *)(scanBytes2((unsigned char *)gFearExe, gFearExeSz,
+                                         BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052")));
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 4);
         *(unsigned *)tmp = 0x6a90c931;
       }
     }
 
-    doConnectIpAdrTramp = (unsigned char *)scanBytes(
+    doConnectIpAdrTramp = (unsigned char *)scanBytes2(
         (unsigned char *)gFearExe, gFearExeSz,
-        (char *)"8BCF89B71C060000E8????????8B871C060000");
-    spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                       (char *)"FFD38B54242083C40C80660CDF"),
+        BYTES_SEARCH_FORMAT("8BCF89B71C060000E8????????8B871C060000"));
+    spliceUp(scanBytes2((unsigned char *)gFearExe, gFearExeSz,
+                       BYTES_SEARCH_FORMAT("FFD38B54242083C40C80660CDF")),
              (void *)hookModelMsg);
     pSdk->fearDataInit();
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = scanBytes2(
           (unsigned char *)gFearExe, gFearExeSz,
-          (char *)"0F8467010000A1????????85C08BC87522A1????????5068????????E8");
+          BYTES_SEARCH_FORMAT("0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
       if (tmp) {
         patchData::addCode(tmp + 2, 2);
         *(unsigned short *)(tmp + 2) = 0x007D;
@@ -2444,34 +2459,34 @@ void appData::init() {
     }
 
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"74078BCEE8????????8B166A008BCEFF5268"));  // MOTD
+          BYTES_SEARCH_FORMAT("74078BCEE8????????8B166A008BCEFF5268")));  // MOTD
       if (tmp) {
         patchData::addCode(tmp, 1);
         *(tmp) = 0xEB;
       } else {
         // Extraction Point
         aRunGameModeXP =
-            scanBytes((unsigned char *)gClient, gClientSz,
-                      (char *)"FF????????????8B????????6A02FF5044");
+            scanBytes2((unsigned char *)gClient, gClientSz,
+                      BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
         spliceUp(aRunGameModeXP, (void *)hookSwitchToModeXP);
         aIsMultiplayerGameClient =
-            scanBytes((unsigned char *)gClient, gClientSz,
-                      (char *)"A1????????85??74??8B????83??0474??83??0574");
+            scanBytes2((unsigned char *)gClient, gClientSz,
+                      BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
         unprotectCode(aIsMultiplayerGameClient);
       }
     }
 
     if (doConnectIpAdrTramp) {
       spliceUp(
-          scanBytes(
+          scanBytes2(
               (unsigned char *)gClient, gClientSz,
-              (char *)"E8????????84C074218D4C2404E8????????6A016A008D44240C50"),
+              BYTES_SEARCH_FORMAT("E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
           (void *)hookSwitchToSP /*, (void *)6*/);
-      void *tmp = scanBytes(
+      void *tmp = scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"E8????????84C0754B8D4C2404E8????????6A016A008D44240C50");
+          BYTES_SEARCH_FORMAT("E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
       aIsMultiplayerGameClient = (unsigned char *)((unsigned char *)tmp + 1) +
                                  (*(uintptr_t *)((unsigned char *)tmp + 1)) + 4;
       unprotectCode(aIsMultiplayerGameClient);
@@ -2481,17 +2496,17 @@ void appData::init() {
     }
 
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"A1????????8A887806000084C9740E8A887906000084C974048AC3"));
+          BYTES_SEARCH_FORMAT("A1????????8A887806000084C9740E8A887906000084C974048AC3")));
       if (tmp) {
         aStoryModeStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"6A00FF??????????8B??????????8B????FF??????????8B"));
+          BYTES_SEARCH_FORMAT("6A00FF??????????8B??????????8B????FF??????????8B")));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp) = 0x9050;
@@ -2500,9 +2515,9 @@ void appData::init() {
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
           (unsigned char *)gClient, gClientSz,
-          (char *)"50E8????????8B??E8????????84C00F????????????E8"));
+          BYTES_SEARCH_FORMAT("50E8????????8B??E8????????84C00F????????????E8")));
       if (tmp) {
         spliceUp(tmp, (void *)hookClientGameMode);
       }
@@ -2511,9 +2526,9 @@ void appData::init() {
       unsigned char *tmp = gClient;
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes(
+        tmp = scanBytes2(
             (unsigned char *)tmp, (gClientSz + gClient) - tmp,
-            (char *)"E8????????84C075??8B??????????8B??8D????????33??FF");
+            BYTES_SEARCH_FORMAT("E8????????84C075??8B??????????8B??8D????????33??FF"));
         if (tmp) {
           unprotectCode(tmp);
           aFlashlight[i] = tmp;

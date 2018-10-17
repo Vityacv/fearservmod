@@ -11,7 +11,6 @@ struct playerData {
   unsigned char movePacketCnt;
   unsigned moveLimitExceedCnt;
   unsigned leashBrokenExceedCnt;
-
   HWEAPON lastWep;
   unsigned onChangeWeaponTime;
   HWEAPON onChangeWeaponHWEAPON;
@@ -121,6 +120,7 @@ class fearData {
   unsigned char *g_pScreenMultiAdr;
   unsigned char *g_pScreenMulti = 0;
   bool freeMovement=0;
+  unsigned char isXP2=0;
   void * CPlayerObj_UpdateMovement=0;
   void *CPlayerObj_m_PlayerRigidBody_Update;
   void *CPlayerObj_TeleportClientToServerPos;

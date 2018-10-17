@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <tchar.h>
 #include <windows.h>
-#include <math.h
+#include <math.h>
 //#include <intrin.h>
 //#include <winternl.h>
 #include <winsock2.h>

@@ -20,8 +20,8 @@ loop
 
 
 56 55 52 57 E8 59 FA FF FF EB 16
-D9 55 F8 D9 55 08 D8 CA D9 5D B8 D8 4D 08 D9 5D BC DD D8 D9 45 B4 D8 4D 08 D9 5D C0
-loop2 engineserver
+D9 55 F8 D9 55 08 D8 CA D9 5D B8 D8 4D 08 D9 5D BC DD D8 D9 45 B4 D8 4D 08 D9 5D
+C0 loop2 engineserver
 */
 
 #define NOINTRO
@@ -89,7 +89,7 @@ void regcall appData::setFlashlight(bool state) {
 }
 
 extern "C" void
-hookOnConnectServerRet() {  //-fomit-frame-pointer required :troll:
+hookOnConnectServerRet() { //-fomit-frame-pointer required :troll:
   // appData *aData = &handleData::instance()->aData;
   asm volatile("push %ebx");
   asm volatile("mov %0,%%eax" : "=m"(doConnectIpAdrTramp));
@@ -139,11 +139,11 @@ void regcall hookStoryModeOff(reg *p) {
   char *lvlName = aData->pSdk->getCurrentLevelName();
   aData->storyModeCnt++;
   if (lvlName) {
-    switch (hash_rta(lvlName)){
-      case hash_ct("01_Intro"):
-      case hash_ct("07_ATC_Roof"):
-      case hash_ct("XP2_W01"):
-      case hash_ct("XP2_W06"):
+    switch (hash_rta(lvlName)) {
+    case hash_ct("01_Intro"):
+    case hash_ct("07_ATC_Roof"):
+    case hash_ct("XP2_W01"):
+    case hash_ct("XP2_W06"):
       return;
     }
   }
@@ -154,7 +154,8 @@ void regcall hookStoryModeOff(reg *p) {
 void regcall hookfRateFix(reg *p) {
   float fRateNew = 1.0f;
   float fRate = reinterpret_cast<float &>(p->tax);
-  if (fRate <= 0.0f) p->tax = reinterpret_cast<unsigned &>(fRateNew);
+  if (fRate <= 0.0f)
+    p->tax = reinterpret_cast<unsigned &>(fRateNew);
   /*CPlayerObj * pPlayerObj = (CPlayerObj *)p->tdi;
   fearData *pSdk = &handleData::instance()->pSdk;
     HCLIENT hClient = (HCLIENT) * (HCLIENT *)((unsigned char *)pPlayerObj +
@@ -167,7 +168,7 @@ void regcall hookfRateFix(reg *p) {
   switch(p->v3){
     case 0x3A4: //dual pistols
     case 0x2DF: //g2a2
-    case 0x366: //submachinegun 
+    case 0x366: //submachinegun
     case 0x130: //pistol
     case 0x350: //shotgun
     case 0x339: //penetrator
@@ -186,25 +187,13 @@ void regcall hookfRateFix(reg *p) {
     //DBGLOG("AIM ON")
   }*/
 }
-const char *wepsmpstr[] = {"Remote Charge",
-  "Pistol",
-                           "Submachinegun",
-                           "Shotgun",
-                           "Assault Rifle",
-                           "Nail Gun",
-                           "Semi-auto Rifle",
-                           "Cannon",
-                           "Missile Launcher",
-                           "Plasma Weapon",
-                           "Vulcan Cannon",
-                           "Turret_Helicopter",
-                           "Turret_Remote",
-                           "Turret_Street",
-                           "Frag Grenade",
-                           "Proximity",
-                           "Unarmed",
-                           0
-                         };
+const char *wepsmpstr[] = {
+    "Remote Charge",   "Pistol",        "Submachinegun",
+    "Shotgun",         "Assault Rifle", "Nail Gun",
+    "Semi-auto Rifle", "Cannon",        "Missile Launcher",
+    "Plasma Weapon",   "Vulcan Cannon", "Turret_Helicopter",
+    "Turret_Remote",   "Turret_Street", "Frag Grenade",
+    "Proximity",       "Unarmed",       0};
 
 void regcall hookOnAddClient_CheckNickname(reg *p) {
   fearData *pSdk = &handleData::instance()->pSdk;
@@ -216,43 +205,51 @@ void regcall hookOnAddClient_CheckNickname(reg *p) {
     int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
     IsTextUnicode((void *)ncd->m_szName,
                   wcslen(ncd->m_szName) * sizeof(wchar_t), &isUni);
-    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) p->tax = (uintptr_t)pSdk->m_hUnarmedRecord;
+    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS)
+      p->tax = (uintptr_t)pSdk->m_hUnarmedRecord;
   }
 }
 
-void regcall hookRandomWeapon(reg * p){
-  p->state=2;
+void regcall hookRandomWeapon(reg *p) {
+  p->state = 2;
   fearData *pSdk = &handleData::instance()->pSdk;
-  unsigned timeMS=pSdk->getRealTimeMS();
-  if(!pSdk->randomWeaponTime || timeMS-pSdk->randomWeaponTime > 90000){
+  unsigned timeMS = pSdk->getRealTimeMS();
+  if (!pSdk->randomWeaponTime || timeMS - pSdk->randomWeaponTime > 90000) {
     pSdk->randomWeaponTime = timeMS;
-    const char * szWep = wepsmpstr[pSdk->randomWepTable[pSdk->currentRandomWeaponInd]];
-    if(pSdk->currentRandomWeaponInd==17)
-      pSdk->currentRandomWeaponInd=0;
+    const char *szWep =
+        wepsmpstr[pSdk->randomWepTable[pSdk->currentRandomWeaponInd]];
+    if (pSdk->currentRandomWeaponInd == 17)
+      pSdk->currentRandomWeaponInd = 0;
     else
       pSdk->currentRandomWeaponInd++;
-    pSdk->currentRandomWeapon = 
-            pSdk->g_pLTDatabase->GetRecord(pSdk->m_hCatWeapons, szWep);
-                  ((void(__thiscall *)(void *,const char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,"msg Player RESETINVENTORY", 0, 0);
-                  char str[64];
-                  sprintf(str,"msg Player (ACQUIREWEAPON %s)",szWep);
-                  ((void(__thiscall *)(void *,char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,str, 0, 0);
-                  if(!pSdk->randomWepTable[pSdk->currentRandomWeaponInd]){
-                  ((void(__thiscall *)(void *,const char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,"msg Player (CHANGEWEAPON Unarmed)", 0, 0);
-                  }else{
-                  sprintf(str,"msg Player (CHANGEWEAPON %s)",szWep);
-                  ((void(__thiscall *)(void *,char *, uintptr_t,uintptr_t))pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr,str, 0, 0);
-                  }
+    pSdk->currentRandomWeapon =
+        pSdk->g_pLTDatabase->GetRecord(pSdk->m_hCatWeapons, szWep);
+    ((void(__thiscall *)(void *, const char *, uintptr_t,
+                         uintptr_t))pSdk->CCommandMgr_QueueCommand)(
+        pSdk->pCmdMgr, "msg Player RESETINVENTORY", 0, 0);
+    char str[64];
+    sprintf(str, "msg Player (ACQUIREWEAPON %s)", szWep);
+    ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
+         pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr, str, 0, 0);
+    if (!pSdk->randomWepTable[pSdk->currentRandomWeaponInd]) {
+      ((void(__thiscall *)(void *, const char *, uintptr_t,
+                           uintptr_t))pSdk->CCommandMgr_QueueCommand)(
+          pSdk->pCmdMgr, "msg Player (CHANGEWEAPON Unarmed)", 0, 0);
+    } else {
+      sprintf(str, "msg Player (CHANGEWEAPON %s)", szWep);
+      ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
+           pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr, str, 0, 0);
+    }
 
-      p->tax=0;
-  }else p->tax=(uintptr_t)pSdk->currentRandomWeapon;
- 
+    p->tax = 0;
+  } else
+    p->tax = (uintptr_t)pSdk->currentRandomWeapon;
 }
 
-void regcall hookPickupRndWeapon(reg * p){
+void regcall hookPickupRndWeapon(reg *p) {
   fearData *pSdk = &handleData::instance()->pSdk;
-  if(pSdk->currentRandomWeapon!=(HWEAPON)p->tax)
-    p->tax=0;
+  if (pSdk->currentRandomWeapon != (HWEAPON)p->tax)
+    p->tax = 0;
 }
 
 struct readMsg {
@@ -275,10 +272,10 @@ void regcall hookMID(reg *p) {
             v4 = pMsg->f24;
   CAutoMessageBase_Read *pMsgRead = (CAutoMessageBase_Read *)p->v1;
   HOBJECT hClientObj = pSdk->GetClientObject((HCLIENT)p->v0);
-  //if (!hClientObj) return;
+  // if (!hClientObj) return;
   GameClientData *pGameClientData = pSdk->getGameClientData((HCLIENT)p->v0);
   if (!pGameClientData) {
-    p->state=1;
+    p->state = 1;
     return;
   }
   unsigned clientId = pSdk->g_pLTServer->GetClientID((HCLIENT)p->v0);
@@ -288,430 +285,485 @@ void regcall hookMID(reg *p) {
     return;
   }*/
   playerData *pPlData = &pSdk->pPlayerData[clientId];
-  unsigned playerState=0;
-  if(pPlayerObj){
-  playerState = *(unsigned *)((unsigned char *)pPlayerObj +
-                                       pSdk->CPlayerObj_m_ePlayerState);
-      if (aData->bCoop && !pPlData->bIsDead && playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
-        pPlData->bIsDead=1;
-        if (*(unsigned char *)((unsigned char *)pPlayerObj +
-                               pSdk->CCharacter_m_bOnGround)) { 
-          // HCLIENT playerClient = *(HCLIENT*)((unsigned char
-          // *)pPlayerObj+0x2880);
-          HOBJECT hPlayerObj = pSdk->GetClientObject((HCLIENT)p->v0);
-          pSdk->g_pLTServer->GetObjectPos(hPlayerObj, &pSdk->checkPointPos);
-          pSdk->checkPointPos.y+=50.0f;
-          // newPos = pSdk->checkPointPos;
-          pSdk->checkPointState = 2;
-        }
+  unsigned playerState = 0;
+  if (pPlayerObj) {
+    playerState = *(unsigned *)((unsigned char *)pPlayerObj +
+                                pSdk->CPlayerObj_m_ePlayerState);
+    if (aData->bCoop && !pPlData->bIsDead &&
+        playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
+      pPlData->bIsDead = 1;
+      if (*(unsigned char *)((unsigned char *)pPlayerObj +
+                             pSdk->CCharacter_m_bOnGround)) {
+        // HCLIENT playerClient = *(HCLIENT*)((unsigned char
+        // *)pPlayerObj+0x2880);
+        HOBJECT hPlayerObj = pSdk->GetClientObject((HCLIENT)p->v0);
+        pSdk->g_pLTServer->GetObjectPos(hPlayerObj, &pSdk->checkPointPos);
+        pSdk->checkPointPos.y += 50.0f;
+        // newPos = pSdk->checkPointPos;
+        pSdk->checkPointState = 2;
       }
     }
+  }
   uint8_t nMessageId = pMsgRead->ReadBits(8);
-  if(!*(unsigned char *)(pGameClientData + 0x7C) /*m_bPassedSecurity*/   && nMessageId != MID_MULTIPLAYER_UPDATE && nMessageId != MID_CLIENTCONNECTION){
-  p->state=1;
-  return;
-}
+  if (!*(unsigned char *)(pGameClientData + 0x7C) /*m_bPassedSecurity*/ &&
+      nMessageId != MID_MULTIPLAYER_UPDATE &&
+      nMessageId != MID_CLIENTCONNECTION) {
+    p->state = 1;
+    return;
+  }
   switch (nMessageId) {
-    case MID_FRAG_SELF:
-    case MID_DECISION:
-    case MID_WEAPON_FINISH:
-    case MID_WEAPON_FINISH_RAGDOLL:
-    case MID_OBJECT_ALPHA:
-    case MID_RENDER_STIMULUS:
-    case MID_STIMULUS:
-    case MID_PLAYER_TELEPORT:
-    case MID_DO_DAMAGE:
-    case MID_GAME_PAUSE:
-    case MID_GAME_UNPAUSE:
-    case MID_SOUND_BROADCAST_DB:
-    case MID_START_LEVEL:
-    case MID_MULTIPLAYER_OPTIONS:
-    case MID_PUNKBUSTER_MSG:
-    case MID_SONIC:
-    case MID_AIDBUG:
-    case MID_ADD_GOAL:
-    case MID_REMOVE_GOAL:
-    case MID_DYNANIMPROP:
+  case MID_FRAG_SELF:
+  case MID_DECISION:
+  case MID_WEAPON_FINISH:
+  case MID_WEAPON_FINISH_RAGDOLL:
+  case MID_OBJECT_ALPHA:
+  case MID_RENDER_STIMULUS:
+  case MID_STIMULUS:
+  case MID_PLAYER_TELEPORT:
+  case MID_DO_DAMAGE:
+  case MID_GAME_PAUSE:
+  case MID_GAME_UNPAUSE:
+  case MID_SOUND_BROADCAST_DB:
+  case MID_START_LEVEL:
+  case MID_MULTIPLAYER_OPTIONS:
+  case MID_PUNKBUSTER_MSG:
+  case MID_SONIC:
+  case MID_AIDBUG:
+  case MID_ADD_GOAL:
+  case MID_REMOVE_GOAL:
+  case MID_DYNANIMPROP:
+    p->state = 1;
+    break;
+  case MID_PLAYER_ACTIVATE: {
+    if (!pPlayerObj) {
       p->state = 1;
       break;
-    case MID_PLAYER_ACTIVATE: {
-      if(!pPlayerObj){
-        p->state=1;
-        break;
-      }
-      CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
-                                        pSdk->CPlayerObj_m_Arsenal);
-      if (!pArsenal) {
+    }
+    CArsenal *pArsenal =
+        (CArsenal *)((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Arsenal);
+    if (!pArsenal) {
+      p->state = 1;
+      break;
+    }
+    LTRotation rTrueCameraRot;
+    LTVector curPos, objPos;
+    pMsgRead->ReadData((void *)&objPos, 0x60);
+    pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
+    unsigned type = pMsgRead->ReadBits(8);
+    unsigned curTime = pSdk->getRealTimeMS();
+    HOBJECT hObject = pMsgRead->ReadObject();
+    bool bPosInvalid = 0;
+    pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
+    pSdk->g_pLTServer->GetObjectPos(hObject, &objPos);
+    if (!curPos.NearlyEquals(objPos, 256.0f)) {
+      bPosInvalid = 1;
+    }
+    switch (type) {
+    case MID_ACTIVATE_TURRET:
+      bPosInvalid = 0;
+      break;
+    case MID_ACTIVATE_LADDER:
+      if (!pPlayerObj) {
         p->state = 1;
         break;
       }
-      LTRotation rTrueCameraRot;
-      LTVector curPos, objPos;
-      pMsgRead->ReadData((void *)&objPos, 0x60);
-      pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
-      unsigned type = pMsgRead->ReadBits(8);
-      unsigned curTime = pSdk->getRealTimeMS();
-      HOBJECT hObject = pMsgRead->ReadObject();
-      bool bPosInvalid = 0;
-      pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
-      pSdk->g_pLTServer->GetObjectPos(hObject, &objPos);
-      if (!curPos.NearlyEquals(objPos, 256.0f)) {
-        bPosInvalid = 1;
-      }
-      switch (type) {
-        case MID_ACTIVATE_TURRET:
-          bPosInvalid = 0;
-          break;
-        case MID_ACTIVATE_LADDER:
-        if(!pPlayerObj){
-          p->state=1;
-          break;
+      bPosInvalid = 0;
+      hObject ? pPlData->bLadderInUse = 1 : pPlData->bLadderInUse = 0;
+      if (pPlData->onChangeWeaponHWEAPON !=
+          *(HWEAPON *)((unsigned char *)pArsenal +
+                       pSdk->CArsenal_m_hCurWeapon)) {
+        unsigned delta = (unsigned)(curTime - pPlData->onChangeWeaponTime);
+        if (delta <= 1536) {
+          // if (*(HOBJECT *)((unsigned char *)pPlayerObj +
+          //                 pSdk->CCharacter_m_hLadderObject))
+          /*((void(__thiscall *)(CPlayerObj *)) *
+           (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
+                         pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);*/
+
+          // pSdk->resetToUnarmed(pPlayerObj);
+          // pPlData->bResetToUnarmed=1;
+          ((void(__thiscall *)(CPlayerObj *, HWEAPON, bool, HAMMO, bool,
+                               bool))pSdk->CPlayerObj_ChangeWeapon)(
+              pPlayerObj, pSdk->m_hUnarmedRecord, 1, pSdk->m_hUnarmedRecordAmmo,
+              0, 0);
         }
-          bPosInvalid = 0;
-          hObject ? pPlData->bLadderInUse=1 : pPlData->bLadderInUse=0;
-          if (pPlData->onChangeWeaponHWEAPON !=
-              *(HWEAPON *)((unsigned char *)pArsenal +
-                           pSdk->CArsenal_m_hCurWeapon)) {
-            unsigned delta = (unsigned)(curTime - pPlData->onChangeWeaponTime);
-            if (delta <= 1536) {
-              // if (*(HOBJECT *)((unsigned char *)pPlayerObj +
-              //                 pSdk->CCharacter_m_hLadderObject))
-              /*((void(__thiscall *)(CPlayerObj *)) *
-               (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
-                             pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);*/
-
-              // pSdk->resetToUnarmed(pPlayerObj);
-              // pPlData->bResetToUnarmed=1;
-              ((void(__thiscall *)(CPlayerObj *, HWEAPON, bool, HAMMO, bool,
-                                   bool))pSdk->CPlayerObj_ChangeWeapon)(
-                  pPlayerObj, pSdk->m_hUnarmedRecord, 1,
-                  pSdk->m_hUnarmedRecordAmmo, 0, 0);
-            }
-          }
-          break;
       }
-      if (bPosInvalid) p->state = 1;
-
-    } break;
-    case MID_WEAPON_CHANGE: {
-      if(!pPlayerObj){
-        p->state=1;
-        break;
-      }
-      CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
-                                        pSdk->CPlayerObj_m_Arsenal);
-      if (!pArsenal) {
-        p->state = 1;
-        break;
-      }
-      pPlData->onChangeWeaponHWEAPON =
-          *(HWEAPON *)((unsigned char *)pArsenal + pSdk->CArsenal_m_hCurWeapon);
-      pPlData->onChangeWeaponTime = pSdk->getRealTimeMS();
-      ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
-          p->tcx, p->v0, p->v1);
+      break;
+    }
+    if (bPosInvalid)
       p->state = 1;
 
-    } break;
-    case MID_OBJECT_MESSAGE: {
-      HOBJECT hTarget = pMsgRead->ReadObject();
-      unsigned val = pMsgRead->ReadBits(0x20);
-      switch (val) {
-        case MID_SFX_MESSAGE:
-        case 0xFF:
+  } break;
+  case MID_WEAPON_CHANGE: {
+    if (!pPlayerObj) {
+      p->state = 1;
+      break;
+    }
+    CArsenal *pArsenal =
+        (CArsenal *)((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Arsenal);
+    if (!pArsenal) {
+      p->state = 1;
+      break;
+    }
+    pPlData->onChangeWeaponHWEAPON =
+        *(HWEAPON *)((unsigned char *)pArsenal + pSdk->CArsenal_m_hCurWeapon);
+    pPlData->onChangeWeaponTime = pSdk->getRealTimeMS();
+    ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
+        p->tcx, p->v0, p->v1);
+    p->state = 1;
+
+  } break;
+  case MID_OBJECT_MESSAGE: {
+    HOBJECT hTarget = pMsgRead->ReadObject();
+    unsigned val = pMsgRead->ReadBits(0x20);
+    switch (val) {
+    case MID_SFX_MESSAGE:
+    case 0xFF:
+      break;
+    default:
+      p->state = 1;
+    }
+  } break;
+  case MID_SLOWMO: {
+    if (!pPlayerObj) {
+      p->state = 1;
+      break;
+    }
+    void *m_Inventory =
+        (((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Inventory));
+    HGEAR m_hSlowMoGearRecord = *(HGEAR *)((unsigned char *)m_Inventory + 0x58);
+    if (!aData->bCoop) { // everyone can use & no wait for charge
+      if (m_Inventory && !m_hSlowMoGearRecord) {
+        p->state = 1;
+        break;
+      }
+      float m_fSlowMoCharge = *(float *)((unsigned char *)m_Inventory + 0x5C);
+      float m_fSlowMoMaxCharge =
+          *(float *)((unsigned char *)m_Inventory + 0x64);
+      float fPercent = m_fSlowMoMaxCharge * 0.20f;
+      if ((m_fSlowMoMaxCharge - fPercent) >= m_fSlowMoCharge)
+        p->state = 1;
+    }
+  } break;
+  case MID_PLAYER_GHOSTMESSAGE:
+  case MID_PLAYER_MESSAGE: {
+    wchar_t text[64];
+    unsigned len = pMsgRead->ReadWString(text, sizeof(text) / sizeof(wchar_t)) *
+                   sizeof(wchar_t);
+    if (len > (63 * sizeof(wchar_t)))
+      p->state = 1;
+  } break;
+  case MID_PLAYER_RESPAWN: {
+
+    memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
+    p->state = pSdk->checkPlayerStatus(pGameClientData);
+    if (p->state) {
+      pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+      p->state = 1;
+      // pSdk->BootWithReason(pGameClientData,
+      // eClientConnectionError_PunkBuster,
+      //                     (char *)"Respawn fail");
+    }
+    if ((playerState == ePlayerState_Alive) ||
+        (playerState == ePlayerState_Dying_Stage2) ||
+        (playerState == ePlayerState_Dying_Stage1)) {
+      p->state = 1;
+      break;
+    }
+  } break;
+  case MID_PICKUPITEM_ACTIVATE:
+  case MID_PICKUPITEM_ACTIVATE_EX: {
+    HOBJECT hTarget = pMsgRead->ReadObject();
+    LTVector targetPos, curPos;
+    pSdk->g_pLTServer->GetObjectPos(hTarget, &targetPos);
+    pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
+    if (!curPos.NearlyEquals(targetPos, 256.0f)) {
+      p->state = 1;
+    }
+  } break;
+  case MID_WEAPON_RELOAD: {
+    // pPlData->lastFireWeaponReload=1;
+  } break;
+  case MID_WEAPON_FIRE: {
+    if (playerState != ePlayerState_Alive) {
+      p->state = 1;
+      break;
+    }
+
+    // unsigned char bIsNul=0;
+    LTVector firePos, curPos, vPath;
+    HWEAPON hWeapon = 0;
+    CArsenal *pArsenal =
+        (CArsenal *)((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Arsenal);
+    if (!pArsenal) {
+      p->state = 1;
+      break;
+    }
+    if (pMsgRead->ReadBits(0x1)) {
+      hWeapon = pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase,
+                                             pSdk->m_hCatWeapons);
+      // bIsNul++;
+    }
+    HAMMO hAmmo = 0;
+    if (pMsgRead->ReadBits(0x1)) {
+      hAmmo =
+          pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);
+      // bIsNul++;
+    }
+    if (!hWeapon && hAmmo)
+      p->state = 1;
+
+    unsigned ammoType = 0;
+    HAMMODATA hAmmoData = 0;
+    HWEAPONDATA hWpnData = 0;
+    float dist = 256.0f;
+    bool bUnarmed = 0;
+    if (hWeapon &&
+        hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed")) {
+      if (hAmmo) {
+        unsigned hAnim = pPlData->hAnim;
+        if (pSdk->isXP2)
+          hAnim++;
+        switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
+        case hash_ct("Melee_JabRight"):
+        case hash_ct("Melee_JabLeft"):
+          if (hAnim == 0xD9 || hAnim == 0xDB || hAnim == 0xDC)
+            break;
+          p->state = 1;
+          break;
+        case hash_ct("Melee_RifleButt"):
+          if (hAnim == 0xD9 || hAnim == 0xC5)
+            break;
+          p->state = 1;
+          break;
+        case hash_ct("Melee_SlideKick"):
+          if (pSdk->isXP2) {
+            if (hAnim == 0x12C || hAnim == 0x47D)
+              break;
+            p->state = 1;
+          } else if (hAnim != 0x12B)
+            p->state = 1;
+          break;
+        case hash_ct("Melee_RunKickLeft"):
+        case hash_ct("Melee_RunKickRight"):
+          if (hAnim != 0x12E)
+            p->state = 1;
+          break;
+        case hash_ct("Melee_JumpKick"):
+          if (hAnim != 0x12D)
+            p->state = 1;
           break;
         default:
           p->state = 1;
-      }
-    } break;
-    case MID_SLOWMO: {
-      if(!pPlayerObj){
-        p->state=1;
-        break;
-      }
-      void *m_Inventory =
-          (((unsigned char *)pPlayerObj + pSdk->CPlayerObj_m_Inventory));
-      HGEAR m_hSlowMoGearRecord =
-          *(HGEAR *)((unsigned char *)m_Inventory + 0x58);
-      if (!aData->bCoop) {  // everyone can use & no wait for charge
-        if (m_Inventory && !m_hSlowMoGearRecord) {
-          p->state = 1;
           break;
         }
-        float m_fSlowMoCharge = *(float *)((unsigned char *)m_Inventory + 0x5C);
-        float m_fSlowMoMaxCharge =
-            *(float *)((unsigned char *)m_Inventory + 0x64);
-        float fPercent = m_fSlowMoMaxCharge * 0.20f;
-        if ((m_fSlowMoMaxCharge - fPercent) >= m_fSlowMoCharge) p->state = 1;
       }
-    } break;
-    case MID_PLAYER_GHOSTMESSAGE:
-    case MID_PLAYER_MESSAGE: {
-      wchar_t text[64];
-      unsigned len =
-          pMsgRead->ReadWString(text, sizeof(text) / sizeof(wchar_t)) *
-          sizeof(wchar_t);
-      if (len > (63 * sizeof(wchar_t))) p->state = 1;
-    } break;
-    case MID_PLAYER_RESPAWN: {
-
-      memset(&pSdk->pPlayerData[clientId], 0, sizeof(playerData));
-      p->state = pSdk->checkPlayerStatus(pGameClientData);
-      if (p->state) {
-        pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+      dist = 150.0f;
+      bUnarmed = 1;
+    }
+    if (!bUnarmed && hWeapon) {
+      hWpnData = pSdk->GetWeaponData(hWeapon);
+      HAMMO hAmmoServ = pSdk->g_pLTDatabase->GetRecordLink(
+          pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
+      unsigned ammoCnt = ((unsigned(__thiscall *)(
+          CArsenal *, HAMMO))pSdk->CArsenal_GetAmmoCount)(pArsenal, hAmmoServ);
+      if (!ammoCnt)
         p->state = 1;
-        //pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-        //                     (char *)"Respawn fail");
-      }
-      if ((playerState == ePlayerState_Alive) ||
-          (playerState == ePlayerState_Dying_Stage2) ||
-          (playerState == ePlayerState_Dying_Stage1)) {
+      if (hAmmo && hAmmoServ != hAmmo)
         p->state = 1;
-        break;
-      }
-    } break;
-    case MID_PICKUPITEM_ACTIVATE:
-    case MID_PICKUPITEM_ACTIVATE_EX: {
-      HOBJECT hTarget = pMsgRead->ReadObject();
-      LTVector targetPos, curPos;
-      pSdk->g_pLTServer->GetObjectPos(hTarget, &targetPos);
-      pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
-      if (!curPos.NearlyEquals(targetPos, 256.0f)) {
-        p->state = 1;
-      }
-    } break;
-    case MID_WEAPON_RELOAD: {
-      // pPlData->lastFireWeaponReload=1;
-    } break;
-    case MID_WEAPON_FIRE: {
-      if(playerState != ePlayerState_Alive){
-        p->state=1;
-        break;
-      }
+    }
+    hWeapon =
+        *(HWEAPON *)((unsigned char *)pArsenal + pSdk->CArsenal_m_hCurWeapon);
+    if (!hWeapon) {
+      p->state = 1;
+      break;
+    }
+    if (!hAmmo) {
+      hWpnData = pSdk->GetWeaponData(hWeapon);
+      hAmmo = pSdk->g_pLTDatabase->GetRecordLink(
+          pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
+      HAMMODATA hAmmoData = pSdk->GetAmmoData(hAmmo);
+      ammoType =
+          ((unsigned(__thiscall *)(CWeaponDB *, HAMMODATA, char *, uintptr_t,
+                                   uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
+              pSdk->g_pWeaponDB, hAmmoData, _C("Type"), 0, 0);
+    }
+    if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
+                        hash_ct("Turret_Remote")) ||
+        ammoType == TRIGGER)
+      break;
 
-      
-      // unsigned char bIsNul=0;
-      LTVector firePos, curPos, vPath;
-      HWEAPON hWeapon = 0;
-      if (pMsgRead->ReadBits(0x1)) {
-        hWeapon = pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase,
-                                               pSdk->m_hCatWeapons);
-        // bIsNul++;
-      }
-      HAMMO hAmmo = 0;
-      if (pMsgRead->ReadBits(0x1)) {
-        hAmmo =
-            pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);
-        // bIsNul++;
-      }
+    pMsgRead->ReadData((void *)&firePos, 0x60);
+    if (firePos.x == 0.0 && firePos.y == 0.0 && firePos.z == 0.0)
+      p->state = 1;
+    if (isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+      p->state = 1;
+    pMsgRead->ReadData((void *)&vPath, 0x60);
+    if (vPath.x == 0.0 && vPath.y == 0.0 && vPath.z == 0.0)
+      p->state = 1;
+    if (isnan(vPath.x) && isnan(vPath.y) || isnan(vPath.z))
+      p->state = 1;
+    pMsgRead->ReadBits(8); // random number seed
+    pMsgRead->ReadBits(8); // perturb count
+    pMsgRead->ReadBits(8); // perturb
+    unsigned fireTimestamp = pMsgRead->ReadBits(0x20);
+    unsigned fireServTimestamp = pSdk->getRealTimeMS();
+    // printf("fire %p %p\n",fireTimestamp,fireServTimestamp);
 
-      CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
-                                        pSdk->CPlayerObj_m_Arsenal);
-      if (!pArsenal) {
-        p->state = 1;
-        break;
-      }
-      unsigned ammoType = 0;
-      HAMMODATA hAmmoData = 0;
-      HWEAPONDATA hWpnData = 0;
-      hWeapon =
-          *(HWEAPON *)((unsigned char *)pArsenal + pSdk->CArsenal_m_hCurWeapon);
-      if (!hWeapon) {
-        p->state = 1;
-        break;
-      }
-      if (!hAmmo) {
-        hWpnData = pSdk->GetWeaponData(hWeapon);
-        hAmmo = pSdk->g_pLTDatabase->GetRecordLink(
-            pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
-        HAMMODATA hAmmoData = pSdk->GetAmmoData(hAmmo);
-        ammoType =
-            ((unsigned(__thiscall *)(CWeaponDB *, HAMMODATA, char *, uintptr_t,
-                                     uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
-                pSdk->g_pWeaponDB, hAmmoData, _C("Type"), 0, 0);
-      }
-      if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
-                          hash_ct("Turret_Remote")) ||
-          ammoType == TRIGGER)
-        break;
-      float dist = 256.0f;
-      bool bUnarmed = 0;
-      if (hWeapon &&
-          hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed")){
-        dist = 150.0f;
-        bUnarmed=1;
-      }
-        
-      pMsgRead->ReadData((void *)&firePos, 0x60);
-          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
-            p->state=1;
-          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
-            p->state=1;
-      pMsgRead->ReadData((void *)&vPath, 0x60);
-          if(vPath.x==0.0 && vPath.y == 0.0 && vPath.z ==0.0)
-            p->state=1;
-          if(isnan(vPath.x) && isnan(vPath.y) || isnan(vPath.z))
-            p->state=1;
-      pMsgRead->ReadBits(8);//random number seed
-      pMsgRead->ReadBits(8);//perturb count
-      pMsgRead->ReadBits(8);//perturb
-      unsigned fireTimestamp = pMsgRead->ReadBits(0x20);
-      unsigned fireServTimestamp = pSdk->getRealTimeMS();
+    bool bFire = 1;
+    // pSdk->g_pLTServer->GetObjectPos(hTarget,&targetPos);
+    pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
 
-
-      bool bFire = 1;
-      // pSdk->g_pLTServer->GetObjectPos(hTarget,&targetPos);
-      pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
-
-
-      if (!curPos.NearlyEquals(firePos, dist)) {
-        p->state = 1;
-      }
-
-        if (p->state) {
-          if(hAmmo)
-          ((unsigned(__thiscall *)(
-              CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
-          break;
-        }
-      
-      // if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
-      //                    hash_ct("Minigun")))
-      //  break;
-      CWeapon *pWeapon = ((CWeapon * (__thiscall *)(CArsenal *))
-                              pSdk->CArsenal_GetCurWeapon)(pArsenal);
-      unsigned ammoInClip;
-      // bool isLastBullet=0;
-
-      if ((bUnarmed || hWpnData) && pWeapon) {
-        ammoInClip = pWeapon->m_nAmmoInClip;
-        // if(ammoInClip == 1){
-        //  *(bool volatile *)&isLastBullet=1;// bad, bad compiler!
-        //}
-
-        unsigned delta = fireServTimestamp - pPlData->lastFireWeaponIgnored;
-        if (delta > 2048) {  // rapid fire timer
-          ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
-              p->tcx, p->v0, p->v1);
-          pPlData->lastFireWeaponIgnored = 0;
-        }
-        p->state = 1;
-        if (bUnarmed || (ammoInClip != pWeapon->m_nAmmoInClip)) {
-          ammoInClip = pWeapon->m_nAmmoInClip;
-          if (pPlData->lastFireWeapon != pWeapon) {
-            pPlData->lastFireWeaponClipAmmo = 0;
-            pPlData->lastFireWeaponTimestamp = 0;
-            pPlData->lastFireWeaponReload = 0;
-            pPlData->lastFireWeaponAccuracyFailCnt = 0;
-            pPlData->lastFireWeaponAccuracyFail=0;
-            pPlData->lastFireWeapon = pWeapon;
-            unsigned dwAni = 8;  // RELOAD
-            // pSdk->g_pModelLT->GetAnimIndex(pWeapon->m_hModelObject,"Reload",dwAni);
-            pSdk->g_pModelLT->GetAnimLength(
-                pWeapon->m_hModelObject, dwAni,
-                pPlData->lastFireWeaponReloadLength);
-            pPlData->lastFireWeaponReloadLength -= 96;
-            if ((int)(pPlData->lastFireWeaponReloadLength) < 0)
-              pPlData->lastFireWeaponReloadLength = 0;
-
-            /*pPlData->lastFireWeaponClipMax = ((unsigned(__thiscall *)(
-                CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
-                uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
-                pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nShotsPerClip), 0,
-                0);
-            pPlData->lastFireWeaponDelay = ((unsigned(__thiscall *)(
-                CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
-                uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
-                pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nFireDelay), 0, 0);*/
-          } else {
-            /*if(pPlData->lastFireWeaponAccuracyFailCnt){
-              unsigned fTimeDelta = fireTimestamp - pPlData->lastFireWeaponAccuracyFail;
-              if(fTimeDelta >= 3000)
-                pPlData->lastFireWeaponAccuracyFailCnt = 0;
-            }
-      if (hWeapon &&
-          hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Assault Rifle"))
-        if(pPlData->lastvPathFire[0])
-        if(!pPlData->isAimed){
-          if(pPlData->lastvPathFire.NearlyEquals(vPath,0.003f)){
-            pPlData->lastFireWeaponAccuracyFail=fireTimestamp;
-            pPlData->lastFireWeaponAccuracyFailCnt++;
-            if(pPlData->lastFireWeaponAccuracyFailCnt==5){
-                ((void(__thiscall *)(CPlayerObj *)) *
-                 (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
-                               pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
-            p->state=1;
-            break;
-          }
-          }
-      }*/
-      pPlData->lastvPathFire = vPath;
-            /*if(pPlData->lastFireWeaponReload){
-              pPlData->lastFireWeaponReload = 0;
-              unsigned delta = fireTimestamp - pPlData->lastFireWeaponTimestamp;
-              if ( (delta < pPlData->lastFireWeaponReloadLength)) {
-                //((unsigned(__thiscall *)(
-                //    CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal,
-                //    hAmmo);
-                ((void(__thiscall *)(CPlayerObj *)) *
-                 (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
-                               pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
-                //p->state = 1;
-                pPlData->lastFireWeaponClipAmmo = 0;
-                pPlData->lastFireWeaponTimestamp = 0;
-                break;
-              }
-            }*/
-            // if(pPlData->lastFireWeaponReload){
-            //  pPlData->lastFireWeaponReload=0;
-            // pPlData->lastFireWeaponDidReload=1;
-            //}
-            // if ((ammoInClip > pPlData->lastFireWeaponClipAmmo)) {
-            // if(isLastBullet){
-            /*if (ammoInClip == pPlData->lastFireWeaponClipMax) {
-              pPlData->lastFireWeaponReload = 1;
-            }*/
-            unsigned fireServTimestampCheck = 0;
-            // unsigned delay = pPlData->lastFireWeaponDelay + 0x800;
-            // if (fireServTimestamp > (delay + 1))
-            //  fireServTimestampCheck = fireServTimestamp - delay;
-            if (fireTimestamp > fireServTimestamp) {
-              ((unsigned(__thiscall *)(
-                  CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal,
-                                                                   hAmmo);
-              pPlData->lastFireWeaponClipAmmo = 0;
-              pPlData->lastFireWeaponTimestamp = 0;
-              pPlData->lastFireWeaponIgnored = fireServTimestamp;
-              break;
-            } /*else if (fireTimestamp < fireServTimestampCheck) {
-               //p->state = 1;
-               ((void(__thiscall *)(CPlayerObj *)) *
-                (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
-                              pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
-               pPlData->lastFireWeaponClipAmmo = 0;
-               pPlData->lastFireWeaponTimestamp = 0;
-               break;
-             }*/
-          }
-          pPlData->lastFireWeaponClipAmmo = ammoInClip;
-          pPlData->lastFireWeaponTimestamp = fireTimestamp;
-        }
-      }
-
+    if (!curPos.NearlyEquals(firePos, dist)) {
+      p->state = 1;
     }
 
-    break;
-    case MID_PLAYER_GEAR: {
-      if(!pPlayerObj){
-        p->state=1;
-        break;
+    if (p->state) {
+      if (hAmmo)
+        ((unsigned(__thiscall *)(
+            CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
+      break;
+    }
+
+    // if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
+    //                    hash_ct("Minigun")))
+    //  break;
+    CWeapon *pWeapon = ((CWeapon * (__thiscall *)(CArsenal *))
+                            pSdk->CArsenal_GetCurWeapon)(pArsenal);
+    unsigned ammoInClip;
+    // bool isLastBullet=0;
+
+    if ((bUnarmed || hWpnData) && pWeapon) {
+      ammoInClip = pWeapon->m_nAmmoInClip;
+      // if(ammoInClip == 1){
+      //  *(bool volatile *)&isLastBullet=1;// bad, bad compiler!
+      //}
+
+      unsigned delta = fireServTimestamp - pPlData->lastFireWeaponIgnored;
+      if (delta > 2048) { // rapid fire timer
+        ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
+            p->tcx, p->v0, p->v1);
+        pPlData->lastFireWeaponIgnored = 0;
       }
-      HGEAR hGear = pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatGear);
-      if (hGear && hash_rta((char *)*(uintptr_t *)(hGear)) != hash_ct("MedKit"))
-        p->state=1;
-        break;
-    } break;
-    case MID_DROP_GRENADE: {
-      if(pPlayerObj && (playerState == ePlayerState_Dying_Stage1 || playerState == ePlayerState_Dying_Stage2)){
+      p->state = 1;
+      if (bUnarmed || (ammoInClip != pWeapon->m_nAmmoInClip)) {
+        ammoInClip = pWeapon->m_nAmmoInClip;
+        if (pPlData->lastFireWeapon != pWeapon) {
+          pPlData->lastFireWeaponClipAmmo = 0;
+          pPlData->lastFireWeaponTimestamp = 0;
+          pPlData->lastFireWeaponReload = 0;
+          pPlData->lastFireWeaponAccuracyFailCnt = 0;
+          pPlData->lastFireWeaponAccuracyFail = 0;
+          pPlData->lastFireWeapon = pWeapon;
+          unsigned dwAni = 8; // RELOAD
+          // pSdk->g_pModelLT->GetAnimIndex(pWeapon->m_hModelObject,"Reload",dwAni);
+          pSdk->g_pModelLT->GetAnimLength(pWeapon->m_hModelObject, dwAni,
+                                          pPlData->lastFireWeaponReloadLength);
+          pPlData->lastFireWeaponReloadLength -= 96;
+          if ((int)(pPlData->lastFireWeaponReloadLength) < 0)
+            pPlData->lastFireWeaponReloadLength = 0;
+
+          /*pPlData->lastFireWeaponClipMax = ((unsigned(__thiscall *)(
+              CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
+              uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
+              pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nShotsPerClip), 0,
+              0);
+          pPlData->lastFireWeaponDelay = ((unsigned(__thiscall *)(
+              CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
+              uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
+              pSdk->g_pWeaponDB, hWpnData, _C(WDB_WEAPON_nFireDelay), 0, 0);*/
+        } else {
+          /*if(pPlData->lastFireWeaponAccuracyFailCnt){
+            unsigned fTimeDelta = fireTimestamp -
+    pPlData->lastFireWeaponAccuracyFail; if(fTimeDelta >= 3000)
+              pPlData->lastFireWeaponAccuracyFailCnt = 0;
+          }
+    if (hWeapon &&
+        hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Assault Rifle"))
+      if(pPlData->lastvPathFire[0])
+      if(!pPlData->isAimed){
+        if(pPlData->lastvPathFire.NearlyEquals(vPath,0.003f)){
+          pPlData->lastFireWeaponAccuracyFail=fireTimestamp;
+          pPlData->lastFireWeaponAccuracyFailCnt++;
+          if(pPlData->lastFireWeaponAccuracyFailCnt==5){
+              ((void(__thiscall *)(CPlayerObj *)) *
+               (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
+                             pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
+          p->state=1;
+          break;
+        }
+        }
+    }*/
+          pPlData->lastvPathFire = vPath;
+          /*if(pPlData->lastFireWeaponReload){
+            pPlData->lastFireWeaponReload = 0;
+            unsigned delta = fireTimestamp - pPlData->lastFireWeaponTimestamp;
+            if ( (delta < pPlData->lastFireWeaponReloadLength)) {
+              //((unsigned(__thiscall *)(
+              //    CArsenal *, HAMMO))pSdk->CArsenal_DecrementAmmo)(pArsenal,
+              //    hAmmo);
+              ((void(__thiscall *)(CPlayerObj *)) *
+               (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
+                             pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
+              //p->state = 1;
+              pPlData->lastFireWeaponClipAmmo = 0;
+              pPlData->lastFireWeaponTimestamp = 0;
+              break;
+            }
+          }*/
+          // if(pPlData->lastFireWeaponReload){
+          //  pPlData->lastFireWeaponReload=0;
+          // pPlData->lastFireWeaponDidReload=1;
+          //}
+          // if ((ammoInClip > pPlData->lastFireWeaponClipAmmo)) {
+          // if(isLastBullet){
+          /*if (ammoInClip == pPlData->lastFireWeaponClipMax) {
+            pPlData->lastFireWeaponReload = 1;
+          }*/
+          unsigned fireServTimestampCheck = 0;
+          // unsigned delay = pPlData->lastFireWeaponDelay + 0x800;
+          // if (fireServTimestamp > (delay + 1))
+          //  fireServTimestampCheck = fireServTimestamp - delay;
+          if (fireTimestamp > fireServTimestamp ||
+              fireTimestamp < (fireServTimestamp - 5000)) {
+            ((unsigned(__thiscall *)(CArsenal *, HAMMO))
+                 pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
+            pPlData->lastFireWeaponClipAmmo = 0;
+            pPlData->lastFireWeaponTimestamp = 0;
+            pPlData->lastFireWeaponIgnored = fireServTimestamp;
+            break;
+          } /*else if (fireTimestamp < fireServTimestampCheck) {
+             //p->state = 1;
+             ((void(__thiscall *)(CPlayerObj *)) *
+              (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
+                            pSdk->CPlayerObj_DropCurrentWeapon))(pPlayerObj);
+             pPlData->lastFireWeaponClipAmmo = 0;
+             pPlData->lastFireWeaponTimestamp = 0;
+             break;
+           }*/
+        }
+        pPlData->lastFireWeaponClipAmmo = ammoInClip;
+        pPlData->lastFireWeaponTimestamp = fireTimestamp;
+      }
+    }
+
+  }
+
+  break;
+  case MID_PLAYER_GEAR: {
+    if (!pPlayerObj) {
+      p->state = 1;
+      break;
+    }
+    HGEAR hGear =
+        pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatGear);
+    if (hGear && hash_rta((char *)*(uintptr_t *)(hGear)) != hash_ct("MedKit"))
+      p->state = 1;
+    break;
+  } break;
+  case MID_DROP_GRENADE: {
+    if (pPlayerObj && (playerState == ePlayerState_Dying_Stage1 ||
+                       playerState == ePlayerState_Dying_Stage2)) {
       pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatWeapons);
       HAMMO hAmmo =
           pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);
@@ -732,21 +784,21 @@ void regcall hookMID(reg *p) {
         }
         {
           LTVector firePos, curPos;
-          pMsgRead->ReadData((void *)&firePos, 0x60);  // flash pos
-          pMsgRead->ReadData((void *)&firePos, 0x60);  // fire pos
-          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
-            p->state=1;
-          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
-            p->state=1;
+          pMsgRead->ReadData((void *)&firePos, 0x60); // flash pos
+          pMsgRead->ReadData((void *)&firePos, 0x60); // fire pos
+          if (firePos.x == 0.0 && firePos.y == 0.0 && firePos.z == 0.0)
+            p->state = 1;
+          if (isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+            p->state = 1;
           pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
           if (!curPos.NearlyEquals(firePos, 128.0f)) {
             p->state = 1;
           }
           pMsgRead->ReadData((void *)&firePos, 0x60);
-          if(firePos.x==0.0 && firePos.y == 0.0 && firePos.z ==0.0)
-            p->state=1;
-          if(isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
-            p->state=1;
+          if (firePos.x == 0.0 && firePos.y == 0.0 && firePos.z == 0.0)
+            p->state = 1;
+          if (isnan(firePos.x) && isnan(firePos.y) || isnan(firePos.z))
+            p->state = 1;
         }
       } else {
         p->state = 1;
@@ -759,232 +811,230 @@ void regcall hookMID(reg *p) {
         m_pAmmo[nAmmoIndex]=0;
       }
       //CWeapon * cWep = pSdk->g_pArsenal->GetWeapon(hWep);*/
-    }else{
-      p->state=1;
-        break;
+    } else {
+      p->state = 1;
+      break;
     }
-    } break;
-    /*case MID_WEAPON_SOUND_LOOP:
-        if(pPlData->bResetToUnarmed){
-      if(playerState==ePlayerState_Alive){
-            CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
-                                            pSdk->CPlayerObj_m_Arsenal);
-          if(pArsenal){
-            HWEAPON hWeapon =
-            *(HWEAPON *)((unsigned char *)pArsenal +
-    pSdk->CArsenal_m_hCurWeapon); if(!hWeapon){
-                    ((void(__thiscall *)(CPlayerObj
-    *,HWEAPON,bool,HAMMO,bool,bool))pSdk->CPlayerObj_ChangeWeapon)( pPlayerObj,
-    pSdk->m_hUnarmedRecord, 1, pSdk->m_hUnarmedRecordAmmo, 0, 0);
-                    pPlData->bResetToUnarmed=0;
-            }
-
+  } break;
+  /*case MID_WEAPON_SOUND_LOOP:
+      if(pPlData->bResetToUnarmed){
+    if(playerState==ePlayerState_Alive){
+          CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
+                                          pSdk->CPlayerObj_m_Arsenal);
+        if(pArsenal){
+          HWEAPON hWeapon =
+          *(HWEAPON *)((unsigned char *)pArsenal +
+  pSdk->CArsenal_m_hCurWeapon); if(!hWeapon){
+                  ((void(__thiscall *)(CPlayerObj
+  *,HWEAPON,bool,HAMMO,bool,bool))pSdk->CPlayerObj_ChangeWeapon)( pPlayerObj,
+  pSdk->m_hUnarmedRecord, 1, pSdk->m_hUnarmedRecordAmmo, 0, 0);
+                  pPlData->bResetToUnarmed=0;
           }
-      }
 
-    }
-    break;*/
-    case MID_PLAYER_UPDATE:{
-      unsigned timeMS = pSdk->getRealTimeMS();
-      pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
-      if (pPlData->thisMoveTimeMS >
-          timeMS)  // ignore messages that claim they from future
-        p->state = 1;
-      uint16_t nClientChangeFlags = pMsgRead->ReadBits(8);
-      if(nClientChangeFlags & CLIENTUPDATE_CAMERAINFO){
-        LTRotation rTrueCameraRot;
-        pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
-        bool bSeparateCameraFromBody = pMsgRead->ReadBits(1);
-        if(bSeparateCameraFromBody){
-          pMsgRead->ReadBits(0x20);
         }
-        LTVector vCameraPos;
-        pMsgRead->ReadCompLTVector(&vCameraPos);
-      }
-      if (nClientChangeFlags & CLIENTUPDATE_ALLOWINPUT)
-      {
-        pMsgRead->ReadBits(1);
-      }
-      if( nClientChangeFlags & CLIENTUPDATE_ANIMATION )
-      {
-        bool bPlayerBody = pMsgRead->ReadBits(1);
-        /*if(!bPlayerBody){
-          if(playerState == ePlayerState_Alive)
-            pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
-          p->state=1;
-        }*/
-    unsigned nNumTrackers=pMsgRead->ReadBits(8);
+    }
 
-          //if(numTrackers){
-    for( uint8_t nTracker = 0; nTracker < nNumTrackers; ++nTracker )
-    {
-            unsigned trkId = pMsgRead->ReadBits(8);
-            if(trkId!=0xFF){ //check is main tracker
-              unsigned hWeight = pMsgRead->ReadBits(0x20); //hWeightSet
-              if(hWeight>3){
-                DBGLOG("weight set %d",hWeight)
-                    pSdk->BootWithReason(pGameClientData,
+  }
+  break;*/
+  case MID_PLAYER_UPDATE: {
+    unsigned timeMS = pSdk->getRealTimeMS();
+    pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
+    if (pPlData->thisMoveTimeMS >
+        timeMS) // ignore messages that claim they from future
+      p->state = 1;
+    uint16_t nClientChangeFlags = pMsgRead->ReadBits(8);
+    if (nClientChangeFlags & CLIENTUPDATE_CAMERAINFO) {
+      LTRotation rTrueCameraRot;
+      pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
+      bool bSeparateCameraFromBody = pMsgRead->ReadBits(1);
+      if (bSeparateCameraFromBody) {
+        pMsgRead->ReadBits(0x20);
+      }
+      LTVector vCameraPos;
+      pMsgRead->ReadCompLTVector(&vCameraPos);
+    }
+    if (nClientChangeFlags & CLIENTUPDATE_ALLOWINPUT) {
+      pMsgRead->ReadBits(1);
+    }
+    if (nClientChangeFlags & CLIENTUPDATE_ANIMATION) {
+      bool bPlayerBody = pMsgRead->ReadBits(1);
+      /*if(!bPlayerBody){
+        if(playerState == ePlayerState_Alive)
+          pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+        p->state=1;
+      }*/
+      unsigned nNumTrackers = pMsgRead->ReadBits(8);
+
+      // if(numTrackers){
+      for (uint8_t nTracker = 0; nTracker < nNumTrackers; ++nTracker) {
+        unsigned trkId = pMsgRead->ReadBits(8);
+        if (trkId != 0xFF) {                           // check is main tracker
+          unsigned hWeight = pMsgRead->ReadBits(0x20); // hWeightSet
+          if (hWeight > 3) {
+            DBGLOG("weight set %d", hWeight)
+            pSdk->BootWithReason(pGameClientData,
                                  eClientConnectionError_PunkBuster,
                                  (char *)"error 1");
-                    p->state=1;
-                    break;
-              }
-            }
-            bool bEnabled = pMsgRead->ReadBits(1); // tracker info
-            if(bPlayerBody && bEnabled){
-              unsigned hAnim = pMsgRead->ReadBits(0x20); //hAnim
-              /*if(!hAnim){
-                DBGLOG("hAnim is ZERO")
-                  pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
-                  p->state=1;
-              }*/
-              bool bSetTime = pMsgRead->ReadBits(1);
-              if(bSetTime){
-                unsigned n = pMsgRead->ReadBits(0x20);
-                if (n > 0xFFFF){
-                    DBGLOG("%d > 0xFFFF",n)
-                    pSdk->BootWithReason(pGameClientData,
-                                 eClientConnectionError_PunkBuster,
-                                 (char *)"error 2");
-                  p->state=1;
-                  break;
-                }
-              }
-              bool bLooping = pMsgRead->ReadBits(1);
-              bool bSetRate = pMsgRead->ReadBits(1);
-              if (bSetRate)
-              {
-                unsigned var = pMsgRead->ReadBits(0x20);
-                float fRate = reinterpret_cast< float&>(var);
-                if(fRate<0.0f){
-                  p->state=1;
-                  break;
-                }
-              }
-            }
-          }
-        }
-      }
-      break;
-    case MID_CLIENTCONNECTION:
-      switch (pMsgRead->ReadBits(8)) {
-        /*case eClientConnectionState_LoggedIn:
-        {
-          GameClientData* pGameClientData =
-        pSdk->getGameClientData((HCLIENT)p->v0);
-          *(unsigned char*)(pGameClientData+0x74)=0xFF;
-        }
-        break;*/
-        case eClientConnectionState_InWorld: {
-          wchar_t playerName[16];
-          unsigned len = pMsgRead->ReadWString(
-                             playerName, sizeof(playerName) / sizeof(wchar_t)) *
-                         sizeof(wchar_t);
-          int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
-          IsTextUnicode((void *)playerName, len, &isUni);
-          if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
-            // GameClientData* pGameClientData =
-            // pSdk->getGameClientData((HCLIENT)p->v0);
-            //DBGLOG("MID_CLIENTCONNECTION fail")
-            pSdk->BootWithReason(pGameClientData,
-                                 eClientConnectionError_PunkBuster,
-                                 (char *)"Invalid player name");
-            p->state=1;
-          }
-        } break;
-        case eClientConnectionState_KeyChallenge: {
-          // GameClientData* pGameClientData =
-          // pSdk->getGameClientData((HCLIENT)p->v0);
-          char szChallengeResponse[256] = "";
-          pMsgRead->ReadBits(0x20);
-          pMsgRead->ReadBits(0x20);
-          pMsgRead->ReadBits(0x20);
-          unsigned char ret = 1;
-          if (pMsgRead->ReadString(szChallengeResponse,
-                                   sizeof(szChallengeResponse)) == 8) {
-            char *pStr = szChallengeResponse;
-            {
-              unsigned i = 0;
-              unsigned char c = pStr[i];
-              while (c) {
-                if (!(c >= 'a' && c <= 'z')) {
-                  ret = 0;
-                  break;
-                }
-                i++;
-                c = pStr[i];
-              }
-            }
-          } else
-            ret = 0;
-          if (ret && pMsgRead->ReadString(szChallengeResponse,
-                                          sizeof(szChallengeResponse)) == 72) {
-            char *pStr = szChallengeResponse;
-            {
-              unsigned i = 0;
-              unsigned char c = pStr[i];
-              while (c) {
-                if (!((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'))) {
-                  ret = 0;
-                  break;
-                }
-                i++;
-                c = pStr[i];
-              }
-            }
-          } else
-            ret = 0;
-          if (!ret) {
             p->state = 1;
-            pSdk->BootWithReason(pGameClientData,
-                                 eClientConnectionError_BadCDKey, (char *)0);
+            break;
           }
-        } break;
+        }
+        bool bEnabled = pMsgRead->ReadBits(1); // tracker info
+        if (bPlayerBody && bEnabled) {
+          unsigned hAnim = pMsgRead->ReadBits(0x20); // hAnim
+          if (hAnim >= (65 - pSdk->isXP2) && hAnim <= (107 - pSdk->isXP2))
+            p->state = 1;
+          pPlData->hAnim = hAnim;
+          /*if(!hAnim){
+            DBGLOG("hAnim is ZERO")
+              pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
+              p->state=1;
+          }*/
+          bool bSetTime = pMsgRead->ReadBits(1);
+          if (bSetTime) {
+            unsigned n = pMsgRead->ReadBits(0x20);
+            if (n > 0xFFFF) {
+              DBGLOG("%d > 0xFFFF", n)
+              pSdk->BootWithReason(pGameClientData,
+                                   eClientConnectionError_PunkBuster,
+                                   (char *)"error 2");
+              p->state = 1;
+              break;
+            }
+          }
+          bool bLooping = pMsgRead->ReadBits(1);
+          bool bSetRate = pMsgRead->ReadBits(1);
+          if (bSetRate) {
+            unsigned var = pMsgRead->ReadBits(0x20);
+            float fRate = reinterpret_cast<float &>(var);
+            if (fRate < 0.0f) {
+              p->state = 1;
+              break;
+            }
+          }
+        }
       }
-      break;
-    case MID_PLAYER_INFOCHANGE: {
+    }
+  } break;
+  case MID_CLIENTCONNECTION:
+    switch (pMsgRead->ReadBits(8)) {
+    /*case eClientConnectionState_LoggedIn:
+    {
+      GameClientData* pGameClientData =
+    pSdk->getGameClientData((HCLIENT)p->v0);
+      *(unsigned char*)(pGameClientData+0x74)=0xFF;
+    }
+    break;*/
+    case eClientConnectionState_InWorld: {
       wchar_t playerName[16];
-      unsigned len = pMsgRead->ReadWString(
-                         playerName, sizeof(playerName) / sizeof(wchar_t)) *
+      unsigned len = pMsgRead->ReadWString(playerName, sizeof(playerName) /
+                                                           sizeof(wchar_t)) *
                      sizeof(wchar_t);
       int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
       IsTextUnicode((void *)playerName, len, &isUni);
       if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
         // GameClientData* pGameClientData =
         // pSdk->getGameClientData((HCLIENT)p->v0);
+        // DBGLOG("MID_CLIENTCONNECTION fail")
         pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
                              (char *)"Invalid player name");
-        p->state=1;
-      }
-      unsigned skinIndex = pMsgRead->ReadBits(8);
-      unsigned skinCount = 0;
-      if (*(char *)(((GameModeMgr * (*)()) pSdk->g_pGameModeMgr_instance)() +
-                    0x18C) /*m_grbUseTeams*/) {
-        skinCount =
-            pSdk->g_pLTDatabase->GetNumValues(pSdk->g_pLTDatabase->GetAttribute(
-                pSdk->m_hGlobalRecord, "TeamModel"));
-      } else {
-        skinCount =
-            pSdk->g_pLTDatabase->GetNumValues(pSdk->g_pLTDatabase->GetAttribute(
-                pSdk->m_hGlobalRecord, "DeathmatchModels"));
-      }
-      if (skinIndex >= skinCount) {
         p->state = 1;
-        break;
       }
-      unsigned nTeam = pMsgRead->ReadBits(8);
-      if (nTeam >= 2 && nTeam != 0xFF) p->state = 1;
     } break;
-    case MID_VOTE: {
-      unsigned voteTime = pSdk->getRealTimeMS();
+    case eClientConnectionState_KeyChallenge: {
+      // GameClientData* pGameClientData =
+      // pSdk->getGameClientData((HCLIENT)p->v0);
+      char szChallengeResponse[256] = "";
+      pMsgRead->ReadBits(0x20);
+      pMsgRead->ReadBits(0x20);
+      pMsgRead->ReadBits(0x20);
+      unsigned char ret = 1;
+      if (pMsgRead->ReadString(szChallengeResponse,
+                               sizeof(szChallengeResponse)) == 8) {
+        char *pStr = szChallengeResponse;
+        {
+          unsigned i = 0;
+          unsigned char c = pStr[i];
+          while (c) {
+            if (!(c >= 'a' && c <= 'z')) {
+              ret = 0;
+              break;
+            }
+            i++;
+            c = pStr[i];
+          }
+        }
+      } else
+        ret = 0;
+      if (ret && pMsgRead->ReadString(szChallengeResponse,
+                                      sizeof(szChallengeResponse)) == 72) {
+        char *pStr = szChallengeResponse;
+        {
+          unsigned i = 0;
+          unsigned char c = pStr[i];
+          while (c) {
+            if (!((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'))) {
+              ret = 0;
+              break;
+            }
+            i++;
+            c = pStr[i];
+          }
+        }
+      } else
+        ret = 0;
+      if (!ret) {
+        p->state = 1;
+        pSdk->BootWithReason(pGameClientData, eClientConnectionError_BadCDKey,
+                             (char *)0);
+      }
+    } break;
+    }
+    break;
+  case MID_PLAYER_INFOCHANGE: {
+    wchar_t playerName[16];
+    unsigned len = pMsgRead->ReadWString(playerName,
+                                         sizeof(playerName) / sizeof(wchar_t)) *
+                   sizeof(wchar_t);
+    int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
+    IsTextUnicode((void *)playerName, len, &isUni);
+    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
+      // GameClientData* pGameClientData =
+      // pSdk->getGameClientData((HCLIENT)p->v0);
+      pSdk->BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+                           (char *)"Invalid player name");
+      p->state = 1;
+    }
+    unsigned skinIndex = pMsgRead->ReadBits(8);
+    unsigned skinCount = 0;
+    if (*(char *)(((GameModeMgr * (*)()) pSdk->g_pGameModeMgr_instance)() +
+                  0x18C) /*m_grbUseTeams*/) {
+      skinCount =
+          pSdk->g_pLTDatabase->GetNumValues(pSdk->g_pLTDatabase->GetAttribute(
+              pSdk->m_hGlobalRecord, "TeamModel"));
+    } else {
+      skinCount =
+          pSdk->g_pLTDatabase->GetNumValues(pSdk->g_pLTDatabase->GetAttribute(
+              pSdk->m_hGlobalRecord, "DeathmatchModels"));
+    }
+    if (skinIndex >= skinCount) {
+      p->state = 1;
+      break;
+    }
+    unsigned nTeam = pMsgRead->ReadBits(8);
+    if (nTeam >= 2 && nTeam != 0xFF)
+      p->state = 1;
+  } break;
+  case MID_VOTE: {
+    unsigned voteTime = pSdk->getRealTimeMS();
 
-      if (pMsgRead->ReadBits(3) == eVote_Start) {
+    if (pMsgRead->ReadBits(3) == eVote_Start) {
       p->state = pSdk->checkPlayerStatus(pGameClientData);
       if (pPlData->lastVoteTime) {
         /*ServerSettings * pServSettings = (ServerSettings *)((unsigned char
          * *)(((GameModeMgr * (*)()) pSdk->g_pGameModeMgr_instance)() +
          * pSdk->GameModeMgr_ServerSettings));*/
-        unsigned voteDelay = 3000;  //(*(uint8_t*)(pServSettings+0x100)*1000);
+        unsigned voteDelay = 3000; //(*(uint8_t*)(pServSettings+0x100)*1000);
         // if(voteDelay)
         // voteDelay-=250; //server timer may lag with client
         unsigned delta = voteTime - pPlData->lastVoteTime;
@@ -994,64 +1044,65 @@ void regcall hookMID(reg *p) {
         }
       }
       pPlData->lastVoteTime = voteTime;
-        unsigned char type = pMsgRead->ReadBits(3);
-        if (type == eVote_SelectMap) {
-          unsigned nMapIndex = pMsgRead->ReadBits(0x20);
-          CServerMissionMgr *g_pServerMissionMgr =
-              *pSdk->g_pServerMissionMgrAdr;
-          unsigned nMaps = ((uintptr_t)g_pServerMissionMgr->m_CampaignEnd -
-                            (uintptr_t)g_pServerMissionMgr->m_CampaignBegin) /
-                           sizeof(uintptr_t);
-          if (nMapIndex >= nMaps) p->state = 1;
-        } else if (type == eVote_TeamKick) {
-          unsigned nTargetId = pMsgRead->ReadBits(0x20);
-          HCLIENT hTargetClient = pSdk->g_pLTServer->GetClientHandle(nTargetId);
-          GameClientData *pGameTargetData =
-              pSdk->getGameClientData(hTargetClient);
-          if(!pGameTargetData){
-            p->state=1;
-            break;
-          }
-          if (*(unsigned char *)(pGameClientData + 0x74) !=
-              *(unsigned char *)(pGameTargetData + 0x74))  // team
-            p->state = 1;
+      unsigned char type = pMsgRead->ReadBits(3);
+      if (type == eVote_SelectMap) {
+        unsigned nMapIndex = pMsgRead->ReadBits(0x20);
+        CServerMissionMgr *g_pServerMissionMgr = *pSdk->g_pServerMissionMgrAdr;
+        unsigned nMaps = ((uintptr_t)g_pServerMissionMgr->m_CampaignEnd -
+                          (uintptr_t)g_pServerMissionMgr->m_CampaignBegin) /
+                         sizeof(uintptr_t);
+        if (nMapIndex >= nMaps)
+          p->state = 1;
+      } else if (type == eVote_TeamKick) {
+        unsigned nTargetId = pMsgRead->ReadBits(0x20);
+        HCLIENT hTargetClient = pSdk->g_pLTServer->GetClientHandle(nTargetId);
+        GameClientData *pGameTargetData =
+            pSdk->getGameClientData(hTargetClient);
+        if (!pGameTargetData) {
+          p->state = 1;
+          break;
         }
-      }
-    } break;
-    case MID_PLAYER_EVENT: {
-      unsigned char type = pMsgRead->ReadBits(8);
-      if (type == pSdk->ukPENextSpawnPoint || type == pSdk->ukPEPrevSpawnPoint)
-        p->state = 1;
-    } break;
-    case MID_PLAYER_CLIENTMSG: {
-      unsigned char CP = pMsgRead->ReadBits(8);
-      switch (CP) {
-        case CP_DAMAGE:
-        case CP_DAMAGE_VEHICLE_IMPACT:
-          if (CP == CP_DAMAGE &&
-              /*dmgId*/ pMsgRead->ReadBits(8) != pSdk->uDT_CRUSH)
-            p->state = 1;
-          if (/*fDmg*/ pMsgRead->ReadBits(0x20) == -1) p->state = 1;
-          if (pMsgRead->ReadBits(8)) {  // is use timer
-            pMsgRead->ReadBits(0x20);   // fDuration
-          }
-          if (CP == CP_DAMAGE &&
-              hClientObj != pMsgRead->ReadObject() /*hObject*/)
-            p->state = 1;
-          break;
-        case CP_FLASHLIGHT:
-          if (!aData->bCoop) p->state = 1;
-          break;
-        case CP_WEAPON_STATUS:
-          unsigned char WS = pMsgRead->ReadBits(8);
-          switch (WS) {
-            case WS_RELOADING:
-              // pPlData->lastFireWeaponReload++;
-              break;
-          }
-          break;
+        if (*(unsigned char *)(pGameClientData + 0x74) !=
+            *(unsigned char *)(pGameTargetData + 0x74)) // team
+          p->state = 1;
       }
     }
+  } break;
+  case MID_PLAYER_EVENT: {
+    unsigned char type = pMsgRead->ReadBits(8);
+    if (type == pSdk->ukPENextSpawnPoint || type == pSdk->ukPEPrevSpawnPoint)
+      p->state = 1;
+  } break;
+  case MID_PLAYER_CLIENTMSG: {
+    unsigned char CP = pMsgRead->ReadBits(8);
+    switch (CP) {
+    case CP_DAMAGE:
+    case CP_DAMAGE_VEHICLE_IMPACT:
+      if (CP == CP_DAMAGE &&
+          /*dmgId*/ pMsgRead->ReadBits(8) != pSdk->uDT_CRUSH)
+        p->state = 1;
+      if (/*fDmg*/ pMsgRead->ReadBits(0x20) == -1)
+        p->state = 1;
+      if (pMsgRead->ReadBits(8)) { // is use timer
+        pMsgRead->ReadBits(0x20);  // fDuration
+      }
+      if (CP == CP_DAMAGE && hClientObj != pMsgRead->ReadObject() /*hObject*/)
+        p->state = 1;
+      break;
+    case CP_FLASHLIGHT:
+      if (!aData->bCoop)
+        p->state = 1;
+      break;
+    case CP_WEAPON_STATUS:
+      unsigned char WS = pMsgRead->ReadBits(8);
+      switch (WS) {
+      case WS_RELOADING:
+        // pPlData->lastFireWeaponReload++;
+        break;
+      }
+      break;
+    }
+  }
   }
   pMsg->f12 = v1;
   pMsg->f16 = (void *)v2;
@@ -1062,9 +1113,11 @@ void regcall hookMID(reg *p) {
 void regcall patchClientServer(unsigned char *mod, unsigned modSz) {
   // limit loop (synch) to 2^16 coz it may cause infinte loop
   {
-    unsigned char *tmp = scanBytes2(
-        (unsigned char *)mod, modSz,
-        BYTES_SEARCH_FORMAT("DFE0F6C4057A2BC784248400000000000000C744241C00000000C744241800000000C744241000000000C74424140000803F"));
+    unsigned char *tmp =
+        scanBytes((unsigned char *)mod, modSz,
+                  BYTES_SEARCH_FORMAT(
+                      "DFE0F6C4057A2BC784248400000000000000C744241C00000000C744"
+                      "241800000000C744241000000000C74424140000803F"));
     if (tmp) {
       patchData::codeswap(
           (unsigned char *)tmp,
@@ -1078,8 +1131,9 @@ void regcall patchClientServer(unsigned char *mod, unsigned modSz) {
     }
   }
   {
-    unsigned char *tmp = scanBytes2((unsigned char *)mod, modSz,
-                                   BYTES_SEARCH_FORMAT("C784248400000000000000E9F5FEFFFF"));
+    unsigned char *tmp =
+        scanBytes((unsigned char *)mod, modSz,
+                  BYTES_SEARCH_FORMAT("C784248400000000000000E9F5FEFFFF"));
     if (tmp) {
       patchData::codeswap((unsigned char *)tmp,
                           (unsigned char *)(const unsigned char[]){
@@ -1098,17 +1152,18 @@ void regcall hookReadProps(reg *p) {
       ((unsigned char *(__thiscall *)(uintptr_t, uintptr_t))p->hook)(p->tcx,
                                                                      p->v0);
   p->tax = (uintptr_t)tmp;
-  if (!tmp) return;
+  if (!tmp)
+    return;
   switch (hash_rta((char *)p->v0)) {
-    case hash_ct("MPClientOnly"):
-      *(tmp + 0x28) = 0;
-      break;
-    case hash_ct("BoxPhysics"):
-      //*(tmp+0x28)=1;
-      break;
-    case hash_ct("MPClientOnlyRigidBody"):
-      *(tmp + 0x28) = 0;
-      break;
+  case hash_ct("MPClientOnly"):
+    *(tmp + 0x28) = 0;
+    break;
+  case hash_ct("BoxPhysics"):
+    //*(tmp+0x28)=1;
+    break;
+  case hash_ct("MPClientOnlyRigidBody"):
+    *(tmp + 0x28) = 0;
+    break;
   }
 }
 
@@ -1121,86 +1176,123 @@ void regcall hookReadProps(reg *p) {
 }*/
 
 // StarCompare() helper function
-bool regcall starCompareHelper( char *str,  char *pat) {
-  if (*pat == '\0') return 1;
+bool regcall starCompareHelper(char *str, char *pat) {
+  if (*pat == '\0')
+    return 1;
   if (*pat == '*') {
     if (*str) {
       // advance str and use the * again
-      if (starCompareHelper(str + 1, pat)) return 1;
+      if (starCompareHelper(str + 1, pat))
+        return 1;
     }
     // let * match nothing and advacne to the next pattern
     return starCompareHelper(str, pat + 1);
   }
   if (*pat == *str) {
     return starCompareHelper(str + 1, pat + 1);
-    }
+  }
   return 0;
-}  
+}
 
-bool regcall starCmp( char *str,  char *pat) {
-  if (!str || !pat) return 0;
+bool regcall starCmp(char *str, char *pat) {
+  if (!str || !pat)
+    return 0;
   do {
-    if (starCompareHelper(str, pat)) return 1;
+    if (starCompareHelper(str, pat))
+      return 1;
   } while (*str++);
   return 0;
 }
 
-void regcall hookSetObjFlags (reg *p){
+void regcall hookSetObjFlags(reg *p) {
   fearData *pSdk = &handleData::instance()->pSdk;
-  uintptr_t * pObj = (uintptr_t*)p->tsi;
-    if(pObj){
-      char * objName = (char*)((unsigned char *)pObj + pSdk->ObjectCreateStruct_m_Name);
-    //if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
-      bool isMatch = 0;
+  uintptr_t *pObj = (uintptr_t *)p->tsi;
+  if (pObj) {
+    char *objName =
+        (char *)((unsigned char *)pObj + pSdk->ObjectCreateStruct_m_Name);
+    // if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
+    bool isMatch = 0;
 
-if(starCmp(objName,(char*)"library_chair*.Chair Physics"))isMatch=1;
-if(starCmp(objName,(char*)"Crate-CardBoard*.Box"))isMatch=1;
-if(starCmp(objName,(char*)"Table-Wall-Cover*.SlideTableAWM"))isMatch=1;
-if(starCmp(objName,(char*)"VendingMachine*.Base"))isMatch=1;
-if(starCmp(objName,(char*)"VendingMachine*.glow"))isMatch=1;
-if(starCmp(objName,(char*)"Table_Utililty_*.Base"))isMatch=1;
-if(starCmp(objName,(char*)"Table_Utililty_*.glow"))isMatch=1;
-if(starCmp(objName,(char*)"industrial_fridge*.Base"))isMatch=1;
-if(starCmp(objName,(char*)"industrial_fridge*.glow"))isMatch=1;
-if(starCmp(objName,(char*)"Barrel*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"Crate_*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"vase_*.Vase"))isMatch=1;
-if(starCmp(objName,(char*)"vase_*.vase_top"))isMatch=1;
-if(starCmp(objName,(char*)"vase_*.vase_bottom"))isMatch=1;
-if(starCmp(objName,(char*)"box_single*.Box"))isMatch=1;
-if(starCmp(objName,(char*)"box_single*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"TrafficBarrel*.TrafficBarrel"))isMatch=1;
-if(starCmp(objName,(char*)"Bucket*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"Bucket*.Bucket"))isMatch=1;
-if(starCmp(objName,(char*)"mopbucket_trans*.Bucket"))isMatch=1;
-if(starCmp(objName,(char*)"junk_cone*.cone"))isMatch=1;
-if(starCmp(objName,(char*)"decor_TrashCan*.trashcan"))isMatch=1;
-if(starCmp(objName,(char*)"Cactus*.Cactus"))isMatch=1;
-if(starCmp(objName,(char*)"Ind_Trashcan*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"decor_TrashCan*.trashcan"))isMatch=1;
-if(starCmp(objName,(char*)"Sofa-2Seat*_Flip*.Sofa2"))isMatch=1;
-if(starCmp(objName,(char*)"GarbageCan*.WorldModel*"))isMatch=1;
-if(starCmp(objName,(char*)"trash_can*.WorldModel*"))isMatch=1;
-if(starCmp(objName,(char*)"chair_dress*.ChairPhysics"))isMatch=1;
-if(starCmp(objName,(char*)"chair*.ChairPhysics"))isMatch=1;
-if(starCmp(objName,(char*)"apt_TV*.WorldModel00"))isMatch=1;
-if(starCmp(objName,(char*)"apt_TV*.WorldModel00"))isMatch=1;
+    if (starCmp(objName, (char *)"library_chair*.Chair Physics"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Crate-CardBoard*.Box"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Table-Wall-Cover*.SlideTableAWM"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"VendingMachine*.Base"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"VendingMachine*.glow"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Table_Utililty_*.Base"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Table_Utililty_*.glow"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"industrial_fridge*.Base"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"industrial_fridge*.glow"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Barrel*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Crate_*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"vase_*.Vase"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"vase_*.vase_top"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"vase_*.vase_bottom"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"box_single*.Box"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"box_single*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"TrafficBarrel*.TrafficBarrel"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Bucket*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Bucket*.Bucket"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"mopbucket_trans*.Bucket"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"junk_cone*.cone"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Cactus*.Cactus"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Ind_Trashcan*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"Sofa-2Seat*_Flip*.Sofa2"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"GarbageCan*.WorldModel*"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"trash_can*.WorldModel*"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"chair_dress*.ChairPhysics"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"chair*.ChairPhysics"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
+      isMatch = 1;
+    if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
+      isMatch = 1;
 
-if(isMatch){
-          //pObj[1]=0x71;
-        pObj[2]=0x40;
-}
-switch(hash_rta(objName)){
-//case hash_ct("GarbageCan0100.WorldModel01"):
-case hash_ct("40oz00.WorldModel00"):
-//case hash_ct("Window-LobbyLrg00.WorldModel00"):
-//hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
-        //pObj[1]=0x71;
-        pObj[2]=0x40;
-        break;
-break;
-      }
-      /*switch(hash_rta(objName)){
+    if (isMatch) {
+      // pObj[1]=0x71;
+      pObj[2] = 0x40;
+    }
+    switch (hash_rta(objName)) {
+    // case hash_ct("GarbageCan0100.WorldModel01"):
+    case hash_ct("40oz00.WorldModel00"):
+      // case hash_ct("Window-LobbyLrg00.WorldModel00"):
+      // hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
+      // pObj[1]=0x71;
+      pObj[2] = 0x40;
+      break;
+      break;
+    }
+    /*switch(hash_rta(objName)){
 case hash_ct("Barrel101.WorldModel00"):
 case hash_ct("Barrel207.WorldModel00"):
 case hash_ct("Barrel214.WorldModel00"):
@@ -1231,15 +1323,15 @@ case hash_ct("Table_Utililty_101.Base"):
 case hash_ct("Table_Utililty_102.Base"):
 case hash_ct("VendingMachine0200.Base"):
 
-        pObj[1]=0x71;
-        pObj[2]=0x40;
-        break;
+      pObj[1]=0x71;
+      pObj[2]=0x40;
+      break;
 case hash_ct("Powerbox_Explosive0100.Powerbox_EXP_door"):
 case hash_ct("Powerbox_Explosive100.Powerbox_EXP_door"):
-        pObj[1]=0x31;
-        pObj[2]=0x80;
+      pObj[1]=0x31;
+      pObj[2]=0x80;
 break;
-      }*/
+    }*/
     //}
   }
 }
@@ -1265,74 +1357,78 @@ void regcall hookReloadWeapon(reg *p) {
   }
 }
 
-void regcall hookComposeArchives(reg *p){
-  char * str = (char *)p->tdi;
-  if(str){
-    if(strstr(str,"AdditionalContent")){
-      p->tcx=p->tcx | 1;
+void regcall hookComposeArchives(reg *p) {
+  char *str = (char *)p->tdi;
+  if (str) {
+    if (strstr(str, "AdditionalContent")) {
+      p->tcx = p->tcx | 1;
     }
   }
 }
 
 void appData::configHandle() {
-  //DBGLOG("init!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-  SetPriorityClass((HANDLE)-1,HIGH_PRIORITY_CLASS);
+  // DBGLOG("init!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  SetPriorityClass((HANDLE)-1, HIGH_PRIORITY_CLASS);
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
   patchClientServer(gEServer, gEServerSz);
 
-  
   {
-    unsigned char *tmp =
-        scanBytes2((unsigned char *)gServer, gServerSz,
-                  BYTES_SEARCH_FORMAT("8D4C24??51505756FF15????????83C410C6????????5F"));
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gServer, gServerSz,
+        BYTES_SEARCH_FORMAT("8D4C24??51505756FF15????????83C410C6????????5F"));
     if (tmp) {
-      unsigned char * pfunc = (unsigned char *)*(uintptr_t*)(tmp+10);
-      patchData::addCode(tmp+8,6);
-      *(unsigned short *)(tmp+8)=0xE890;
-      *(uintptr_t*)(tmp+10) = getRel4FromVal(
-            (tmp + 10),
-            (unsigned char *)(void *)*(uintptr_t*)pfunc);
+      unsigned char *pfunc = (unsigned char *)*(uintptr_t *)(tmp + 10);
+      patchData::addCode(tmp + 8, 6);
+      *(unsigned short *)(tmp + 8) = 0xE890;
+      *(uintptr_t *)(tmp + 10) = getRel4FromVal(
+          (tmp + 10), (unsigned char *)(void *)*(uintptr_t *)pfunc);
       patchData::addCode(pfunc, 4);
-      void * func = (void *)GetProcAddress(GetModuleHandle(_T("ntdll.dll")),_C("_vsnprintf"));
-      if(func)
-        *(uintptr_t*)(pfunc) = (uintptr_t)func;
+      void *func = (void *)GetProcAddress(GetModuleHandle(_T("ntdll.dll")),
+                                          _C("_vsnprintf"));
+      if (func)
+        *(uintptr_t *)(pfunc) = (uintptr_t)func;
     }
   }
 
   {
-    unsigned char *tmp = scanBytes2(
+    unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
-        BYTES_SEARCH_FORMAT("745D8B????????????8B????8B??C1????884C2414"));  // show conn client ip
+        BYTES_SEARCH_FORMAT(
+            "745D8B????????????8B????8B??C1????884C2414")); // show conn client
+                                                            // ip
     if (tmp) {
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes2(
+    unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
-        BYTES_SEARCH_FORMAT("74608B??????????8B??C1????88??????33"));  // show disco client ip
+        BYTES_SEARCH_FORMAT(
+            "74608B??????????8B??C1????88??????33")); // show disco client ip
     if (tmp) {
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes2(
+    unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
-        BYTES_SEARCH_FORMAT("8B5E0C81FB80000000732E8B06578B7C2410"));  // FindObjects spam
+        BYTES_SEARCH_FORMAT(
+            "8B5E0C81FB80000000732E8B06578B7C2410")); // FindObjects spam
     if (tmp) {
       patchData::addCode(tmp + 9, 2);
       *(unsigned short *)(tmp + 9) = 0x9090;
     }
   }
   {
-    unsigned char *tmp = scanBytes2(
+    unsigned char *tmp = scanBytes(
         (unsigned char *)gServer, gServerSz,
-        BYTES_SEARCH_FORMAT("D8??????????DF??F6????75??80????88??????????B001"));  // combo
-                                                                      // death
-                                                                      // fix
+        BYTES_SEARCH_FORMAT(
+            "D8??????????DF??F6????75??80????88??????????B001")); // combo
+                                                                  // death
+                                                                  // fix
     if (tmp) {
       patchData::codeswap((unsigned char *)tmp,
                           (unsigned char *)(const unsigned char[]){0xEB, 0x14},
@@ -1342,70 +1438,72 @@ void appData::configHandle() {
   /*{
     unsigned char *tmp = scanBytes(
         (unsigned char *)gServer, gServerSz,
-        (char *)"85C00F84????????8B??????????8D??????????FF5208"); //animation body 0 disable
-    if (tmp) {
-      patchData::codeswap((unsigned char *)tmp+2,
-                          (unsigned char *)(const unsigned char[]){0x90,0x90,0x90,0x90,0x90,0x90},
-                          6);
+        (char *)"85C00F84????????8B??????????8D??????????FF5208"); //animation
+  body 0 disable if (tmp) { patchData::codeswap((unsigned char *)tmp+2,
+                          (unsigned char *)(const unsigned
+  char[]){0x90,0x90,0x90,0x90,0x90,0x90}, 6);
     }
   }*/
-  
 
   {
-    unsigned char *tmp = scanBytes2((unsigned char *)gServer, gServerSz,
-                                   BYTES_SEARCH_FORMAT("8A42??84C076??33C90FB6D0"));
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("8A42??84C076??33C90FB6D0"));
     if (tmp) {
       patchData::addCode((unsigned char *)tmp + 5, 1);
       *(tmp + 5) =
-          0xEB;  // disable cleaning of ammo quantity (for MID_DROP_GRENADE)
+          0xEB; // disable cleaning of ammo quantity (for MID_DROP_GRENADE)
     }
   }
   {
     unsigned char *tmp =
-        scanBytes2((unsigned char *)gEServer, gEServerSz,
-                  BYTES_SEARCH_FORMAT("83C404F6????74??8B??E8????????6A00E8????????8B??E8"));
+        scanBytes((unsigned char *)gEServer, gEServerSz,
+                  BYTES_SEARCH_FORMAT(
+                      "83C404F6????74??8B??E8????????6A00E8????????8B??E8"));
     if (tmp) {
       spliceUp(tmp, (void *)fearData::hookOnMapLoaded);
     }
   }
-          {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("3B7C2410741F8B4E086A006A0351"));
-      if (tmp) {
-        patchData::addCode((unsigned char *)tmp+4, 1);//ignore invalid world crc
-        *(tmp+4)=0xEB;
-      }
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("3B7C2410741F8B4E086A006A0351"));
+    if (tmp) {
+      patchData::addCode((unsigned char *)tmp + 4,
+                         1); // ignore invalid world crc
+      *(tmp + 4) = 0xEB;
     }
-    if(bRandWep){
+  }
+  if (bRandWep) {
 
-          {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("6A005256FF90??0000008BF085F60F84????????8B"));
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("6A005256FF90??0000008BF085F60F84????????8B"));
       if (tmp) {
         spliceUp(tmp, (void *)hookRandomWeapon);
       }
     }
-          {
+    {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("8B0D????????8B168BF88B41??50A1????????508BCEFF52??8B168BD86A20"));
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B0D????????8B168BF88B41??50A1????????"
+                                        "508BCEFF52??8B168BD86A20"));
       if (tmp) {
         spliceUp(tmp, (void *)hookPickupRndWeapon);
       }
     }
-    
-        /*{
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"FF24??????????56558BCBE8????????EB");
-      if (tmp) {
-        patchData::addCode((unsigned char *)tmp+7, 2);
-        *(unsigned short *)(tmp+7) = 0x07EB;
-      }
-    }*/
-    }
+
+    /*{
+  unsigned char *tmp =
+      scanBytes((unsigned char *)gServer, gServerSz,
+                (char *)"FF24??????????56558BCBE8????????EB");
+  if (tmp) {
+    patchData::addCode((unsigned char *)tmp+7, 2);
+    *(unsigned short *)(tmp+7) = 0x07EB;
+  }
+}*/
+  }
   if (bCoop) {
 
     bPreventNoclip = 2;
@@ -1413,51 +1511,56 @@ void appData::configHandle() {
     bSyncObjects = 1;
     bBotsMP = 1;
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("753F8D??????E8????????8B??????????8B"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("753F8D??????E8????????8B??????????8B"));
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 1);
-        *(tmp) = 0xEB;  // dont crush players on player
+        *(tmp) = 0xEB; // dont crush players on player
         // memcpy(tmp,moveax0,5);
       }
     }
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("8B??????85????8B??74??8B??????????85??74??3B??74??68"));  // story
-                                                                           // mode
-                                                                           // on
+          BYTES_SEARCH_FORMAT(
+              "8B??????85????8B??74??8B??????????85??74??3B??74??68")); // story
+                                                                        // mode
+                                                                        // on
       if (tmp) {
         spliceUp(tmp, (void *)hookStoryModeOn);
       }
     }
     {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("8B??8B??????????85??75??68????????6A00E8????????"));
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "8B??8B??????????85??75??68????????6A00E8????????"));
       if (tmp) {
         spliceUp(tmp, (void *)hookStoryModeOff);
       }
     }
-        {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("E8????????84C074??8D??????68??????????E8"));//use SP MAPS 
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT(
+              "E8????????84C074??8D??????68??????????E8")); // use SP MAPS
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
-if(bCoop==1){
-    spliceUp(
-        scanBytes2((unsigned char *)gServer, gServerSz,
-                  BYTES_SEARCH_FORMAT("6A00????FF??????????8B??85??74??E8????????84??74")),
-        (void *)fearData::hookLoadMaps1);
-    spliceUp(scanBytes2((unsigned char *)gServer, gServerSz,
-                       BYTES_SEARCH_FORMAT("5357??FF??????????3B??8B??0F??????????8B???????"
-                               "???8B??68??????????FF????8B????????????FF")),
-             (void *)fearData::hookLoadMaps2);
+    if (bCoop == 1) {
+      spliceUp(
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "6A00????FF??????????8B??85??74??E8????????84??74")),
+          (void *)fearData::hookLoadMaps1);
+      spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
+                         BYTES_SEARCH_FORMAT(
+                             "5357??FF??????????3B??8B??0F??????????8B???????"
+                             "???8B??68??????????FF????8B????????????FF")),
+               (void *)fearData::hookLoadMaps2);
 
       /*{
       unsigned char *tmp =
@@ -1467,46 +1570,48 @@ if(bCoop==1){
         spliceUp(tmp, (void *)fearData::hookUseSkin1);
       }
     }*/
-  }else if(bCoop==2){
-    spliceUp(
-        scanBytes2((unsigned char *)gEServer, gEServerSz,
-                  BYTES_SEARCH_FORMAT("88861C0200008B44243C888E1D020000")),
-        (void *)hookComposeArchives);
-
-  }
+    } else if (bCoop == 2) {
+      spliceUp(
+          scanBytes((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT("88861C0200008B44243C888E1D020000")),
+          (void *)hookComposeArchives);
+    }
 
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("8B??????????F6????74????8D??????????8B"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("8B??????????F6????74????8D??????????8B"));
       if (tmp) {
         unprotectCode(tmp);
         *(tmp + 9) = 0xEB;
       }
     }
     {
-      unsigned char *tmp = scanBytes2((unsigned char *)gServer, gServerSz,
-                                     BYTES_SEARCH_FORMAT("83E0FB68????????8B??89"));
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("83E0FB68????????8B??89"));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp + 1) = 0x0BC8;
       }
     }
     {
-      unsigned char *tmp = scanBytes2(
-          (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("8B??????83????3B????75??8B??E8??????????????83????C3"));  // cutscene
-                                                                           // player
-                                                                           // numbers
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("8B??????83????3B????75??8B??E8????????"
+                                        "??????83????C3")); // cutscene
+                                                            // player
+                                                            // numbers
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp + 10) = 0x9090;
       }
     }
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("8A5C2408F6DB565768000100008BF9"));  // CANACTIVATE always 1
+          BYTES_SEARCH_FORMAT(
+              "8A5C2408F6DB565768000100008BF9")); // CANACTIVATE always 1
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 4);
         *(unsigned *)(tmp) = 0x909001B3;
@@ -1514,8 +1619,11 @@ if(bCoop==1){
     }
 
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("D9????EB??D9??????8B??????????D9??????????89??????68????????8B??E8????????85??74??83??0375??D9??24EB??D9????0C"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT(
+              "D9????EB??D9??????8B??????????D9??????????89??????68????????8B??"
+              "E8????????85??74??83??0375??D9??24EB??D9????0C"));
       if (tmp) {
         // unprotectCode(tmp);
 
@@ -1525,8 +1633,11 @@ if(bCoop==1){
     }
 
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("EB??D9????0C8B??????????D9??????????68????????8B??89??????E8????????85??74??83????75??D9????EB??D9??????68????????D9??????????8B"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("EB??D9????0C8B??????????D9??????????68????????"
+                              "8B??89??????E8????????85??74??83????75??D9????"
+                              "EB??D9??????68????????D9??????????8B"));
       if (tmp) {
         spliceUp(tmp + 29, (void *)hookDoorTimer);
       }
@@ -1536,14 +1647,16 @@ if(bCoop==1){
 
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                        BYTES_SEARCH_FORMAT("D9??24EB??D9????0C8B??????????D9??????????68"));
+        tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                        BYTES_SEARCH_FORMAT(
+                            "D9??24EB??D9????0C8B??????????D9??????????68"));
         if (tmp) {
           spliceUp(tmp - 14, (void *)hookDoorTimer);
         }
         tmp++;
         i++;
-        if (i == 2) break;
+        if (i == 2)
+          break;
       }
     }
     {
@@ -1551,21 +1664,22 @@ if(bCoop==1){
 
       unsigned i = 0;
       while (true) {
-        tmp =
-            scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                      BYTES_SEARCH_FORMAT("508B??FF??????????8B??E8????????88??????????8A"));
+        tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                        BYTES_SEARCH_FORMAT(
+                            "508B??FF??????????8B??E8????????88??????????8A"));
         if (tmp) {
           spliceUp(tmp, (void *)fearData::hookUseSkin1);
         }
         tmp++;
         i++;
-        if (i == 2) break;
+        if (i == 2)
+          break;
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("75??8B??????????68????????E8??????????8B??FF"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("75??8B??????????68????????E8??????????8B??FF"));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp) = 0x9090;
@@ -1574,8 +1688,10 @@ if(bCoop==1){
       }
     }
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A006A0068??????????FF"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT(
+              "75??E8????????84??74??8B??????????8B??6A006A0068??????????FF"));
       if (tmp) {
         tmp += 2;
         unprotectCode(tmp);
@@ -1583,9 +1699,9 @@ if(bCoop==1){
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A00"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A00"));
       if (tmp) {
         tmp += 2;
         unprotectCode(tmp);
@@ -1594,17 +1710,20 @@ if(bCoop==1){
     }
 
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("E8????????84C074??8A??????????84C075??83??????75??8B"));
+          BYTES_SEARCH_FORMAT(
+              "E8????????84C074??8A??????????84C075??83??????75??8B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B"));
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("74??0F????8B??????????89??????????EB??"
+                                        "A1????????C7??????????010000008B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp,
@@ -1615,28 +1734,31 @@ if(bCoop==1){
     }
 
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("8B??85??????????????????C7??????????????C7??????????????74"));
+          BYTES_SEARCH_FORMAT(
+              "8B??85??????????????????C7??????????????C7??????????????74"));
       if (tmp) {
         spliceUp(tmp, (void *)fearData::hookRespawnStartPoint);
       }
     }
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("A1????????8B??????????8B????????????8B????????????E8????????C3"));
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("A1????????8B??????????8B????????????"
+                                        "8B????????????E8????????C3"));
       if (tmp) {
         spliceUp(tmp, (void *)fearData::hookCheckpointEvent);
       }
     }
     {
       unsigned char *tmp = gServer;
-      tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+      tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
                       BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
       tmp += 9;
       unprotectCode(tmp);
       *(unsigned short *)(tmp) = 0x9090;
-      tmp = scanBytes2((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+      tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
                       BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
       tmp += 9;
       unprotectCode(tmp);
@@ -1644,25 +1766,27 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("56E8????????8B??????????E8????????8B??????????8B"));
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "56E8????????8B??????????E8????????8B??????????8B"));
       if (tmp) {
         unprotectCode(tmp);
         *(uintptr_t *)(tmp) = 0x90c301b0;
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("8B????????????8D????????????83C4183B??74"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("8B????????????8D????????????83C4183B??74"));
       if (tmp) {
         spliceUp(tmp + 7, (void *)hookGameMode);
       }
     }
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("E8????????84C074??8B0D????????68????????E8????????D9"));
+          BYTES_SEARCH_FORMAT(
+              "E8????????84C074??8B0D????????68????????E8????????D9"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1670,25 +1794,9 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68????????EB??68"));
-      if (tmp) {
-        unprotectCode(tmp);
-        memcpy(tmp, moveax0, 5);
-      }
-    }
-    {
-      unsigned char *tmp = scanBytes2(
-          (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("E8????????84C075??8B??????????8B0D??????????6A01E8"));
-      if (tmp) {
-        unprotectCode(tmp);
-        memcpy(tmp, moveax0, 5);
-      }
-    }
-    {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68????????EB??68????????E8????????83EC08"));
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "E8????????84C08B??????????74??68????????EB??68"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
@@ -1696,8 +1804,28 @@ if(bCoop==1){
     }
     {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("E8????????84C074??8B??????????6A????6A00E8"));
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "E8????????84C075??8B??????????8B0D??????????6A01E8"));
+      if (tmp) {
+        unprotectCode(tmp);
+        memcpy(tmp, moveax0, 5);
+      }
+    }
+    {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68??????"
+                                        "??EB??68????????E8????????83EC08"));
+      if (tmp) {
+        unprotectCode(tmp);
+        memcpy(tmp, moveax0, 5);
+      }
+    }
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("E8????????84C074??8B??????????6A????6A00E8"));
       if (tmp) {
         unprotectCode(tmp);
         aSPModeSpawn = tmp;
@@ -1706,9 +1834,9 @@ if(bCoop==1){
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("75??8D??????E8????????8B????8B????8B????89"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("75??8D??????E8????????8B????8B????8B????89"));
       if (tmp) {
         unprotectCode(tmp);
         aPatchHoleKillHives = tmp;
@@ -1718,63 +1846,68 @@ if(bCoop==1){
   }
   if (bBotsMP) {
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
-          BYTES_SEARCH_FORMAT("E8????????84C074??8B??8B??FF??????????84??74??E8????????8A"));
+          BYTES_SEARCH_FORMAT(
+              "E8????????84C074??8B??8B??FF??????????84??74??E8????????8A"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
     {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("E8????????84??0F??????????E8????????8A??????????05????????84??74??8B"));
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("E8????????84??0F??????????E8????????"
+                                        "8A??????????05????????84??74??8B"));
       if (tmp) {
         unprotectCode(tmp);
         memcpy(tmp, moveax0, 5);
       }
     }
   }
-    {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("84C07408??8B??E8????????????C20800"));
-      if (tmp) {
-        // unprotectCode(tmp);
-        patchData::addCode(tmp + 8, 4);
-        *(unsigned *)(tmp + 8) = getRel4FromVal(
-            (tmp + 8),
-            (unsigned char *)(void *)CPlayerObj::handlePlayerPositionMessage);
-      }
-    }
-  if (bPreventNoclip) {
   {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("84C07408??8B??E8????????????C20800"));
+    if (tmp) {
+      // unprotectCode(tmp);
+      patchData::addCode(tmp + 8, 4);
+      *(unsigned *)(tmp + 8) = getRel4FromVal(
+          (tmp + 8),
+          (unsigned char *)(void *)CPlayerObj::handlePlayerPositionMessage);
+    }
+  }
+  if (bPreventNoclip) {
+    {
       if (!bCoop && pSdk->CPlayerObj_UpdateMovement) {
-        unsigned char * tmp = (unsigned char *)pSdk->CPlayerObj_UpdateMovement;
+        unsigned char *tmp = (unsigned char *)pSdk->CPlayerObj_UpdateMovement;
         // unprotectCode(tmp);
         patchData::addCode(tmp, 5);
         *(unsigned *)(tmp + 1) = getRel4FromVal(
-            (tmp + 1),
-            (unsigned char *)(void *)CPlayerObj::updateMovement);
+            (tmp + 1), (unsigned char *)(void *)CPlayerObj::updateMovement);
         *(unsigned char *)(tmp) = 0xE9;
       }
     }
-    
-    if(bPreventNoclip==2){
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("8BCFFF90????????3BC3A3????????7410C705????????????????893D????????391D????????75688B0D????????891D????????891D????????891D????????8B1168????????8BF9FF92????????3BC3A3????????75??8B0753"));
+
+    if (bPreventNoclip == 2) {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT(
+              "8BCFFF90????????3BC3A3????????7410C705????????????????893D??????"
+              "??391D????????75688B0D????????891D????????891D????????891D??????"
+              "??8B1168????????8BF9FF92????????3BC3A3????????75??8B0753"));
       if (tmp) {
-        tmp+=82;
-        patchData::codeswap((unsigned char *)tmp,
-                            (unsigned char *)(const unsigned char[]){
-                                0xB9, 0x00, 0x00, 0x80, 0x3F, 0x90, 0x90, 0x8B, 0x07, 0x51},
-                            10);
+        tmp += 82;
+        patchData::codeswap(
+            (unsigned char *)tmp,
+            (unsigned char *)(const unsigned char[]){
+                0xB9, 0x00, 0x00, 0x80, 0x3F, 0x90, 0x90, 0x8B, 0x07, 0x51},
+            10);
       }
-    }else{
+    } else {
       pSdk->freeMovement = 1;
     }
-
 
     /*{
       while (true) {
@@ -1861,54 +1994,57 @@ if(bCoop==1){
       }
     }*/
   }
-  //if (bIgnoreUnusedMsgID) {
-    /*{
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"83??????????8B??8B????85????0F");
-    //CWeapon_ReloadClip if (tmp) { spliceUp(tmp, (void *)hookReloadWeapon);
-      }
-    }*/
-    // unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
-    //                               (char *)"568B??????85F674??8B068BCE");
-    // unprotectCode(tmp);
-    //*(uintptr_t *)tmp = 0x900008C2;
-    unsigned char *StringToDamageType =
-        scanBytes2((unsigned char *)gServer, gServerSz,
-                  BYTES_SEARCH_FORMAT("538B????????????8B????????33FF??8B"));
-    if (StringToDamageType) {
-      pSdk->uDT_CRUSH =
-          ((unsigned(__cdecl *)(char *))StringToDamageType)((char *)"CRUSH");
+  // if (bIgnoreUnusedMsgID) {
+  /*{
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  (char *)"83??????????8B??8B????85????0F");
+  //CWeapon_ReloadClip if (tmp) { spliceUp(tmp, (void *)hookReloadWeapon);
     }
-    // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
-    // *)"83????3D????????0F??????????0F"),(void *)hookMID_);
-    spliceUp(scanBytes2((unsigned char *)gServer, gServerSz,
-                       BYTES_SEARCH_FORMAT("53568B74????85F68BD90F??????????578B??????56")),
-             (void *)hookMID);
-    {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("508B??E8????????84C074??8D??????50"));
-      pSdk->g_pGetNetClientData = getVal4FromRel(tmp + 4);
-      spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
+  }*/
+  // unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
+  //                               (char *)"568B??????85F674??8B068BCE");
+  // unprotectCode(tmp);
+  //*(uintptr_t *)tmp = 0x900008C2;
+  unsigned char *StringToDamageType =
+      scanBytes((unsigned char *)gServer, gServerSz,
+                BYTES_SEARCH_FORMAT("538B????????????8B????????33FF??8B"));
+  if (StringToDamageType) {
+    pSdk->uDT_CRUSH =
+        ((unsigned(__cdecl *)(char *))StringToDamageType)((char *)"CRUSH");
+    if (pSdk->uDT_CRUSH != 4)
+      pSdk->isXP2 = 1;
+  }
+  // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
+  // *)"83????3D????????0F??????????0F"),(void *)hookMID_);
+  spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
+                     BYTES_SEARCH_FORMAT(
+                         "53568B74????85F68BD90F??????????578B??????56")),
+           (void *)hookMID);
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("508B??E8????????84C074??8D??????50"));
+    pSdk->g_pGetNetClientData = getVal4FromRel(tmp + 4);
+    spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
+  }
+  /*{
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  (char *)"EB??8B??????8B??????????8B????8B");
+    if (tmp) spliceUp(tmp + 6, (void *)hookfRateFix);
+  }*/
+  /*{
+    unsigned char * tmp = scanBytes((unsigned char *)gServer, gServerSz,
+                     (char *)"6A01????8B??89??????E8");
+    if(tmp){
+      patchData::addCode((unsigned char *)tmp+1, 1);
+      *(tmp+1)=0;
     }
-    /*{
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char *)"EB??8B??????8B??????????8B????8B");
-      if (tmp) spliceUp(tmp + 6, (void *)hookfRateFix);
-    }*/
-    /*{
-      unsigned char * tmp = scanBytes((unsigned char *)gServer, gServerSz,
-                       (char *)"6A01????8B??89??????E8");
-      if(tmp){
-        patchData::addCode((unsigned char *)tmp+1, 1);
-        *(tmp+1)=0;
-      }
-    }*/
+  }*/
 
-    // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
-    // *)"8AD80FB6C34883F808"),(void *)hookMID_PLAYER_CLIENTMSG);
+  // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
+  // *)"8AD80FB6C34883F808"),(void *)hookMID_PLAYER_CLIENTMSG);
   //}
   if (bSyncObjects) {
     /*{
@@ -1941,23 +2077,24 @@ if(bCoop==1){
       }
     }*/
 
-  if(bCoop){
+    if (bCoop) {
       {
-      unsigned char * tmp=scanBytes2((unsigned char *)gServer, gServerSz,
-                        BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????????8B??E8????????85C074"));
-      if (tmp) {
-        unprotectCode(tmp);
-        memcpy(tmp, moveax0, 5);
-      }
-    }
-  }
-  else{
         unsigned char *tmp =
-        scanBytes2((unsigned char *)gServer, gServerSz,
-                  BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
-    pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
-    spliceUp(tmp+9 , (void *)hookSetObjFlags);
-  }
+            scanBytes((unsigned char *)gServer, gServerSz,
+                      BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????"
+                                          "????8B??E8????????85C074"));
+        if (tmp) {
+          unprotectCode(tmp);
+          memcpy(tmp, moveax0, 5);
+        }
+      }
+    } else {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
+      pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
+      spliceUp(tmp + 9, (void *)hookSetObjFlags);
+    }
     /*{
       unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
@@ -1969,7 +2106,8 @@ if(bCoop==1){
         spliceUp(tmp , (void *)hookSetObjFlags);
         //patchData::codeswap((unsigned char *)tmp,
         //                    (unsigned char *)(const unsigned char[]){
-        //                        0xC7, 0x46, 0x04, 0x71, 0x00, 0x00, 0x00, 0xC7,
+        //                        0xC7, 0x46, 0x04, 0x71, 0x00, 0x00, 0x00,
+    0xC7,
         //                        0x46, 0x08, 0x40, 0x00, 0x00, 0x00, 0x90},
         //                    15);
       }
@@ -1994,20 +2132,22 @@ if(bCoop==1){
           }*/
 
       {
-        unsigned char *tmp = scanBytes2(
+        unsigned char *tmp = scanBytes(
             (unsigned char *)gServer, gServerSz,
-            BYTES_SEARCH_FORMAT("E8????????88??????8D??????????8B??8B??8B????8B????89"));  // ragdoll time Multi/SP
+            BYTES_SEARCH_FORMAT("E8????????88??????8D??????????8B??8B??8B????"
+                                "8B????89")); // ragdoll time Multi/SP
         if (tmp) {
           patchData::addCode(tmp, 5);
           memcpy(tmp, moveax0, 5);
         }
       }
       {
-        unsigned char *tmp = scanBytes2(
+        unsigned char *tmp = scanBytes(
             (unsigned char *)gServer, gServerSz,
-            BYTES_SEARCH_FORMAT("E8????????8B????8A??88??????8B????????????E8"));  // ragdoll
-                                                                      // type
-                                                                      // Multi/SP
+            BYTES_SEARCH_FORMAT(
+                "E8????????8B????8A??88??????8B????????????E8")); // ragdoll
+                                                                  // type
+                                                                  // Multi/SP
         if (tmp) {
           patchData::addCode(tmp, 5);
           memcpy(tmp, moveax0, 5);
@@ -2026,13 +2166,13 @@ void appData::configParse(char *pathCfg) {
   bRandWep = getCfgInt(pathCfg, (char *)"RandomWeapon");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
   bPreventNoclip = 1;
-  //pSdk->freeMovement=bPreventNoclip;
+  // pSdk->freeMovement=bPreventNoclip;
   bIgnoreUnusedMsgID = 1;
   if (bCoop) {
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gServerExe, gServerExeSz,
-                    BYTES_SEARCH_FORMAT("8B??????????????FF????8B??????89??????????8B"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gServerExe, gServerExeSz,
+          BYTES_SEARCH_FORMAT("8B??????????????FF????8B??????89??????????8B"));
       if (tmp) {
         spliceUp(tmp, (void *)hookGameMode2);
       }
@@ -2063,19 +2203,21 @@ void regcall hookLoadGameServer(reg *p) {
   aData->gServerSz = GetModuleSize((HMODULE)aData->gServer);
   // aData->configHandle();
   {
-    unsigned char *tmp = scanBytes2(
+    unsigned char *tmp = scanBytes(
         (unsigned char *)aData->gServer, aData->gServerSz,
-        BYTES_SEARCH_FORMAT("E8????????8BC8E8????????8D4C????FF15????????8B"));  // Reset
-                                                                    // Config
-                                                                    // fix
+        BYTES_SEARCH_FORMAT(
+            "E8????????8BC8E8????????8D4C????FF15????????8B")); // Reset
+                                                                // Config
+                                                                // fix
     if (tmp) {
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x0AEB;
     }
   }
-  spliceUp(scanBytes2((unsigned char *)aData->gServer, aData->gServerSz,
-                     BYTES_SEARCH_FORMAT("558BEC83E4??81EC????????????8B????85????89??????"
-                             "0F??????????8B????85??0F??????????33C0")),
+  spliceUp(scanBytes((unsigned char *)aData->gServer, aData->gServerSz,
+                     BYTES_SEARCH_FORMAT(
+                         "558BEC83E4??81EC????????????8B????85????89??????"
+                         "0F??????????8B????85??0F??????????33C0")),
            (void *)hookConfigLoad2);
 }
 
@@ -2116,77 +2258,82 @@ void regcall hookClientGameMode(reg *p) {
 }
 
 void regcall hookModelMsg(reg *p) {
-  if (p->v1) switch (hash_rta((char *)p->v1)) {
-      case hash_ct("THROW"):
-        if (p->v0 == 0x19)
-          p->origFunc = (uintptr_t)p->pt->origFunc + 2;  // skip call ebx
-        break;
+  if (p->v1)
+    switch (hash_rta((char *)p->v1)) {
+    case hash_ct("THROW"):
+      if (p->v0 == 0x19)
+        p->origFunc = (uintptr_t)p->pt->origFunc + 2; // skip call ebx
+      break;
     }
 }
 
-void regcall hookClientSettingsLoad(reg *p){
+void regcall hookClientSettingsLoad(reg *p) {
   appData *aData = &handleData::instance()->aData;
-  if(!aData->bSettingsLoaded){
-    aData->bSettingsLoaded=1;
+  if (!aData->bSettingsLoaded) {
+    aData->bSettingsLoaded = 1;
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)aData->gFearExe, aData->gFearExeSz,
           BYTES_SEARCH_FORMAT("8B0D????????85C9A3????????A1????????0F95C3")));
       if (tmp) {
-        if(**(uintptr_t**)(tmp+2)){
+        if (**(uintptr_t **)(tmp + 2)) {
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
                 BYTES_SEARCH_FORMAT("0F95C385C0885C24??74??B9")));
             if (tmp) {
-              unprotectCode(tmp,3);
+              unprotectCode(tmp, 3);
               *(unsigned short *)(tmp) = 0xDB30;
-              *(unsigned char *)(tmp+2) = 0x90;
+              *(unsigned char *)(tmp + 2) = 0x90;
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
                 BYTES_SEARCH_FORMAT("0F????????89??????????8B??????????89")));
             if (tmp) {
-              unprotectCode(tmp,5);
+              unprotectCode(tmp, 5);
               memcpy((unsigned char *)tmp,
-         (unsigned char *)(const unsigned char[]){0xB9, 0x01, 0x00, 0x00, 0x00}, 5);
+                     (unsigned char *)(const unsigned char[]){0xB9, 0x01, 0x00,
+                                                              0x00, 0x00},
+                     5);
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                BYTES_SEARCH_FORMAT("7402B0018B????8B????E8????????E8????????5F")));
+                BYTES_SEARCH_FORMAT(
+                    "7402B0018B????8B????E8????????E8????????5F")));
             if (tmp) {
-              unprotectCode(tmp,2);
+              unprotectCode(tmp, 2);
               *(unsigned short *)(tmp) = 0x9090;
             }
           }
           {
-            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+            unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                BYTES_SEARCH_FORMAT("6A00C705????????01000000C705????????000000008B116A06FF520C")));
+                BYTES_SEARCH_FORMAT("6A00C705????????01000000C705????????"
+                                    "000000008B116A06FF520C")));
             if (tmp) {
-              unprotectCode(tmp,15);
+              unprotectCode(tmp, 15);
               *(unsigned short *)(tmp) = 0x9090;
-              *(unsigned short *)(tmp+12) = 0x43EB;
+              *(unsigned short *)(tmp + 12) = 0x43EB;
             }
           }
           {
-            tmp = (unsigned char *)(unsigned *)(scanBytes2(
+            tmp = (unsigned char *)(unsigned *)(scanBytes(
                 (unsigned char *)aData->gFearExe, aData->gFearExeSz,
-                BYTES_SEARCH_FORMAT("753468????????FF15????????E8????????85C074206A006A30")));
+                BYTES_SEARCH_FORMAT(
+                    "753468????????FF15????????E8????????85C074206A006A30")));
             if (tmp) {
-              unprotectCode(tmp,1);
-              *tmp=0xEB;
+              unprotectCode(tmp, 1);
+              *tmp = 0xEB;
             }
           }
         }
       }
     }
   }
-
 }
 
 void appData::init() {
@@ -2198,26 +2345,28 @@ void appData::init() {
     gEServerSz = GetModuleSize((HMODULE)gEServer);
     {
       spliceUp(
-          scanBytes2((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT("84??75????68??????????E8????????8B??83C40885??74")),
+          scanBytes((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "84??75????68??????????E8????????8B??83C40885??74")),
           (void *)hookLoadGameServer);
     }
     gServerExe = (unsigned char *)GetModuleHandle(nullptr);
     gServerExeSz = GetModuleSize((HMODULE)gServerExe);
 
-    spliceUp(
-        scanBytes2(
-            (unsigned char *)gServerExe, gServerExeSz,
-            BYTES_SEARCH_FORMAT("8D????????????8B??E8????????8B????85C075??E8????????8B")),
-        (void *)hookConfigLoad);
+    spliceUp(scanBytes(
+                 (unsigned char *)gServerExe, gServerExeSz,
+                 BYTES_SEARCH_FORMAT(
+                     "8D????????????8B??E8????????8B????85C075??E8????????8B")),
+             (void *)hookConfigLoad);
 
     {
       unsigned char *tmp = gEServer;
 
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes2((unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
-                        BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
+        tmp = scanBytes(
+            (unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
+            BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
         if (tmp) {
           unprotectMem(tmp);
           *(tmp + 1) = *(tmp + 6);
@@ -2226,20 +2375,26 @@ void appData::init() {
         }
         tmp++;
         i++;
-        if (i == 2) break;
+        if (i == 2)
+          break;
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
       unprotectMem(tmp);
       *(tmp + 4) = '.';
       memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
-      unsigned char * tmp = scanBytes2((unsigned char *)gEServer, gEServerSz,
-                      BYTES_SEARCH_FORMAT("687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572636865636B2E6173703F7573657269643D25642670726F6475637469643D25642676657273696F6E756E6971756569643D2573266469737469643D256426756E6971756569643D25732667616D656E616D653D2573"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT(
+              "687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572"
+              "636865636B2E6173703F7573657269643D25642670726F6475637469643D2564"
+              "2676657273696F6E756E6971756569643D2573266469737469643D256426756E"
+              "6971756569643D25732667616D656E616D653D2573"));
       unprotectMem(tmp);
       memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
       *(tmp + 22) = '/';
@@ -2247,40 +2402,44 @@ void appData::init() {
     }
     {
       unsigned char *tmp =
-          scanBytes2((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT("25732E617661696C61626C652E67616D657370792E636F6D"));
+          scanBytes((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "25732E617661696C61626C652E67616D657370792E636F6D"));
       unprotectMem(tmp);
       *(tmp + 8) = '.';
       memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
     }
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT("8B??????508D??????68??????????FF??????????83C4??8D??????68"));
+          BYTES_SEARCH_FORMAT(
+              "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
       unprotectCode(tmp);
       *(tmp) = 0x68;
       *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
     }
-    spliceUp(scanBytes2((unsigned char *)gEServer, gEServerSz,
-                       BYTES_SEARCH_FORMAT("4084C975??C7??????????FFFFFFFFE8????????0FBE")),
+    spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
+                       BYTES_SEARCH_FORMAT(
+                           "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
              (void *)hookChangeStr);
   } else {
     wchar_t str[1024];
     gFearExe = (unsigned char *)GetModuleHandle(0);
     gFearExeSz = GetModuleSize((HMODULE)gFearExe);
-    
+
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("8B??????????85F60F??????????A1????????F6C40174")));
+          BYTES_SEARCH_FORMAT(
+              "8B??????????85F60F??????????A1????????F6C40174")));
       if (tmp) {
         spliceUp(tmp, (void *)hookClientSettingsLoad);
       }
     }
     {
-      unsigned char *tmp =
-          scanBytes2((unsigned char *)gFearExe, gFearExeSz,
-                    BYTES_SEARCH_FORMAT("A1????????8B??????????8B????FF????33"));
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gFearExe, gFearExeSz,
+          BYTES_SEARCH_FORMAT("A1????????8B??????????8B????FF????33"));
       uintptr_t adr;
       aGameClientStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
       while (true) {
@@ -2308,9 +2467,10 @@ void appData::init() {
     uintptr_t gClientSz = this->gClientSz;
     int tmp;
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("740E8B??????????85C00F??????????A1")));  // MOTD info
+          BYTES_SEARCH_FORMAT(
+              "740E8B??????????85C00F??????????A1"))); // MOTD info
       if (tmp) {
         patchData::addCode(tmp, 2);
         *(unsigned short *)(tmp) = 0x9090;
@@ -2318,40 +2478,43 @@ void appData::init() {
     }
     patchClientServer(gFearExe, gFearExeSz);
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
-          (unsigned char *)gFearExe, gFearExeSz, BYTES_SEARCH_FORMAT("837C24??0175??33D2")));
+      unsigned char *tmp = (unsigned char *)(scanBytes(
+          (unsigned char *)gFearExe, gFearExeSz,
+          BYTES_SEARCH_FORMAT("837C24??0175??33D2")));
       if (tmp) {
         patchData::codeswap(tmp + 5,
                             (unsigned char *)(const unsigned char[]){0xEB},
-                            1);  //%s.available.gamespy.com
+                            1); //%s.available.gamespy.com
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("8B??74??E8????????68????????FF??????????85??89")));
+          BYTES_SEARCH_FORMAT(
+              "8B??74??E8????????68????????FF??????????85??89")));
       if (tmp) {
         patchData::codeswap(tmp + 2,
                             (unsigned char *)(const unsigned char[]){0xEB},
-                            1);  // ICMP disable
+                            1); // ICMP disable
       }
     }
     {
-      unsigned char *tmp =
-          (unsigned char *)(scanBytes2(
-              (unsigned char *)gFearExe, gFearExeSz,
-              BYTES_SEARCH_FORMAT("B9????????E8????????B9????????E8????????B9????????"
-                         "C7")));  // Punkbuster disable
+      unsigned char *tmp = (unsigned char *)(scanBytes(
+          (unsigned char *)gFearExe, gFearExeSz,
+          BYTES_SEARCH_FORMAT(
+              "B9????????E8????????B9????????E8????????B9????????"
+              "C7"))); // Punkbuster disable
       if (tmp) {
         tmp = (unsigned char *)*(unsigned *)(tmp + 11);
         *(uintptr_t *)(tmp + 0x10) = 0;
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gFearExeSz,
-          BYTES_SEARCH_FORMAT("E8????????8A??????????B8????????33FF84C875")));  // fix
-                                                                   // keyboard
+          BYTES_SEARCH_FORMAT(
+              "E8????????8A??????????B8????????33FF84C875"))); // fix
+                                                               // keyboard
       if (tmp) {
         patchData::codeswap((unsigned char *)tmp,
                             (unsigned char *)(const unsigned char[]){
@@ -2360,21 +2523,22 @@ void appData::init() {
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("74??8B????FF????????????6A")));  // no weapon bug
+          BYTES_SEARCH_FORMAT("74??8B????FF????????????6A"))); // no weapon bug
       if (tmp) {
-        patchData::addCode(tmp+1, 1);
-        *(unsigned char *)(tmp+1) -= 7;
+        patchData::addCode(tmp + 1, 1);
+        *(unsigned char *)(tmp + 1) -= 7;
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("6A1BFF??????????0FBFC085C079??E8????????")));  // No escape
-                                                                 // handling on
-                                                                 // downloading
-                                                                 // content
+          BYTES_SEARCH_FORMAT(
+              "6A1BFF??????????0FBFC085C079??E8????????"))); // No escape
+                                                             // handling on
+                                                             // downloading
+                                                             // content
       if (tmp) {
         patchData::addCode(tmp, 2);
         *(unsigned short *)(tmp) = 0x3BEB;
@@ -2392,10 +2556,11 @@ void appData::init() {
       }
     }*/
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("5155568BF18B0D????????8B01FF90????????8BE8")));  // no splash
-                                                                   // videos
+          BYTES_SEARCH_FORMAT(
+              "5155568BF18B0D????????8B01FF90????????8BE8"))); // no splash
+                                                               // videos
       if (tmp) {
         patchData::addCode(tmp, 4);
         *(unsigned *)(tmp) = 0x000004C2;
@@ -2403,21 +2568,22 @@ void appData::init() {
     }
 
     {
-      void *tmp =
-          (unsigned *)(scanBytes2((unsigned char *)gClient, gClientSz,
-                                 BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
+      void *tmp = (unsigned *)(scanBytes(
+          (unsigned char *)gClient, gClientSz,
+          BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
       if (tmp) {
         patchData::codeswap((unsigned char *)tmp + 16,
                             (unsigned char *)(const unsigned char[]){
                                 0xE9, 0xF4, 0x00, 0x00, 0x00},
-                            5);  // no logos
+                            5); // no logos
       }
     }
 #endif
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("FF????84??75??A1????????6A01??8D????????8B")));  // MOTD
+          BYTES_SEARCH_FORMAT(
+              "FF????84??75??A1????????6A01??8D????????8B"))); // MOTD
       if (tmp) {
         patchData::addCode(tmp + 5, 1);
         *(tmp + 5) = 0xEB;
@@ -2433,25 +2599,27 @@ void appData::init() {
       }
     }*/
     {
-      void *tmp = (unsigned *)(scanBytes2((unsigned char *)gFearExe, gFearExeSz,
-                                         BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052")));
+      void *tmp = (unsigned *)(scanBytes(
+          (unsigned char *)gFearExe, gFearExeSz,
+          BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052")));
       if (tmp) {
         patchData::addCode((unsigned char *)tmp, 4);
         *(unsigned *)tmp = 0x6a90c931;
       }
     }
 
-    doConnectIpAdrTramp = (unsigned char *)scanBytes2(
+    doConnectIpAdrTramp = (unsigned char *)scanBytes(
         (unsigned char *)gFearExe, gFearExeSz,
         BYTES_SEARCH_FORMAT("8BCF89B71C060000E8????????8B871C060000"));
-    spliceUp(scanBytes2((unsigned char *)gFearExe, gFearExeSz,
+    spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
                        BYTES_SEARCH_FORMAT("FFD38B54242083C40C80660CDF")),
              (void *)hookModelMsg);
     pSdk->fearDataInit();
     {
-      unsigned char *tmp = scanBytes2(
+      unsigned char *tmp = scanBytes(
           (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
+          BYTES_SEARCH_FORMAT(
+              "0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
       if (tmp) {
         patchData::addCode(tmp + 2, 2);
         *(unsigned short *)(tmp + 2) = 0x007D;
@@ -2459,34 +2627,36 @@ void appData::init() {
     }
 
     {
-      unsigned char *tmp = (unsigned char *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("74078BCEE8????????8B166A008BCEFF5268")));  // MOTD
+          BYTES_SEARCH_FORMAT("74078BCEE8????????8B166A008BCEFF5268"))); // MOTD
       if (tmp) {
         patchData::addCode(tmp, 1);
         *(tmp) = 0xEB;
       } else {
         // Extraction Point
-        aRunGameModeXP =
-            scanBytes2((unsigned char *)gClient, gClientSz,
-                      BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
+        aRunGameModeXP = scanBytes(
+            (unsigned char *)gClient, gClientSz,
+            BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
         spliceUp(aRunGameModeXP, (void *)hookSwitchToModeXP);
-        aIsMultiplayerGameClient =
-            scanBytes2((unsigned char *)gClient, gClientSz,
-                      BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
+        aIsMultiplayerGameClient = scanBytes(
+            (unsigned char *)gClient, gClientSz,
+            BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
         unprotectCode(aIsMultiplayerGameClient);
       }
     }
 
     if (doConnectIpAdrTramp) {
       spliceUp(
-          scanBytes2(
+          scanBytes(
               (unsigned char *)gClient, gClientSz,
-              BYTES_SEARCH_FORMAT("E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
+              BYTES_SEARCH_FORMAT(
+                  "E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
           (void *)hookSwitchToSP /*, (void *)6*/);
-      void *tmp = scanBytes2(
+      void *tmp = scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
+          BYTES_SEARCH_FORMAT(
+              "E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
       aIsMultiplayerGameClient = (unsigned char *)((unsigned char *)tmp + 1) +
                                  (*(uintptr_t *)((unsigned char *)tmp + 1)) + 4;
       unprotectCode(aIsMultiplayerGameClient);
@@ -2496,17 +2666,19 @@ void appData::init() {
     }
 
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("A1????????8A887806000084C9740E8A887906000084C974048AC3")));
+          BYTES_SEARCH_FORMAT(
+              "A1????????8A887806000084C9740E8A887906000084C974048AC3")));
       if (tmp) {
         aStoryModeStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("6A00FF??????????8B??????????8B????FF??????????8B")));
+          BYTES_SEARCH_FORMAT(
+              "6A00FF??????????8B??????????8B????FF??????????8B")));
       if (tmp) {
         unprotectCode(tmp);
         *(unsigned short *)(tmp) = 0x9050;
@@ -2515,9 +2687,10 @@ void appData::init() {
       }
     }
     {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes2(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("50E8????????8B??E8????????84C00F????????????E8")));
+          BYTES_SEARCH_FORMAT(
+              "50E8????????8B??E8????????84C00F????????????E8")));
       if (tmp) {
         spliceUp(tmp, (void *)hookClientGameMode);
       }
@@ -2526,9 +2699,10 @@ void appData::init() {
       unsigned char *tmp = gClient;
       unsigned i = 0;
       while (true) {
-        tmp = scanBytes2(
+        tmp = scanBytes(
             (unsigned char *)tmp, (gClientSz + gClient) - tmp,
-            BYTES_SEARCH_FORMAT("E8????????84C075??8B??????????8B??8D????????33??FF"));
+            BYTES_SEARCH_FORMAT(
+                "E8????????84C075??8B??????????8B??8D????????33??FF"));
         if (tmp) {
           unprotectCode(tmp);
           aFlashlight[i] = tmp;
@@ -2536,7 +2710,8 @@ void appData::init() {
         }
         tmp++;
         i++;
-        if (i == 2) break;
+        if (i == 2)
+          break;
       }
     }
   }

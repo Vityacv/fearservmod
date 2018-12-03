@@ -408,9 +408,22 @@ void regcall hookMID(reg *p) {
     pPlData->onChangeWeaponHWEAPON =
         *(HWEAPON *)((unsigned char *)pArsenal + pSdk->CArsenal_m_hCurWeapon);
     pPlData->onChangeWeaponTime = pSdk->getRealTimeMS();
-    ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
-        p->tcx, p->v0, p->v1);
-    p->state = 1;
+    HWEAPON hWeapon =
+        pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatWeapons);
+    HAMMO hAmmo =
+        pMsgRead->ReadDatabaseRecord(pSdk->g_pLTDatabase, pSdk->m_hCatAmmo);
+    HWEAPONDATA hWpnData = 0;
+    if (hWeapon) {
+      hWpnData = pSdk->GetWeaponData(hWeapon);
+      HAMMO hAmmoServ = pSdk->g_pLTDatabase->GetRecordLink(
+          pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
+      if (hAmmo && hAmmoServ != hAmmo)
+        p->state = 1;
+    } else
+      p->state = 1;
+    // ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
+    //     p->tcx, p->v0, p->v1);
+    // p->state = 1;
 
   } break;
   case MID_OBJECT_MESSAGE: {

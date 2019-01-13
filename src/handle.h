@@ -9,7 +9,8 @@ class handleData {
  public:
   static handleData *instance();
   ~handleData();
-  static unsigned stdcall handleThread(void *hModHandle);
+  static unsigned stdcall handleInit(void *hModHandle);
+  static unsigned stdcall handleClientThread();
   void detach();
 
   appData aData;

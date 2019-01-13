@@ -54,6 +54,7 @@ class appData {
   unsigned char bSettingsLoaded=0;
   unsigned timerGamespyServ;
   void init();
+  void initClient();
   void configParse(char *pathCfg);
   void configHandle();
   void regcall setFlashlight(bool state);
@@ -72,7 +73,7 @@ int __cdecl __wgetmainargs(int *_Argc, WCHAR ***_Argv, WCHAR ***_Env,
 int __cdecl __getmainargs(int *_Argc, char ***_Argv, char ***_Env,
                           int _DoWildCard, STARTUPINFO *_StartInfo);
 #endif
-extern uintptr_t GetIStringEditMgr();
+//extern uintptr_t GetIStringEditMgr();
 #ifdef __cplusplus
 }
 #endif

@@ -30,6 +30,7 @@ unsigned char *doConnectIpAdrTramp;
 void regcall hookChangeStr(reg *p) {
   p->state = 2;
   memcpy((void *)p->tax, "fear", sizeof("fear"));
+  strcpy((char *)(p->tdx + p->tax), (char *)p->tax);
 }
 
 int regcall getCfgInt(char *pathCfg, char *valStr) {
@@ -531,23 +532,28 @@ void regcall hookMID(reg *p) {
     HWEAPONDATA hWpnData = 0;
     float dist = 256.0f;
     bool bUnarmed = 0;
+
     if (hWeapon &&
         hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed")) {
       if (hAmmo) {
         unsigned hAnim = pPlData->hAnim;
-        if (pSdk->isXP2)
+        unsigned hAnimPenult = pPlData->hAnimPenult;
+        if (pSdk->isXP2) {
           hAnim++;
+          hAnimPenult++;
+        }
         switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
         case hash_ct("Melee_JabRight"):
         case hash_ct("Melee_JabLeft"):
-          if (hAnim == 0xD9 || hAnim == 0xDB || hAnim == 0xDC)
+          if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
             break;
           p->state = 1;
           break;
         case hash_ct("Melee_RifleButt"):
-          if (hAnim == 0xD9 || hAnim == 0xC5)
-            break;
-          p->state = 1;
+        // printf()
+        // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
+        //     break;
+        //   p->state = 1;
           break;
         case hash_ct("Melee_SlideKick"):
           if (pSdk->isXP2) {
@@ -570,6 +576,9 @@ void regcall hookMID(reg *p) {
           p->state = 1;
           break;
         }
+        // if(p->state)
+        // printf("fired: %s %p %p %p\n",(char *)*(uintptr_t
+        // *)(hAmmo),hAnim,hAnimPenult,p->state);
       }
       dist = 150.0f;
       bUnarmed = 1;
@@ -577,7 +586,7 @@ void regcall hookMID(reg *p) {
     if (!bUnarmed && hWeapon) {
       hWpnData = pSdk->GetWeaponData(hWeapon);
       HAMMO hAmmoServ = pSdk->g_pLTDatabase->GetRecordLink(
-          pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
+          pSdk->g_pLTDatabase->GetAttribute(hWpnData, "AmmoName"), 0, 0);
       unsigned ammoCnt = ((unsigned(__thiscall *)(
           CArsenal *, HAMMO))pSdk->CArsenal_GetAmmoCount)(pArsenal, hAmmoServ);
       if (!ammoCnt)
@@ -594,12 +603,12 @@ void regcall hookMID(reg *p) {
     if (!hAmmo) {
       hWpnData = pSdk->GetWeaponData(hWeapon);
       hAmmo = pSdk->g_pLTDatabase->GetRecordLink(
-          pSdk->g_pLTDatabase->GetAttribute(hWpnData, _C("AmmoName")), 0, 0);
+          pSdk->g_pLTDatabase->GetAttribute(hWpnData, "AmmoName"), 0, 0);
       HAMMODATA hAmmoData = pSdk->GetAmmoData(hAmmo);
-      ammoType =
-          ((unsigned(__thiscall *)(CWeaponDB *, HAMMODATA, char *, uintptr_t,
-                                   uintptr_t))pSdk->g_pWeaponDB_GetInt32)(
-              pSdk->g_pWeaponDB, hAmmoData, _C("Type"), 0, 0);
+      ammoType = ((unsigned(__thiscall *)(
+          CWeaponDB *, HAMMODATA, const char *, uintptr_t,
+          uintptr_t))pSdk->g_pWeaponDB_GetInt32)(pSdk->g_pWeaponDB, hAmmoData,
+                                                 "Type", 0, 0);
     }
     if ((hWeapon && hash_rta((char *)*(uintptr_t *)(hWeapon)) ==
                         hash_ct("Turret_Remote")) ||
@@ -897,6 +906,8 @@ void regcall hookMID(reg *p) {
           unsigned hAnim = pMsgRead->ReadBits(0x20); // hAnim
           if (hAnim >= (65 - pSdk->isXP2) && hAnim <= (107 - pSdk->isXP2))
             p->state = 1;
+          // printf("anim: %p\n",hAnim);
+          pPlData->hAnimPenult = pPlData->hAnim;
           pPlData->hAnim = hAnim;
           /*if(!hAnim){
             DBGLOG("hAnim is ZERO")
@@ -1403,7 +1414,24 @@ void appData::configHandle() {
         *(uintptr_t *)(pfunc) = (uintptr_t)func;
     }
   }
-
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("508D442430508B430850FF524084C0"));
+    if (tmp) {
+      patchData::addCode(tmp + 15, 1); //allow connect with invalid assets
+      *(tmp + 15) = 0xEB;
+    }
+  }
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gServer, gServerSz,
+        BYTES_SEARCH_FORMAT("FF5204E8????????8A??????????05")); //disable punkbuster
+    if (tmp) {
+      patchData::addCode(tmp, 4);
+      *(unsigned *)(tmp) = 0xE8909090;
+    }
+  }
   {
     unsigned char *tmp = scanBytes(
         (unsigned char *)gEServer, gEServerSz,
@@ -1439,13 +1467,13 @@ void appData::configHandle() {
     unsigned char *tmp = scanBytes(
         (unsigned char *)gServer, gServerSz,
         BYTES_SEARCH_FORMAT(
-            "D8??????????DF??F6????75??80????88??????????B001")); // combo
+            "750980E1??888E????????B001")); // combo
                                                                   // death
                                                                   // fix
     if (tmp) {
       patchData::codeswap((unsigned char *)tmp,
-                          (unsigned char *)(const unsigned char[]){0xEB, 0x14},
-                          2);
+                          (unsigned char *)(const unsigned char[]){0xEB},
+                          1);
     }
   }
   /*{
@@ -2219,8 +2247,8 @@ void regcall hookLoadGameServer(reg *p) {
     unsigned char *tmp = scanBytes(
         (unsigned char *)aData->gServer, aData->gServerSz,
         BYTES_SEARCH_FORMAT(
-            "E8????????8BC8E8????????8D4C????FF15????????8B")); // Reset
-                                                                // Config
+            "E8????????8BC8E8????????8D4C????FF15????????8B")); // Gamemode
+                                                                // reset Config
                                                                 // fix
     if (tmp) {
       patchData::addCode(tmp, 2);
@@ -2349,95 +2377,11 @@ void regcall hookClientSettingsLoad(reg *p) {
   }
 }
 
-void appData::init() {
-  srand(__rdtsc());
-  pSdk->aData = this;
-  gEServer =
-      (unsigned char *)(unsigned char *)GetModuleHandle(_T("engineserver.dll"));
-  if (gEServer) {
-    gEServerSz = GetModuleSize((HMODULE)gEServer);
-    {
-      spliceUp(
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT(
-                        "84??75????68??????????E8????????8B??83C40885??74")),
-          (void *)hookLoadGameServer);
-    }
-    gServerExe = (unsigned char *)GetModuleHandle(nullptr);
-    gServerExeSz = GetModuleSize((HMODULE)gServerExe);
 
-    spliceUp(scanBytes(
-                 (unsigned char *)gServerExe, gServerExeSz,
-                 BYTES_SEARCH_FORMAT(
-                     "8D????????????8B??E8????????8B????85C075??E8????????8B")),
-             (void *)hookConfigLoad);
-
-    {
-      unsigned char *tmp = gEServer;
-
-      unsigned i = 0;
-      while (true) {
-        tmp = scanBytes(
-            (unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
-            BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
-        if (tmp) {
-          unprotectMem(tmp);
-          *(tmp + 1) = *(tmp + 6);
-          *(tmp + 2) = '.';
-          memcpy(tmp + 3, _C("fear-combat.org"), sizeof("fear-combat.org"));
-        }
-        tmp++;
-        i++;
-        if (i == 2)
-          break;
-      }
-    }
-    {
-      unsigned char *tmp = scanBytes(
-          (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
-      unprotectMem(tmp);
-      *(tmp + 4) = '.';
-      memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
-    }
-    {
-      unsigned char *tmp = scanBytes(
-          (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT(
-              "687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572"
-              "636865636B2E6173703F7573657269643D25642670726F6475637469643D2564"
-              "2676657273696F6E756E6971756569643D2573266469737469643D256426756E"
-              "6971756569643D25732667616D656E616D653D2573"));
-      unprotectMem(tmp);
-      memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
-      *(tmp + 22) = '/';
-      memcpy(tmp + 23, tmp + 24, 94);
-    }
-    {
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT(
-                        "25732E617661696C61626C652E67616D657370792E636F6D"));
-      unprotectMem(tmp);
-      *(tmp + 8) = '.';
-      memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
-    }
-    {
-      unsigned char *tmp = scanBytes(
-          (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT(
-              "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
-      unprotectCode(tmp);
-      *(tmp) = 0x68;
-      *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
-    }
-    spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
-                       BYTES_SEARCH_FORMAT(
-                           "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
-             (void *)hookChangeStr);
-  } else {
-    wchar_t str[1024];
-    gFearExe = (unsigned char *)GetModuleHandle(0);
+void appData::initClient() {
+    pSdk->aData = this;
+      wchar_t str[1024];
+    gFearExe = (uint8_t *)GetModuleHandle(0);
     gFearExeSz = GetModuleSize((HMODULE)gFearExe);
 
     {
@@ -2524,7 +2468,7 @@ void appData::init() {
     }
     {
       unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gFearExeSz,
+          (unsigned char *)gClient, gClientSz,
           BYTES_SEARCH_FORMAT(
               "E8????????8A??????????B8????????33FF84C875"))); // fix
                                                                // keyboard
@@ -2727,5 +2671,91 @@ void appData::init() {
           break;
       }
     }
+}
+
+void appData::init() {
+  srand(__rdtsc());
+  pSdk->aData = this;
+  if (gEServer) {
+    gEServerSz = GetModuleSize((HMODULE)gEServer);
+    {
+      spliceUp(
+          scanBytes((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "84??75????68??????????E8????????8B??83C40885??74")),
+          (void *)hookLoadGameServer);
+    }
+    gServerExe = (unsigned char *)GetModuleHandle(0);
+    gServerExeSz = GetModuleSize((HMODULE)gServerExe);
+
+    spliceUp(scanBytes(
+                 (unsigned char *)gServerExe, gServerExeSz,
+                 BYTES_SEARCH_FORMAT(
+                     "8D????????????8B??E8????????8B????85C075??E8????????8B")),
+             (void *)hookConfigLoad);
+
+    {
+      unsigned char *tmp = gEServer;
+
+      unsigned i = 0;
+      while (true) {
+        tmp = scanBytes(
+            (unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
+            BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
+        if (tmp) {
+          unprotectMem(tmp);
+          *(tmp + 1) = *(tmp + 6);
+          *(tmp + 2) = '.';
+          memcpy(tmp + 3, _C("fear-combat.org"), sizeof("fear-combat.org"));
+        }
+        tmp++;
+        i++;
+        if (i == 2)
+          break;
+      }
+    }
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
+      unprotectMem(tmp);
+      *(tmp + 4) = '.';
+      memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
+    }
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT(
+              "687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572"
+              "636865636B2E6173703F7573657269643D25642670726F6475637469643D2564"
+              "2676657273696F6E756E6971756569643D2573266469737469643D256426756E"
+              "6971756569643D25732667616D656E616D653D2573"));
+      unprotectMem(tmp);
+      memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
+      *(tmp + 22) = '/';
+      memcpy(tmp + 23, tmp + 24, 94);
+    }
+    {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gEServer, gEServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "25732E617661696C61626C652E67616D657370792E636F6D"));
+      unprotectMem(tmp);
+      *(tmp + 8) = '.';
+      memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
+    }
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT(
+              "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
+      unprotectCode(tmp);
+      *(tmp) = 0x68;
+      *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
+    } // master server XP2 fix
+    spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
+                       BYTES_SEARCH_FORMAT(
+                           "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
+             (void *)hookChangeStr); // master server XP2 fix
   }
 }

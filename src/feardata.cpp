@@ -16,25 +16,27 @@
 extern "C" {
 #endif
 
-#ifndef inet_pton
-int __stdcall inet_pton(INT Family, LPCSTR pStringBuf, PVOID pAddr);
-#endif
+// #ifndef inet_pton
+// int __stdcall inet_pton(INT Family, LPCSTR pStringBuf, PVOID pAddr);
+// #endif
 #ifdef __cplusplus
 }
 #endif
 
 extern unsigned char *doConnectIpAdrTramp;
 bool regcall isValidIpAddressPort(char *ipAddress) {
-  unsigned char ip[16];
+  sockaddr adr;
+  int adrSz=sizeof(sockaddr);
   char *pStr = strstr(ipAddress, ":"), *pSep;
   if (!pStr)
     return 0;
   if (atoi(pStr + 1) >= 0x10000)
     return 0;
   *pStr = 0;
-  int result = inet_pton(AF_INET, ipAddress, ip);
+  int result = WSAStringToAddressA(ipAddress,AF_INET,0,&adr,&adrSz);
+  //int result = inet_pton(AF_INET, ipAddress, ip);
   *pStr = ':';
-  return result != 0;
+  return result == 0;
 }
 
 bool fearData::checkPlayerStatus(GameClientData *pGameClientData) {
@@ -585,24 +587,7 @@ void fearData::fearDataInitServ() {
                   BYTES_SEARCH_FORMAT("6A006A0351E8????????8BC8E8"));
     g_pBootWithReason = getVal4FromRel(tmp + 13);
   }
-  {
-    unsigned char *tmp =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  BYTES_SEARCH_FORMAT("508D442430508B430850FF524084C0"));
-    if (tmp) {
-      patchData::addCode(tmp + 15, 1);
-      *(tmp + 15) = 0xEB;
-    }
-  }
-  {
-    unsigned char *tmp = scanBytes(
-        (unsigned char *)gServer, gServerSz,
-        BYTES_SEARCH_FORMAT("FF5204E8????????8A??????????05????????"));
-    if (tmp) {
-      patchData::addCode(tmp, 4);
-      *(unsigned *)(tmp) = 0xE8909090;
-    }
-  }
+
 
   {
     unsigned char *tmp =
@@ -738,6 +723,43 @@ void fearData::fearDataInitServ() {
     if (tmp) {
       CCharacter_m_hLadderObject = *(unsigned *)(tmp + 2);
     }
+  }
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gServer, gServerSz,
+        BYTES_SEARCH_FORMAT(
+            "8B4708508BCBE8????????84C0"));
+    if (tmp) {
+      CGrenadeProximity_IsEnemy = getVal4FromRel(tmp + 7);
+    }
+  }
+    // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
+    //                  BYTES_SEARCH_FORMAT("FF526C84C00F84????????8B0D????????8B01")),
+    //        (void *)hookCGrenadeProximity_HandleActivateMsg);
+        {
+      unsigned char *tmp = gServer;
+
+      unsigned i = 0;
+      while (true) {
+        tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+                        BYTES_SEARCH_FORMAT(
+                            "FF526C84C00F84????????8B0D????????8B01"));
+        if (tmp) {
+          spliceUp(tmp, (void *)hookCGrenadeProximity_HandleActivateMsg);
+        }
+        tmp++;
+        i++;
+        if (i == 2)
+          break;
+      }
+    }
+  //CGrenadeProximity_IsEnemy 8B4708508BCBE8????????84C0
+  //CGrenadeProximity_HandleActivateMsg FF526C84C00F84????????8B0D????????8B01
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("508B44????508BCBE8????????8B44242C"));
+    CArsenal_SetAmmo = getVal4FromRel(tmp + 9);
   }
   {
     unsigned char *tmp =
@@ -917,6 +939,7 @@ void fearData::fearDataInit() {
   m_hModelsCat = g_pLTDatabase->GetCategory(
       *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
       "Character/Models");
+
 }
 
 void fearData::Update() {
@@ -1313,6 +1336,17 @@ void regcall fearData::hookLoadMaps1(reg *p) {
 void regcall fearData::hookLoadMaps2(reg *p) {
   p->tax = (uintptr_t)hookLoadMaps(p->tdi, &p->v5);
   p->state = 2;
+}
+void regcall fearData::hookCGrenadeProximity_HandleActivateMsg(reg *p) {
+  //printf("%p\n",p->tcx);
+  fearData *pSdk = &handleData::instance()->pSdk;
+  CPlayerObj * pPlayerObj = (CPlayerObj *)p->tcx;
+    //p->tax =
+  if(((bool(__thiscall *)(uintptr_t, HOBJECT))pSdk->CGrenadeProximity_IsEnemy)(p->tdi,pPlayerObj->m_hObject)){
+    p->state = 2;
+    p->tax=0;
+    p->tflags |= 1 << 6;
+  }
 }
 
 char *getCurrentLevelName() {

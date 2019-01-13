@@ -32,6 +32,7 @@ struct playerData {
   unsigned lastFireWeaponAccuracyFail;
   unsigned char lastFireWeaponAccuracyFailCnt;
   unsigned hAnim;
+  unsigned hAnimPenult;
   bool isAimed;
   bool isAnim;
 };
@@ -124,6 +125,7 @@ class fearData {
   void * CPlayerObj_UpdateMovement=0;
   void *CPlayerObj_m_PlayerRigidBody_Update;
   void *CPlayerObj_TeleportClientToServerPos;
+  void *CGrenadeProximity_IsEnemy;
   void *CPlayerObj_ChangeWeapon;
   void* g_pWeaponDB_GetWeaponData;
   void* g_pWeaponDB_GetAmmoData;
@@ -170,6 +172,7 @@ class fearData {
   static void regcall hookUseSkin1(reg *p);
   static void regcall hookLoadMaps1(reg *p);
   static void regcall hookLoadMaps2(reg *p);
+  static void regcall hookCGrenadeProximity_HandleActivateMsg(reg *p);
   ~fearData();
   playerData pPlayerData[64];
 

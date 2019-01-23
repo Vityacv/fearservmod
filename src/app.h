@@ -38,7 +38,7 @@ class appData {
   bool bSyncObjects = 0;
   unsigned char bCoop = 0;
   bool bBotsMP = 0;
-  bool bPatchHoleKillHives = 0;
+  char flagPatchHoleKillHives=-1;
   char **aSkinStr;
   unsigned char *aGameClientStruct;
   unsigned char *aFlashlight[1];

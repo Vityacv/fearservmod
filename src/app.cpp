@@ -59,10 +59,10 @@ void regcall appData::setCoopDoSpawn(bool state) {
 }
 
 void regcall appData::setPatchHoleKillHives(bool state) {
-  if (bPatchHoleKillHives != state) {
+  if (flagPatchHoleKillHives != state) {
     memswap((unsigned char *)aPatchHoleKillHives,
             (unsigned char *)(const unsigned char[]){0xEB}, 1);
-    bPatchHoleKillHives = !bPatchHoleKillHives;
+    flagPatchHoleKillHives = !flagPatchHoleKillHives;
   }
 }
 
@@ -232,6 +232,12 @@ void regcall hookRandomWeapon(reg *p) {
     sprintf(str, "msg Player (ACQUIREWEAPON %s)", szWep);
     ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
          pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr, str, 0, 0);
+    int i = 0;
+    for (i; i != 5; i++) {
+      sprintf(str, "msg Player (ACQUIREAMMO %s)", szWep);
+      ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
+           pSdk->CCommandMgr_QueueCommand)(pSdk->pCmdMgr, str, 0, 0);
+    }
     if (!pSdk->randomWepTable[pSdk->currentRandomWeaponInd]) {
       ((void(__thiscall *)(void *, const char *, uintptr_t,
                            uintptr_t))pSdk->CCommandMgr_QueueCommand)(
@@ -491,6 +497,34 @@ void regcall hookMID(reg *p) {
     LTVector targetPos, curPos;
     pSdk->g_pLTServer->GetObjectPos(hTarget, &targetPos);
     pSdk->g_pLTServer->GetObjectPos(hClientObj, &curPos);
+    HOBJECT hFiredFrom = pSdk->HandleToObject(hTarget);
+    if (hFiredFrom) {
+      // HWEAPONDATA hWpnData = pSdk->GetWeaponData(hTarget);
+      // HAMMO hAmmo = pSdk->g_pLTDatabase->GetRecordLink(
+      //     pSdk->g_pLTDatabase->GetAttribute(hWpnData, "AmmoName"), 0, 0);
+      //
+      HAMMO hWeapon =
+          *(void **)((uint8_t *)hFiredFrom + 0xDC); // 0xDC - weapon,0xE0 - ammo
+      if (hWeapon) {
+        HWEAPONDATA hWeaponData = pSdk->GetWeaponData(hWeapon);
+        if (hWeaponData) {
+          bool IsGrenade = ((bool(__thiscall *)(
+              CWeaponDB *, HAMMODATA, const char *, uintptr_t,
+              uintptr_t))pSdk->g_pWeaponDB_GetBool)(
+              pSdk->g_pWeaponDB, hWeaponData, "IsGrenade", 0, 0);
+          if (IsGrenade &&
+              ((bool(__thiscall *)(void *, HOBJECT))
+                   pSdk->CGrenadeProximity_IsEnemy)(hFiredFrom, hClientObj)) {
+            p->state = 1;
+          }
+          hFiredFrom = *(void **)((uint8_t *)hFiredFrom + 0xF4);
+
+          if (IsGrenade && hFiredFrom != hClientObj)
+            p->state = 1;
+        }
+      }
+    }
+
     if (!curPos.NearlyEquals(targetPos, 256.0f)) {
       p->state = 1;
     }
@@ -550,10 +584,10 @@ void regcall hookMID(reg *p) {
           p->state = 1;
           break;
         case hash_ct("Melee_RifleButt"):
-        // printf()
-        // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
-        //     break;
-        //   p->state = 1;
+          // printf()
+          // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
+          //     break;
+          //   p->state = 1;
           break;
         case hash_ct("Melee_SlideKick"):
           if (pSdk->isXP2) {
@@ -1419,14 +1453,15 @@ void appData::configHandle() {
         scanBytes((unsigned char *)gServer, gServerSz,
                   BYTES_SEARCH_FORMAT("508D442430508B430850FF524084C0"));
     if (tmp) {
-      patchData::addCode(tmp + 15, 1); //allow connect with invalid assets
+      patchData::addCode(tmp + 15, 1); // allow connect with invalid assets
       *(tmp + 15) = 0xEB;
     }
   }
   {
-    unsigned char *tmp = scanBytes(
-        (unsigned char *)gServer, gServerSz,
-        BYTES_SEARCH_FORMAT("FF5204E8????????8A??????????05")); //disable punkbuster
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT(
+                      "FF5204E8????????8A??????????05")); // disable punkbuster
     if (tmp) {
       patchData::addCode(tmp, 4);
       *(unsigned *)(tmp) = 0xE8909090;
@@ -1464,16 +1499,14 @@ void appData::configHandle() {
     }
   }
   {
-    unsigned char *tmp = scanBytes(
-        (unsigned char *)gServer, gServerSz,
-        BYTES_SEARCH_FORMAT(
-            "750980E1??888E????????B001")); // combo
-                                                                  // death
-                                                                  // fix
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("750980E1??888E????????B001")); // combo
+                                                                      // death
+                                                                      // fix
     if (tmp) {
       patchData::codeswap((unsigned char *)tmp,
-                          (unsigned char *)(const unsigned char[]){0xEB},
-                          1);
+                          (unsigned char *)(const unsigned char[]){0xEB}, 1);
     }
   }
   /*{
@@ -1879,9 +1912,8 @@ void appData::configHandle() {
           (unsigned char *)gServer, gServerSz,
           BYTES_SEARCH_FORMAT("75??8D??????E8????????8B????8B????8B????89"));
       if (tmp) {
-        unprotectCode(tmp);
-        aPatchHoleKillHives = tmp;
-        // memcpy(tmp,moveax0,5);
+        aPatchHoleKillHives = tmp - 5;
+        spliceUp(aPatchHoleKillHives, (void *)fearData::hookPatchHoleKillHives);
       }
     }
   }
@@ -1949,103 +1981,8 @@ void appData::configHandle() {
     } else {
       pSdk->freeMovement = 1;
     }
-
-    /*{
-      while (true) {
-        // teleport - 83EC????8B??8B??????????85??0F??????????8B??????????8B
-        // update player pos end -
-        // 8B4C24??8B5424??8B4424??89??????????89??????????89????????????????83
-        // upd player middle - 508B????50FF????E9????????D9
-        unsigned char *adr =
-            scanBytes((unsigned char *)gServer, gServerSz,
-                      (char *)"75??68????????8D????????8D??????E8");
-        if (!adr) break;
-        // aMPMovement1=(adr-7);
-        // unprotectCode(aMPMovement1);
-        unsigned char * updEnd = scanBytes((unsigned char *)gServer, gServerSz,
-                          (char
-    *)"8B4C24??8B5424??8B4424??89??????????89??????????89????????????????83");
-        if (!updEnd) break;
-        unsigned char *buf;
-        {
-          unsigned char *tmp = adr + 2;
-          buf = (unsigned char *)AllocateBuffer(tmp);
-          unsigned char *func = getVal4FromRel(tmp + 15);
-          memcpy(buf, tmp, 15);
-          *(uintptr_t *)((unsigned char *)buf + 1) = 0x43A00000;
-          *(uintptr_t *)(buf + 15) = getRel4FromVal((buf + 15), func);
-          *(unsigned short *)((unsigned char *)buf + 19) = 0xc388;
-          memcpy(buf + 21, tmp, 15);
-          *(unsigned *)(buf + 21 + 15) = getRel4FromVal((buf + 21 + 15), func);
-          *(buf + 21 + 15 + 4) = 0xE9;
-          *(uintptr_t *)((unsigned char *)buf + 41) =
-              getRel4FromVal((buf + 41), (tmp + 19));
-        }
-        unprotectCode(adr);
-        *(adr) = 0xE9;
-        *(uintptr_t *)(adr + 1) = getRel4FromVal((adr + 1), buf);
-        {
-          buf += 45;
-          *(unsigned short *)(buf) = 0xf989;
-          *(unsigned short *)(buf + 2) = 0x016a;
-          *(unsigned char *)(buf + 4) = 0xe8;
-          {
-            unsigned char * adr = scanBytes((unsigned char *)gServer, gServerSz,
-                          (char
-    *)"83EC????8B??8B??????????85??0F??????????8B??????????8B"); if (!adr)
-    break;
-
-            *(uintptr_t *)(buf + 5) = getRel4FromVal((buf + 5), adr);
-          }
-          *(unsigned char *)(buf + 9) = 0xe9;
-          *(uintptr_t *)(buf + 10) = getRel4FromVal((buf + 10), updEnd);
-        }
-        {
-          unsigned char *adr =
-              scanBytes((unsigned char *)gServer, gServerSz,
-                        (char *)"508B????50FF????E9????????D9");
-          if (adr) {
-            uintptr_t LadderObjOffset =
-                *(uintptr_t *)(scanBytes((unsigned char *)gServer, gServerSz,
-                                         (char *)"8B86????????85C08BBE????????"
-                                                 "7405BFC8000000") +
-                               2);
-            memcpy(buf + 14,
-                   (unsigned char *)(const unsigned char[]){
-                       0x90, 0x90, 0x83, 0xBF, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x74, 0x08},
-                   11);
-            *(uintptr_t *)(buf + 14 + 4) = LadderObjOffset;
-            memcpy(buf + 14 + 11, adr, 8);
-            *(unsigned char *)(adr) = 0xe9;
-            *(uintptr_t *)(adr + 1) = getRel4FromVal((adr + 1), buf + 14);
-            *(unsigned char *)(buf + 14 + 19) = 0xe9;
-            aFreeMovement = (buf + 14);
-            *(unsigned short *)(aFreeMovement) = 0x9090;
-            *(uintptr_t *)(buf + 14 + 20) =
-                getRel4FromVal((buf + 14 + 20), adr + 8);
-            adr += 8;
-            *(uintptr_t *)(adr) = 0x850fdb84;
-            *(uintptr_t *)(adr + 4) = getRel4FromVal((adr + 4), updEnd);
-            *(unsigned char *)(adr + 8) = 0xE9;
-            *(uintptr_t *)(adr + 9) = getRel4FromVal((adr + 9), buf);
-          }
-        }
-        break;
-      }
-    }*/
   }
-  // if (bIgnoreUnusedMsgID) {
-  /*{
-    unsigned char *tmp =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"83??????????8B??8B????85????0F");
-  //CWeapon_ReloadClip if (tmp) { spliceUp(tmp, (void *)hookReloadWeapon);
-    }
-  }*/
-  // unsigned char *tmp = scanBytes((unsigned char *)gServer, gServerSz,
-  //                               (char *)"568B??????85F674??8B068BCE");
-  // unprotectCode(tmp);
+
   //*(uintptr_t *)tmp = 0x900008C2;
   unsigned char *StringToDamageType =
       scanBytes((unsigned char *)gServer, gServerSz,
@@ -2069,24 +2006,7 @@ void appData::configHandle() {
     pSdk->g_pGetNetClientData = getVal4FromRel(tmp + 4);
     spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
   }
-  /*{
-    unsigned char *tmp =
-        scanBytes((unsigned char *)gServer, gServerSz,
-                  (char *)"EB??8B??????8B??????????8B????8B");
-    if (tmp) spliceUp(tmp + 6, (void *)hookfRateFix);
-  }*/
-  /*{
-    unsigned char * tmp = scanBytes((unsigned char *)gServer, gServerSz,
-                     (char *)"6A01????8B??89??????E8");
-    if(tmp){
-      patchData::addCode((unsigned char *)tmp+1, 1);
-      *(tmp+1)=0;
-    }
-  }*/
 
-  // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
-  // *)"8AD80FB6C34883F808"),(void *)hookMID_PLAYER_CLIENTMSG);
-  //}
   if (bSyncObjects) {
     /*{
   unsigned char *tmp = scanBytes(
@@ -2206,7 +2126,7 @@ void appData::configParse(char *pathCfg) {
   bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
   bRandWep = getCfgInt(pathCfg, (char *)"RandomWeapon");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
-  bPreventNoclip = 1;
+  bPreventNoclip = 2;
   // pSdk->freeMovement=bPreventNoclip;
   bIgnoreUnusedMsgID = 1;
   if (bCoop) {
@@ -2377,300 +2297,294 @@ void regcall hookClientSettingsLoad(reg *p) {
   }
 }
 
-
 void appData::initClient() {
-    pSdk->aData = this;
-      wchar_t str[1024];
-    gFearExe = (uint8_t *)GetModuleHandle(0);
-    gFearExeSz = GetModuleSize((HMODULE)gFearExe);
+  pSdk->aData = this;
+  wchar_t str[1024];
+  gFearExe = (uint8_t *)GetModuleHandle(0);
+  gFearExeSz = GetModuleSize((HMODULE)gFearExe);
 
-    {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT(
-              "8B??????????85F60F??????????A1????????F6C40174")));
-      if (tmp) {
-        spliceUp(tmp, (void *)hookClientSettingsLoad);
-      }
+  {
+    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+        (unsigned char *)gFearExe, gFearExeSz,
+        BYTES_SEARCH_FORMAT("8B??????????85F60F??????????A1????????F6C40174")));
+    if (tmp) {
+      spliceUp(tmp, (void *)hookClientSettingsLoad);
     }
-    {
-      unsigned char *tmp = scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("A1????????8B??????????8B????FF????33"));
-      uintptr_t adr;
-      aGameClientStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
-      while (true) {
-        adr = *(uintptr_t *)(tmp + 1);
+  }
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gFearExe, gFearExeSz,
+                  BYTES_SEARCH_FORMAT("A1????????8B??????????8B????FF????33"));
+    uintptr_t adr;
+    aGameClientStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
+    while (true) {
+      adr = *(uintptr_t *)(tmp + 1);
+      if (*(uintptr_t *)adr) {
+        adr = *(uintptr_t *)adr;
+        adr = adr + *(uintptr_t *)(tmp + 7);
         if (*(uintptr_t *)adr) {
           adr = *(uintptr_t *)adr;
-          adr = adr + *(uintptr_t *)(tmp + 7);
           if (*(uintptr_t *)adr) {
             adr = *(uintptr_t *)adr;
-            if (*(uintptr_t *)adr) {
-              adr = *(uintptr_t *)adr;
-              break;
-            }
+            break;
           }
         }
-        Sleep(50);
       }
-      gClient = (unsigned char *)adr;
+      Sleep(50);
     }
-    gClientSz = GetModuleSize((HMODULE)gClient);
+    gClient = (unsigned char *)adr;
+  }
+  gClientSz = GetModuleSize((HMODULE)gClient);
 
-    unsigned char *gClient = this->gClient;
-    unsigned char *gFearExe = this->gFearExe;
-    uintptr_t gFearExeSz = this->gFearExeSz;
-    uintptr_t gClientSz = this->gClientSz;
-    int tmp;
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "740E8B??????????85C00F??????????A1"))); // MOTD info
-      if (tmp) {
-        patchData::addCode(tmp, 2);
-        *(unsigned short *)(tmp) = 0x9090;
-      }
+  unsigned char *gClient = this->gClient;
+  unsigned char *gFearExe = this->gFearExe;
+  uintptr_t gFearExeSz = this->gFearExeSz;
+  uintptr_t gClientSz = this->gClientSz;
+  int tmp;
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "740E8B??????????85C00F??????????A1"))); // MOTD info
+    if (tmp) {
+      patchData::addCode(tmp, 2);
+      *(unsigned short *)(tmp) = 0x9090;
     }
-    patchClientServer(gFearExe, gFearExeSz);
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("837C24??0175??33D2")));
-      if (tmp) {
-        patchData::codeswap(tmp + 5,
-                            (unsigned char *)(const unsigned char[]){0xEB},
-                            1); //%s.available.gamespy.com
-      }
+  }
+  patchClientServer(gFearExe, gFearExeSz);
+  {
+    unsigned char *tmp =
+        (unsigned char *)(scanBytes((unsigned char *)gFearExe, gFearExeSz,
+                                    BYTES_SEARCH_FORMAT("837C24??0175??33D2")));
+    if (tmp) {
+      patchData::codeswap(tmp + 5,
+                          (unsigned char *)(const unsigned char[]){0xEB},
+                          1); //%s.available.gamespy.com
     }
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT(
-              "8B??74??E8????????68????????FF??????????85??89")));
-      if (tmp) {
-        patchData::codeswap(tmp + 2,
-                            (unsigned char *)(const unsigned char[]){0xEB},
-                            1); // ICMP disable
-      }
-    }
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT(
-              "B9????????E8????????B9????????E8????????B9????????"
-              "C7"))); // Punkbuster disable
-      if (tmp) {
-        tmp = (unsigned char *)*(unsigned *)(tmp + 11);
-        *(uintptr_t *)(tmp + 0x10) = 0;
-      }
-    }
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "E8????????8A??????????B8????????33FF84C875"))); // fix
-                                                               // keyboard
-      if (tmp) {
-        patchData::codeswap((unsigned char *)tmp,
-                            (unsigned char *)(const unsigned char[]){
-                                0x90, 0x90, 0x90, 0x90, 0x90},
-                            5);
-      }
-    }
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("74??8B????FF????????????6A"))); // no weapon bug
-      if (tmp) {
-        patchData::addCode(tmp + 1, 1);
-        *(unsigned char *)(tmp + 1) -= 7;
-      }
-    }
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "6A1BFF??????????0FBFC085C079??E8????????"))); // No escape
-                                                             // handling on
-                                                             // downloading
-                                                             // content
-      if (tmp) {
-        patchData::addCode(tmp, 2);
-        *(unsigned short *)(tmp) = 0x3BEB;
-      }
-    }
-#ifdef NOINTRO
-    /*{
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          (char *)"83??????????FD8B??????????8B??68????????FF??????????85??"
-                  "74"));  // No intro
-      if (tmp) {
-        unprotectCode(tmp);
-        *(unsigned short *)(tmp + 28) = 0x1EEB;
-      }
-    }*/
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "5155568BF18B0D????????8B01FF90????????8BE8"))); // no splash
-                                                               // videos
-      if (tmp) {
-        patchData::addCode(tmp, 4);
-        *(unsigned *)(tmp) = 0x000004C2;
-      }
-    }
-
-    {
-      void *tmp = (unsigned *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
-      if (tmp) {
-        patchData::codeswap((unsigned char *)tmp + 16,
-                            (unsigned char *)(const unsigned char[]){
-                                0xE9, 0xF4, 0x00, 0x00, 0x00},
-                            5); // no logos
-      }
-    }
-#endif
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "FF????84??75??A1????????6A01??8D????????8B"))); // MOTD
-      if (tmp) {
-        patchData::addCode(tmp + 5, 1);
-        *(tmp + 5) = 0xEB;
-      }
-    }
-    /*{
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          (char *)"837E08FF74??E8"));  // weapon animation bug
-      if (tmp) {
-        patchData::addCode(tmp+4, 1);
-        *(tmp + 4) = 0xEB;
-      }
-    }*/
-    {
-      void *tmp = (unsigned *)(scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052")));
-      if (tmp) {
-        patchData::addCode((unsigned char *)tmp, 4);
-        *(unsigned *)tmp = 0x6a90c931;
-      }
-    }
-
-    doConnectIpAdrTramp = (unsigned char *)scanBytes(
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
         (unsigned char *)gFearExe, gFearExeSz,
-        BYTES_SEARCH_FORMAT("8BCF89B71C060000E8????????8B871C060000"));
-    spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                       BYTES_SEARCH_FORMAT("FFD38B54242083C40C80660CDF")),
-             (void *)hookModelMsg);
-    pSdk->fearDataInit();
-    {
-      unsigned char *tmp = scanBytes(
-          (unsigned char *)gFearExe, gFearExeSz,
-          BYTES_SEARCH_FORMAT(
-              "0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
-      if (tmp) {
-        patchData::addCode(tmp + 2, 2);
-        *(unsigned short *)(tmp + 2) = 0x007D;
-      }
+        BYTES_SEARCH_FORMAT("8B??74??E8????????68????????FF??????????85??89")));
+    if (tmp) {
+      patchData::codeswap(tmp + 2,
+                          (unsigned char *)(const unsigned char[]){0xEB},
+                          1); // ICMP disable
     }
-
-    {
-      unsigned char *tmp = (unsigned char *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT("74078BCEE8????????8B166A008BCEFF5268"))); // MOTD
-      if (tmp) {
-        patchData::addCode(tmp, 1);
-        *(tmp) = 0xEB;
-      } else {
-        // Extraction Point
-        aRunGameModeXP = scanBytes(
-            (unsigned char *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
-        spliceUp(aRunGameModeXP, (void *)hookSwitchToModeXP);
-        aIsMultiplayerGameClient = scanBytes(
-            (unsigned char *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
-        unprotectCode(aIsMultiplayerGameClient);
-      }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gFearExe, gFearExeSz,
+        BYTES_SEARCH_FORMAT("B9????????E8????????B9????????E8????????B9????????"
+                            "C7"))); // Punkbuster disable
+    if (tmp) {
+      tmp = (unsigned char *)*(unsigned *)(tmp + 11);
+      *(uintptr_t *)(tmp + 0x10) = 0;
     }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "E8????????8A??????????B8????????33FF84C875"))); // fix
+                                                             // keyboard
+    if (tmp) {
+      patchData::codeswap((unsigned char *)tmp,
+                          (unsigned char *)(const unsigned char[]){
+                              0x90, 0x90, 0x90, 0x90, 0x90},
+                          5);
+    }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT("74??8B????FF????????????6A"))); // no weapon bug
+    if (tmp) {
+      patchData::addCode(tmp + 1, 1);
+      *(unsigned char *)(tmp + 1) -= 7;
+    }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "6A1BFF??????????0FBFC085C079??E8????????"))); // No escape
+                                                           // handling on
+                                                           // downloading
+                                                           // content
+    if (tmp) {
+      patchData::addCode(tmp, 2);
+      *(unsigned short *)(tmp) = 0x3BEB;
+    }
+  }
+#ifdef NOINTRO
+  /*{
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        (char *)"83??????????FD8B??????????8B??68????????FF??????????85??"
+                "74"));  // No intro
+    if (tmp) {
+      unprotectCode(tmp);
+      *(unsigned short *)(tmp + 28) = 0x1EEB;
+    }
+  }*/
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "5155568BF18B0D????????8B01FF90????????8BE8"))); // no splash
+                                                             // videos
+    if (tmp) {
+      patchData::addCode(tmp, 4);
+      *(unsigned *)(tmp) = 0x000004C2;
+    }
+  }
 
-    if (doConnectIpAdrTramp) {
-      spliceUp(
-          scanBytes(
-              (unsigned char *)gClient, gClientSz,
-              BYTES_SEARCH_FORMAT(
-                  "E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
-          (void *)hookSwitchToSP /*, (void *)6*/);
-      void *tmp = scanBytes(
+  {
+    void *tmp = (unsigned *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
+    if (tmp) {
+      patchData::codeswap((unsigned char *)tmp + 16,
+                          (unsigned char *)(const unsigned char[]){
+                              0xE9, 0xF4, 0x00, 0x00, 0x00},
+                          5); // no logos
+    }
+  }
+#endif
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "FF????84??75??A1????????6A01??8D????????8B"))); // MOTD
+    if (tmp) {
+      patchData::addCode(tmp + 5, 1);
+      *(tmp + 5) = 0xEB;
+    }
+  }
+  /*{
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        (char *)"837E08FF74??E8"));  // weapon animation bug
+    if (tmp) {
+      patchData::addCode(tmp+4, 1);
+      *(tmp + 4) = 0xEB;
+    }
+  }*/
+  {
+    void *tmp = (unsigned *)(scanBytes(
+        (unsigned char *)gFearExe, gFearExeSz,
+        BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052")));
+    if (tmp) {
+      patchData::addCode((unsigned char *)tmp, 4);
+      *(unsigned *)tmp = 0x6a90c931;
+    }
+  }
+
+  doConnectIpAdrTramp = (unsigned char *)scanBytes(
+      (unsigned char *)gFearExe, gFearExeSz,
+      BYTES_SEARCH_FORMAT("8BCF89B71C060000E8????????8B871C060000"));
+  spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
+                     BYTES_SEARCH_FORMAT("FFD38B54242083C40C80660CDF")),
+           (void *)hookModelMsg);
+  pSdk->fearDataInit();
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gFearExe, gFearExeSz,
+        BYTES_SEARCH_FORMAT(
+            "0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
+    if (tmp) {
+      patchData::addCode(tmp + 2, 2);
+      *(unsigned short *)(tmp + 2) = 0x007D;
+    }
+  }
+
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT("74078BCEE8????????8B166A008BCEFF5268"))); // MOTD
+    if (tmp) {
+      patchData::addCode(tmp, 1);
+      *(tmp) = 0xEB;
+    } else {
+      // Extraction Point
+      aRunGameModeXP =
+          scanBytes((unsigned char *)gClient, gClientSz,
+                    BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
+      spliceUp(aRunGameModeXP, (void *)hookSwitchToModeXP);
+      aIsMultiplayerGameClient = scanBytes(
           (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
-      aIsMultiplayerGameClient = (unsigned char *)((unsigned char *)tmp + 1) +
-                                 (*(uintptr_t *)((unsigned char *)tmp + 1)) + 4;
+          BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
       unprotectCode(aIsMultiplayerGameClient);
-      spliceUp(tmp, (void *)hookSwitchToMP);
-
-      // toggleIsMPGame();
     }
+  }
 
-    {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "A1????????8A887806000084C9740E8A887906000084C974048AC3")));
-      if (tmp) {
-        aStoryModeStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
-      }
+  if (doConnectIpAdrTramp) {
+    spliceUp(scanBytes(
+                 (unsigned char *)gClient, gClientSz,
+                 BYTES_SEARCH_FORMAT(
+                     "E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
+             (void *)hookSwitchToSP /*, (void *)6*/);
+    void *tmp = scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
+    aIsMultiplayerGameClient = (unsigned char *)((unsigned char *)tmp + 1) +
+                               (*(uintptr_t *)((unsigned char *)tmp + 1)) + 4;
+    unprotectCode(aIsMultiplayerGameClient);
+    spliceUp(tmp, (void *)hookSwitchToMP);
+
+    // toggleIsMPGame();
+  }
+
+  {
+    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "A1????????8A887806000084C9740E8A887906000084C974048AC3")));
+    if (tmp) {
+      aStoryModeStruct = (unsigned char *)*(uintptr_t *)(tmp + 1);
     }
-    {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "6A00FF??????????8B??????????8B????FF??????????8B")));
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "6A00FF??????????8B??????????8B????FF??????????8B")));
+    if (tmp) {
+      unprotectCode(tmp);
+      *(unsigned short *)(tmp) = 0x9050;
+
+      spliceUp(tmp, (void *)hookStoryModeView);
+    }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT("50E8????????8B??E8????????84C00F????????????E8")));
+    if (tmp) {
+      spliceUp(tmp, (void *)hookClientGameMode);
+    }
+  }
+  {
+    unsigned char *tmp = gClient;
+    unsigned i = 0;
+    while (true) {
+      tmp =
+          scanBytes((unsigned char *)tmp, (gClientSz + gClient) - tmp,
+                    BYTES_SEARCH_FORMAT(
+                        "E8????????84C075??8B??????????8B??8D????????33??FF"));
       if (tmp) {
         unprotectCode(tmp);
-        *(unsigned short *)(tmp) = 0x9050;
-
-        spliceUp(tmp, (void *)hookStoryModeView);
+        aFlashlight[i] = tmp;
+        // memcpy(tmp,moveax0,5);
       }
+      tmp++;
+      i++;
+      if (i == 2)
+        break;
     }
-    {
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)gClient, gClientSz,
-          BYTES_SEARCH_FORMAT(
-              "50E8????????8B??E8????????84C00F????????????E8")));
-      if (tmp) {
-        spliceUp(tmp, (void *)hookClientGameMode);
-      }
-    }
-    {
-      unsigned char *tmp = gClient;
-      unsigned i = 0;
-      while (true) {
-        tmp = scanBytes(
-            (unsigned char *)tmp, (gClientSz + gClient) - tmp,
-            BYTES_SEARCH_FORMAT(
-                "E8????????84C075??8B??????????8B??8D????????33??FF"));
-        if (tmp) {
-          unprotectCode(tmp);
-          aFlashlight[i] = tmp;
-          // memcpy(tmp,moveax0,5);
-        }
-        tmp++;
-        i++;
-        if (i == 2)
-          break;
-      }
-    }
+  }
 }
 
 void appData::init() {

@@ -130,6 +130,7 @@ class fearData {
   void* g_pWeaponDB_GetWeaponData;
   void* g_pWeaponDB_GetAmmoData;
   void* g_pWeaponDB_GetInt32;
+  void* g_pWeaponDB_GetBool;
   void * g_pLTServer_HandleToObject;
   void * g_pLTServer_GetClientObject;
   void * g_pGameServerShell_IsPaused;
@@ -150,6 +151,7 @@ class fearData {
   void BootWithReason(GameClientData*, unsigned char code, char * reason);
   char *getCurrentLevelName();
   uint32_t getRealTimeMS();
+  void *HandleToObject(HOBJECT hObj);
   CPlayerObj * GetPlayerFromHClient(HCLIENT hClient);
   HWEAPONDATA GetWeaponData(HWEAPON hWep);
   HAMMODATA GetAmmoData(HAMMO);
@@ -168,6 +170,7 @@ class fearData {
   static void regcall hookGetScreenMulti(reg *p);
   static void regcall hookCheckpointEvent(reg *p);
   static void regcall hookRespawnStartPoint(reg *p);
+  static void regcall hookPatchHoleKillHives(reg *p);
   static void regcall hookOnMapLoaded(reg *p);
   static void regcall hookUseSkin1(reg *p);
   static void regcall hookLoadMaps1(reg *p);

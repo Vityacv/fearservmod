@@ -26,15 +26,15 @@ extern "C" {
 extern unsigned char *doConnectIpAdrTramp;
 bool regcall isValidIpAddressPort(char *ipAddress) {
   sockaddr adr;
-  int adrSz=sizeof(sockaddr);
+  int adrSz = sizeof(sockaddr);
   char *pStr = strstr(ipAddress, ":"), *pSep;
   if (!pStr)
     return 0;
   if (atoi(pStr + 1) >= 0x10000)
     return 0;
   *pStr = 0;
-  int result = WSAStringToAddressA(ipAddress,AF_INET,0,&adr,&adrSz);
-  //int result = inet_pton(AF_INET, ipAddress, ip);
+  int result = WSAStringToAddressA(ipAddress, AF_INET, 0, &adr, &adrSz);
+  // int result = inet_pton(AF_INET, ipAddress, ip);
   *pStr = ':';
   return result == 0;
 }
@@ -69,6 +69,10 @@ void fearData::BootWithReason(GameClientData *pGameClientData,
       g_pServerConnectionMgr, pGameClientData, code, reason);
 };
 
+void *fearData::HandleToObject(HOBJECT hObj) {
+  return ((void *(cdeclcall *)(HOBJECT))g_pLTServer_HandleToObject)(hObj);
+}
+
 HLOCALOBJ fearData::GetClientObject(HCLIENT hClient) {
   return ((HLOCALOBJ(objcall *)(void *, HCLIENT))g_pLTServer_GetClientObject)(
       g_pLTServer, hClient);
@@ -76,8 +80,7 @@ HLOCALOBJ fearData::GetClientObject(HCLIENT hClient) {
 
 CPlayerObj *fearData::GetPlayerFromHClient(HCLIENT hClient) {
   HLOCALOBJ hLocal = GetClientObject(hClient);
-  return ((CPlayerObj * (cdeclcall *)(HCLIENT))
-              g_pLTServer_HandleToObject)(hLocal);
+  return (CPlayerObj *)HandleToObject(hLocal);
 }
 
 HWEAPONDATA fearData::GetWeaponData(HWEAPON hWep) {
@@ -588,7 +591,6 @@ void fearData::fearDataInitServ() {
     g_pBootWithReason = getVal4FromRel(tmp + 13);
   }
 
-
   {
     unsigned char *tmp =
         scanBytes((unsigned char *)gServer, gServerSz,
@@ -725,36 +727,32 @@ void fearData::fearDataInitServ() {
     }
   }
   {
-    unsigned char *tmp = scanBytes(
-        (unsigned char *)gServer, gServerSz,
-        BYTES_SEARCH_FORMAT(
-            "8B4708508BCBE8????????84C0"));
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gServer, gServerSz,
+                  BYTES_SEARCH_FORMAT("8B4708508BCBE8????????84C0"));
     if (tmp) {
       CGrenadeProximity_IsEnemy = getVal4FromRel(tmp + 7);
     }
   }
-    // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,
-    //                  BYTES_SEARCH_FORMAT("FF526C84C00F84????????8B0D????????8B01")),
-    //        (void *)hookCGrenadeProximity_HandleActivateMsg);
-        {
-      unsigned char *tmp = gServer;
+  //     {
+  //   unsigned char *tmp = gServer;
 
-      unsigned i = 0;
-      while (true) {
-        tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
-                        BYTES_SEARCH_FORMAT(
-                            "FF526C84C00F84????????8B0D????????8B01"));
-        if (tmp) {
-          spliceUp(tmp, (void *)hookCGrenadeProximity_HandleActivateMsg);
-        }
-        tmp++;
-        i++;
-        if (i == 2)
-          break;
-      }
-    }
-  //CGrenadeProximity_IsEnemy 8B4708508BCBE8????????84C0
-  //CGrenadeProximity_HandleActivateMsg FF526C84C00F84????????8B0D????????8B01
+  //   unsigned i = 0;
+  //   while (true) {
+  //     tmp = scanBytes((unsigned char *)tmp, (gServerSz + gServer) - tmp,
+  //                     BYTES_SEARCH_FORMAT(
+  //                         "FF526C84C00F84????????8B0D????????8B01"));
+  //     if (tmp) {
+  //       spliceUp(tmp, (void *)hookCGrenadeProximity_HandleActivateMsg);
+  //     }
+  //     tmp++;
+  //     i++;
+  //     if (i == 2)
+  //       break;
+  //   }
+  // }
+  // CGrenadeProximity_IsEnemy 8B4708508BCBE8????????84C0
+  // CGrenadeProximity_HandleActivateMsg FF526C84C00F84????????8B0D????????8B01
   {
     unsigned char *tmp =
         scanBytes((unsigned char *)gServer, gServerSz,
@@ -804,6 +802,12 @@ void fearData::fearDataInitServ() {
             "E8????????8B??????????6A006A0068??????????89??????E8????????83"));
     g_pWeaponDB_GetAmmoData = getVal4FromRel(tmp + 1);
     g_pWeaponDB_GetInt32 = getVal4FromRel(tmp + 26);
+  }
+  {
+    unsigned char *tmp = scanBytes(
+        (unsigned char *)gServer, gServerSz,
+        BYTES_SEARCH_FORMAT("6A006A0068????????56E8????????84C07514"));
+    g_pWeaponDB_GetBool = getVal4FromRel(tmp + 11);
   }
   m_hPlayer = g_pLTDatabase->GetRecord(
       *(HDATABASE *)((unsigned char *)g_pServerDB + 0x20), SrvDB_PlayerCat,
@@ -939,7 +943,6 @@ void fearData::fearDataInit() {
   m_hModelsCat = g_pLTDatabase->GetCategory(
       *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
       "Character/Models");
-
 }
 
 void fearData::Update() {
@@ -1078,6 +1081,20 @@ template <typename T> void shuffle(T *array, size_t n) {
   }
 }
 
+void regcall fearData::hookPatchHoleKillHives(reg *p) {
+  appData *aData = &handleData::instance()->aData;
+  if (aData->flagPatchHoleKillHives != -1) {
+    fearData *pSdk = aData->pSdk;
+    aData->flagPatchHoleKillHives = 1;
+    pSdk->checkPointPos = LTVector{-2702.40f, -2900.85f, 686.73f};
+    pSdk->checkPointState = 2;
+  }
+  if (aData->flagPatchHoleKillHives == 1) {
+    p->state = 2;
+    p->tflags &= ~(1 << 6); // set not zero flag
+  }
+}
+
 void regcall fearData::hookOnMapLoaded(reg *p) {
   appData *aData = &handleData::instance()->aData;
   fearData *pSdk = aData->pSdk;
@@ -1096,7 +1113,8 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
   if (aData->bCoop) {
     char *lvlName = pSdk->getCurrentLevelName();
     unsigned skinState = 9;
-    aData->setPatchHoleKillHives(0);
+    // aData->setPatchHoleKillHives(0);
+    aData->flagPatchHoleKillHives = -1;
     aData->setCoopDoSpawn(0);
     pSdk->checkPointState = 0;
     if (lvlName) {
@@ -1114,7 +1132,8 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
         aData->setCoopDoSpawn(1);
         break;
       case hash_ct("13_Hives"):
-        aData->setPatchHoleKillHives(1);
+        aData->flagPatchHoleKillHives = 0;
+        // aData->setPatchHoleKillHives(1);
         break;
         // default:
         //  aData->setCoopDoSpawn(1);
@@ -1338,14 +1357,16 @@ void regcall fearData::hookLoadMaps2(reg *p) {
   p->state = 2;
 }
 void regcall fearData::hookCGrenadeProximity_HandleActivateMsg(reg *p) {
-  //printf("%p\n",p->tcx);
+  // printf("%p\n",p->tcx);
   fearData *pSdk = &handleData::instance()->pSdk;
-  CPlayerObj * pPlayerObj = (CPlayerObj *)p->tcx;
-    //p->tax =
-  if(((bool(__thiscall *)(uintptr_t, HOBJECT))pSdk->CGrenadeProximity_IsEnemy)(p->tdi,pPlayerObj->m_hObject)){
+  CPlayerObj *pPlayerObj = (CPlayerObj *)p->tcx;
+  // p->tax =
+  printf("? %p\n", p->tdi);
+  if (((bool(__thiscall *)(uintptr_t, HOBJECT))pSdk->CGrenadeProximity_IsEnemy)(
+          p->tdi, pPlayerObj->m_hObject)) {
     p->state = 2;
-    p->tax=0;
-    p->tflags |= 1 << 6;
+    p->tax = 0;
+    p->tflags |= 1 << 6; // set zero flag
   }
 }
 

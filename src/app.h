@@ -11,6 +11,7 @@ void __fastcall hookWindowProc(reg *p);
 class handleData;
 class appData {
  public:
+  ~appData();
   handleData *hData;
   fearData *pSdk;
   unsigned char *gDatabase;
@@ -33,6 +34,11 @@ class appData {
   bool bCoopDoSpawn = 0;
   bool bDoGameSpy = 0;
   bool bConfigInitialized = 0;
+  TCHAR * iniBuffer=0;
+  char * strNs1;
+  char * strNs2;
+  char * strMaster;
+  char * strMotd;
   unsigned char bPreventNoclip = 0;
   bool bIgnoreUnusedMsgID = 0;
   bool bSyncObjects = 0;

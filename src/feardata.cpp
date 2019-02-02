@@ -1034,12 +1034,13 @@ void requestMasterServerCallback(const char *pBuffer, const unsigned nBufferLen,
 
 void stdcall fearData::requestMasterServer(bool, unsigned short, char const *) {
   fearData *pSdk = &handleData::instance()->pSdk;
+  appData *aData = pSdk->aData;
   if (IsMasterServerRequestWorking)
     return;
   IsMasterServerRequestWorking = 1;
   *((unsigned char *)pSdk->g_pGameSpyBrowser + 0x84) = 0;
   pSdk->g_pGameSpyBrowser->RequestURLData(
-      _C("http://master.fear-combat.org/api/serverlist-ingame.php"),
+      aData->strMaster,
       (void *)requestMasterServerCallback, nullptr);
 }
 

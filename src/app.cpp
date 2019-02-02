@@ -37,6 +37,13 @@ int regcall getCfgInt(char *pathCfg, char *valStr) {
   return GetPrivateProfileIntA("Extra", valStr, 0, pathCfg);
 }
 
+int regcall getCfgString(bool server, TCHAR *pathCfg, TCHAR *valStr,
+                         TCHAR *strDefault, TCHAR *buf, int nSize) {
+  TCHAR *app = server ? _T("Server") : _T("Client");
+  GetPrivateProfileString(app, valStr, strDefault, buf, nSize, pathCfg);
+  return _tcslen(buf) + 1;
+}
+
 void regcall hookGameMode(reg *p) {
   memcpy((void *)p->tax, L"SinglePlayer", 13 * 2);
   wchar_t *val = (wchar_t *)((unsigned char *)p->tax - 0x208);
@@ -1429,7 +1436,7 @@ void appData::configHandle() {
   SetPriorityClass((HANDLE)-1, HIGH_PRIORITY_CLASS);
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
-  patchClientServer(gEServer, gEServerSz);
+  // patchClientServer(gEServer, gEServerSz);
 
   {
     unsigned char *tmp = scanBytes(
@@ -2038,24 +2045,24 @@ void appData::configHandle() {
       }
     }*/
 
-    if (bCoop) {
-      {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)gServer, gServerSz,
-                      BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????"
-                                          "????8B??E8????????85C074"));
-        if (tmp) {
-          unprotectCode(tmp);
-          memcpy(tmp, moveax0, 5);
-        }
-      }
-    } else {
+    // if (bCoop) {
+    {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
-                    BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
-      pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
-      spliceUp(tmp + 9, (void *)hookSetObjFlags);
+                    BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????"
+                                        "????8B??E8????????85C074"));
+      if (tmp) {
+        unprotectCode(tmp);
+        memcpy(tmp, moveax0, 5);
+      }
     }
+    // } else {
+    //   unsigned char *tmp =
+    //       scanBytes((unsigned char *)gServer, gServerSz,
+    //                 BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
+    //   pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
+    //   spliceUp(tmp + 9, (void *)hookSetObjFlags);
+    // }
     /*{
       unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
@@ -2119,6 +2126,16 @@ void appData::configHandle() {
   }
 }
 
+__int64 FileSize(const TCHAR *name) {
+  WIN32_FILE_ATTRIBUTE_DATA fad;
+  if (!GetFileAttributesEx(name, GetFileExInfoStandard, &fad))
+    return -1;
+  LARGE_INTEGER size;
+  size.HighPart = fad.nFileSizeHigh;
+  size.LowPart = fad.nFileSizeLow;
+  return size.QuadPart;
+}
+
 void appData::configParse(char *pathCfg) {
   bPreventNoclip = getCfgInt(pathCfg, (char *)"PreventNoclip");
   // bIgnoreUnusedMsgID = getCfgInt(pathCfg, (char *)"PreventSpecialMsg");
@@ -2126,8 +2143,8 @@ void appData::configParse(char *pathCfg) {
   bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
   bRandWep = getCfgInt(pathCfg, (char *)"RandomWeapon");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
-  bPreventNoclip = 2;
   // pSdk->freeMovement=bPreventNoclip;
+  bPreventNoclip = 2;
   bIgnoreUnusedMsgID = 1;
   if (bCoop) {
     {
@@ -2303,6 +2320,28 @@ void appData::initClient() {
   gFearExe = (uint8_t *)GetModuleHandle(0);
   gFearExeSz = GetModuleSize((HMODULE)gFearExe);
 
+
+    {
+      TCHAR cfg[2048];
+      // char *cfg = _T("gamecfg.txt");
+      int sz;
+      sz = GetModuleFileNameW((HMODULE)gFearExe, cfg, sizeof(cfg));
+      if (sz) {
+        for (int i = sz; i != 0; i--) {
+          if (cfg[i] == '\\') {
+            sz = i + 1;
+            break;
+          }
+        }
+        TCHAR *cfgName = _T("gamecfg.txt");
+        memcpy(cfg + sz, cfgName, sizeof(TCHAR) * sizeof("gamecfg.txt"));
+        __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
+        iniBuffer = (TCHAR *)malloc(cfgSize);
+        int sz = getCfgString(0, cfg, _T("Master"), _T("http://master.fear-combat.org/api/serverlist-ingame.php"), iniBuffer,
+                              cfgSize);
+        strMaster = _conv2mb(iniBuffer);
+      }
+    }
   {
     unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
         (unsigned char *)gFearExe, gFearExeSz,
@@ -2351,7 +2390,7 @@ void appData::initClient() {
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
-  patchClientServer(gFearExe, gFearExeSz);
+  // patchClientServer(gFearExe, gFearExeSz);
   {
     unsigned char *tmp =
         (unsigned char *)(scanBytes((unsigned char *)gFearExe, gFearExeSz,
@@ -2587,10 +2626,71 @@ void appData::initClient() {
   }
 }
 
+// void *appData::pointerScan(void * p1, void * p2) {
+//   unsigned char *tmp = gEServer;
+//   unsigned i = 0;
+//   while (true) {
+//     tmp = scanBytes(
+//         (unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
+//         BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
+//     if (tmp) {
+//       unprotectMem(tmp);
+//       *(tmp + 1) = *(tmp + 6);
+//       *(tmp + 2) = '.';
+//       memcpy(tmp + 3, _C("fear-combat.org"), sizeof("fear-combat.org"));
+//     }
+//     tmp++;
+//     i++;
+//     // if (i == 2)
+//     //   break;
+//   }
+// }
+
+
+
 void appData::init() {
   srand(__rdtsc());
   pSdk->aData = this;
   if (gEServer) {
+    {
+      TCHAR cfg[2048];
+      // char *cfg = _T("gamecfg.txt");
+      int sz;
+      sz = GetModuleFileNameW((HMODULE)gEServer, cfg, sizeof(cfg));
+      if (sz) {
+        for (int i = sz; i != 0; i--) {
+          if (cfg[i] == '\\') {
+            sz = i + 1;
+            break;
+          }
+        }
+        TCHAR *cfgName = _T("gamecfg.txt");
+        memcpy(cfg + sz, cfgName, sizeof(TCHAR) * sizeof("gamecfg.txt"));
+        __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
+        iniBuffer = (TCHAR *)malloc(cfgSize);
+        TCHAR *pIniBuf = iniBuffer;
+        int sz = getCfgString(1, cfg, _T("NS1"), _T("fear-combat.org"), pIniBuf,
+                              cfgSize);
+
+        strNs1 = _conv2mb(pIniBuf);
+        pIniBuf += sz;
+        sz = getCfgString(1, cfg, _T("NS2"), _T("fear-combat.org"), pIniBuf,
+                          cfgSize);
+        strNs2 = _conv2mb(pIniBuf);
+        pIniBuf += sz;
+        sz = getCfgString(1, cfg, _T("Master"), _T("fear-combat.org"), pIniBuf,
+                          cfgSize);
+        strMaster = _conv2mb(pIniBuf);
+        pIniBuf += sz;
+        sz = getCfgString(
+            1, cfg, _T("MOTD"),
+            _T("http://fear-combat.org/motd/"
+               "vercheck.asp?userid=%d&productid=%d&versionuniqueid=%"
+               "s&distid=%d&uniqueid=%s&gamename=%s"),
+            pIniBuf, cfgSize);
+        strMotd = _conv2mb(pIniBuf);
+      }
+    }
     gEServerSz = GetModuleSize((HMODULE)gEServer);
     {
       spliceUp(
@@ -2609,55 +2709,46 @@ void appData::init() {
              (void *)hookConfigLoad);
 
     {
-      unsigned char *tmp = gEServer;
-
-      unsigned i = 0;
-      while (true) {
-        tmp = scanBytes(
-            (unsigned char *)tmp, (gEServerSz + gEServer) - tmp,
-            BYTES_SEARCH_FORMAT("6E61746E6567??2E67616D657370792E636F6D"));
-        if (tmp) {
-          unprotectMem(tmp);
-          *(tmp + 1) = *(tmp + 6);
-          *(tmp + 2) = '.';
-          memcpy(tmp + 3, _C("fear-combat.org"), sizeof("fear-combat.org"));
-        }
-        tmp++;
-        i++;
-        if (i == 2)
-          break;
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT("A1????????508B??E8????????83")));
+      if (tmp) {
+        const char **arr = (const char **)*(uintptr_t *)(tmp + 1);
+        unprotectMem(tmp);
+        arr[0] = strNs1;
+        arr[1] = strNs2;
       }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT("25732E6D61737465722E67616D657370792E636F6D"));
-      unprotectMem(tmp);
-      *(tmp + 4) = '.';
-      memcpy(tmp + 5, _C("fear-combat.org"), sizeof("fear-combat.org"));
+          BYTES_SEARCH_FORMAT("68????????50FF15????????83C40C8D")));
+      if (tmp) {
+        tmp += 1;
+        patchData::addCode(tmp, 4);
+        *(const char **)tmp = strMaster;
+      }
     }
     {
-      unsigned char *tmp = scanBytes(
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT(
-              "687474703A2F2F6D6F74642E67616D657370792E636F6D2F6D6F74642F766572"
-              "636865636B2E6173703F7573657269643D25642670726F6475637469643D2564"
-              "2676657273696F6E756E6971756569643D2573266469737469643D256426756E"
-              "6971756569643D25732667616D656E616D653D2573"));
-      unprotectMem(tmp);
-      memcpy(tmp + 7, _C("fear-combat.org"), sizeof("fear-combat.org") - 1);
-      *(tmp + 22) = '/';
-      memcpy(tmp + 23, tmp + 24, 94);
+          BYTES_SEARCH_FORMAT("68????????68????????FF15????????56")));
+      if (tmp) {
+        tmp += 1;
+        patchData::addCode(tmp, 4);
+        *(const char **)tmp = strMotd;
+      }
     }
-    {
-      unsigned char *tmp =
-          scanBytes((unsigned char *)gEServer, gEServerSz,
-                    BYTES_SEARCH_FORMAT(
-                        "25732E617661696C61626C652E67616D657370792E636F6D"));
-      unprotectMem(tmp);
-      *(tmp + 8) = '.';
-      memcpy(tmp + 9, _C("fear-combat.org"), sizeof("fear-combat.org"));
+    { //%s.ms%d.gamespy.com disable
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
+      if (tmp) {
+        patchData::addCode(tmp, 2);
+        *(uint16_t *)(tmp) = 0x9090;
+      }
     }
+
     {
       unsigned char *tmp = scanBytes(
           (unsigned char *)gEServer, gEServerSz,
@@ -2673,3 +2764,5 @@ void appData::init() {
              (void *)hookChangeStr); // master server XP2 fix
   }
 }
+
+appData::~appData() { free(iniBuffer); }

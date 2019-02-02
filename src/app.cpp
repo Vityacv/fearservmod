@@ -2648,6 +2648,8 @@ void appData::initClient() {
 //   }
 // }
 
+void cdecl sprintf_copy(char *buf, char *str, void *) { strcpy(buf, str); }
+
 void appData::init() {
   srand(__rdtsc());
   pSdk->aData = this;
@@ -2669,28 +2671,30 @@ void appData::init() {
         __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
         iniBuffer = (TCHAR *)malloc(cfgSize);
         TCHAR *pIniBuf = iniBuffer;
-        int sz = getCfgString(1, cfg, _T("NS1"), _T("n1.fear-combat.org"), pIniBuf,
-                              cfgSize);
+        int sz = getCfgString(1, cfg, _T("NS1"), _T("natneg1.gamespy.com"),
+                              pIniBuf, cfgSize);
 
         strNs1 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("NS2"), _T("n2.fear-combat.org"), pIniBuf,
+        sz = getCfgString(1, cfg, _T("NS2"), _T("natneg2.gamespy.com"), pIniBuf,
                           cfgSize);
         strNs2 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("Available"), _T("%s.avail.fear-combat.org"), pIniBuf,
-                          cfgSize);
+        // sz = getCfgString(1, cfg, _T("Game"), _T(""), pIniBuf, cfgSize);
+        // strGame = _conv2mb(pIniBuf);
+        // pIniBuf += sz;
+        sz = getCfgString(1, cfg, _T("Available"),
+                          _T("%s.available.gamespy.com"), pIniBuf, cfgSize);
         strMasterAvail = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("Master"), _T("%s.m.fear-combat.org"), pIniBuf,
-                          cfgSize);
+        sz = getCfgString(1, cfg, _T("Master"), _T("%s.master.gamespy.com"),
+                          pIniBuf, cfgSize);
         strMaster = _conv2mb(pIniBuf);
         pIniBuf += sz;
         sz = getCfgString(
             1, cfg, _T("MOTD"),
-            _T("http://fear-combat.org/motd/"
-               "vercheck.asp?userid=%d&productid=%d&versionuniqueid=%"
-               "s&distid=%d&uniqueid=%s&gamename=%s"),
+            (TCHAR
+                 *)L"", // http://motd.gamespy.com/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
             pIniBuf, cfgSize);
         strMotd = _conv2mb(pIniBuf);
       }
@@ -2718,19 +2722,35 @@ void appData::init() {
           BYTES_SEARCH_FORMAT("A1????????508B??E8????????83")));
       if (tmp) {
         const char **arr = (const char **)*(uintptr_t *)(tmp + 1);
-        unprotectMem((uint8_t*)arr);
+        unprotectMem((uint8_t *)arr);
         arr[0] = strNs1;
         arr[1] = strNs2;
       }
+    }
+    {
+      unsigned char *tmp = scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT(
+              "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
+      patchData::addCode(tmp + 1, 22);
+      //*(tmp) = 0x68;
+      // if (*strGame)
+      //   *(uintptr_t *)(tmp + 1) = (uintptr_t)strGame;
+      *(const char **)(tmp + 10) = strMaster;
+      *(uint16_t *)(tmp + 15)=0xE890;
+      *(uintptr_t *)(tmp + 17) = getRel4FromVal(
+          (tmp + 17), (unsigned char *)sprintf_copy);
     }
     {
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gEServer, gEServerSz,
           BYTES_SEARCH_FORMAT("68????????50FF15????????83C40C8D")));
       if (tmp) {
-        tmp += 1;
-        patchData::addCode(tmp, 4);
-        *(const char **)tmp = strMasterAvail;
+        patchData::addCode(tmp + 1, 12);
+        *(const char **)(tmp + 1) = strMasterAvail;
+        *(uint16_t *)(tmp + 6)=0xE890;
+        *(uintptr_t *)(tmp + 8) = getRel4FromVal(
+            (tmp + 8), (unsigned char *)sprintf_copy);
       }
     }
     {
@@ -2743,30 +2763,32 @@ void appData::init() {
         *(const char **)tmp = strMotd;
       }
     }
-    // { //%s.ms%d.gamespy.com disable
-    //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-    //       (unsigned char *)gEServer, gEServerSz,
-    //       BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
-    //   if (tmp) {
-    //     patchData::addCode(tmp, 2);
-    //     *(uint16_t *)(tmp) = 0x9090;
-    //   }
-    // }
+    { //%s.ms%d.gamespy.com disable
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)gEServer, gEServerSz,
+          BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
+      if (tmp) {
+        patchData::addCode(tmp, 2);
+        *(uint16_t *)(tmp) = 0x9090;
+      }
+    }
 
-    {
-      unsigned char *tmp = scanBytes(
+    if (!*strMotd) { // modt disable
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
           (unsigned char *)gEServer, gEServerSz,
           BYTES_SEARCH_FORMAT(
-              "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
-      unprotectCode(tmp);
-      *(tmp) = 0x68;
-      *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
-      *(const char **)(tmp + 10) = strMaster;
-    } // master server XP2 fix
-    spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
-                       BYTES_SEARCH_FORMAT(
-                           "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
-             (void *)hookChangeStr); // master server XP2 fix
+              "833D????????01740333C0C3538B5C241085DB750433C0")));
+      if (tmp) {
+        patchData::addCode(tmp, 2);
+        *(uint16_t *)(tmp + 7) = 0x9090;
+      }
+    }
+
+    // master server XP2 fix
+    // spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
+    //                    BYTES_SEARCH_FORMAT(
+    //                        "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
+    //          (void *)hookChangeStr); // master server XP2 fix
   }
 }
 

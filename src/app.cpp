@@ -2044,7 +2044,7 @@ void appData::configHandle() {
         memcpy(tmp, moveax0, 5);
       }
     }*/
-
+    // custom sync
     // if (bCoop) {
     {
       unsigned char *tmp =
@@ -2063,6 +2063,7 @@ void appData::configHandle() {
     //   pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
     //   spliceUp(tmp + 9, (void *)hookSetObjFlags);
     // }
+    // custom sync end
     /*{
       unsigned char *tmp = scanBytes(
           (unsigned char *)gServer, gServerSz,
@@ -2320,28 +2321,29 @@ void appData::initClient() {
   gFearExe = (uint8_t *)GetModuleHandle(0);
   gFearExeSz = GetModuleSize((HMODULE)gFearExe);
 
-
-    {
-      TCHAR cfg[2048];
-      // char *cfg = _T("gamecfg.txt");
-      int sz;
-      sz = GetModuleFileNameW((HMODULE)gFearExe, cfg, sizeof(cfg));
-      if (sz) {
-        for (int i = sz; i != 0; i--) {
-          if (cfg[i] == '\\') {
-            sz = i + 1;
-            break;
-          }
+  {
+    TCHAR cfg[2048];
+    // char *cfg = _T("gamecfg.txt");
+    int sz;
+    sz = GetModuleFileNameW((HMODULE)gFearExe, cfg, sizeof(cfg));
+    if (sz) {
+      for (int i = sz; i != 0; i--) {
+        if (cfg[i] == '\\') {
+          sz = i + 1;
+          break;
         }
-        TCHAR *cfgName = _T("gamecfg.txt");
-        memcpy(cfg + sz, cfgName, sizeof(TCHAR) * sizeof("gamecfg.txt"));
-        __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
-        iniBuffer = (TCHAR *)malloc(cfgSize);
-        int sz = getCfgString(0, cfg, _T("Master"), _T("http://master.fear-combat.org/api/serverlist-ingame.php"), iniBuffer,
-                              cfgSize);
-        strMaster = _conv2mb(iniBuffer);
       }
+      TCHAR *cfgName = _T("gamecfg.txt");
+      memcpy(cfg + sz, cfgName, sizeof(TCHAR) * sizeof("gamecfg.txt"));
+      __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
+      iniBuffer = (TCHAR *)malloc(cfgSize);
+      int sz = getCfgString(
+          0, cfg, _T("Master"),
+          _T("http://master.fear-combat.org/api/serverlist-ingame.php"),
+          iniBuffer, cfgSize);
+      strMaster = _conv2mb(iniBuffer);
     }
+  }
   {
     unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
         (unsigned char *)gFearExe, gFearExeSz,
@@ -2646,8 +2648,6 @@ void appData::initClient() {
 //   }
 // }
 
-
-
 void appData::init() {
   srand(__rdtsc());
   pSdk->aData = this;
@@ -2669,16 +2669,20 @@ void appData::init() {
         __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
         iniBuffer = (TCHAR *)malloc(cfgSize);
         TCHAR *pIniBuf = iniBuffer;
-        int sz = getCfgString(1, cfg, _T("NS1"), _T("fear-combat.org"), pIniBuf,
+        int sz = getCfgString(1, cfg, _T("NS1"), _T("n1.fear-combat.org"), pIniBuf,
                               cfgSize);
 
         strNs1 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("NS2"), _T("fear-combat.org"), pIniBuf,
+        sz = getCfgString(1, cfg, _T("NS2"), _T("n2.fear-combat.org"), pIniBuf,
                           cfgSize);
         strNs2 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("Master"), _T("fear-combat.org"), pIniBuf,
+        sz = getCfgString(1, cfg, _T("Available"), _T("%s.avail.fear-combat.org"), pIniBuf,
+                          cfgSize);
+        strMasterAvail = _conv2mb(pIniBuf);
+        pIniBuf += sz;
+        sz = getCfgString(1, cfg, _T("Master"), _T("%s.m.fear-combat.org"), pIniBuf,
                           cfgSize);
         strMaster = _conv2mb(pIniBuf);
         pIniBuf += sz;
@@ -2714,7 +2718,7 @@ void appData::init() {
           BYTES_SEARCH_FORMAT("A1????????508B??E8????????83")));
       if (tmp) {
         const char **arr = (const char **)*(uintptr_t *)(tmp + 1);
-        unprotectMem(tmp);
+        unprotectMem((uint8_t*)arr);
         arr[0] = strNs1;
         arr[1] = strNs2;
       }
@@ -2726,7 +2730,7 @@ void appData::init() {
       if (tmp) {
         tmp += 1;
         patchData::addCode(tmp, 4);
-        *(const char **)tmp = strMaster;
+        *(const char **)tmp = strMasterAvail;
       }
     }
     {
@@ -2739,15 +2743,15 @@ void appData::init() {
         *(const char **)tmp = strMotd;
       }
     }
-    { //%s.ms%d.gamespy.com disable
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)gEServer, gEServerSz,
-          BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
-      if (tmp) {
-        patchData::addCode(tmp, 2);
-        *(uint16_t *)(tmp) = 0x9090;
-      }
-    }
+    // { //%s.ms%d.gamespy.com disable
+    //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+    //       (unsigned char *)gEServer, gEServerSz,
+    //       BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
+    //   if (tmp) {
+    //     patchData::addCode(tmp, 2);
+    //     *(uint16_t *)(tmp) = 0x9090;
+    //   }
+    // }
 
     {
       unsigned char *tmp = scanBytes(
@@ -2757,6 +2761,7 @@ void appData::init() {
       unprotectCode(tmp);
       *(tmp) = 0x68;
       *(uintptr_t *)(tmp + 1) = (uintptr_t) "fear";
+      *(const char **)(tmp + 10) = strMaster;
     } // master server XP2 fix
     spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
                        BYTES_SEARCH_FORMAT(
@@ -2765,4 +2770,7 @@ void appData::init() {
   }
 }
 
-appData::~appData() { free(iniBuffer); }
+appData::~appData() {
+  if (iniBuffer)
+    free(iniBuffer);
+}

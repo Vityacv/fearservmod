@@ -37,6 +37,7 @@ class appData {
   TCHAR * iniBuffer=0;
   char * strNs1;
   char * strNs2;
+  char * strMasterAvail;
   char * strMaster;
   char * strMotd;
   unsigned char bPreventNoclip = 0;

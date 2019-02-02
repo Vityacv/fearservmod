@@ -2648,8 +2648,6 @@ void appData::initClient() {
 //   }
 // }
 
-void cdecl sprintf_copy(char *buf, char *str, void *) { strcpy(buf, str); }
-
 void appData::init() {
   srand(__rdtsc());
   pSdk->aData = this;
@@ -2680,9 +2678,6 @@ void appData::init() {
                           cfgSize);
         strNs2 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        // sz = getCfgString(1, cfg, _T("Game"), _T(""), pIniBuf, cfgSize);
-        // strGame = _conv2mb(pIniBuf);
-        // pIniBuf += sz;
         sz = getCfgString(1, cfg, _T("Available"),
                           _T("%s.available.gamespy.com"), pIniBuf, cfgSize);
         strMasterAvail = _conv2mb(pIniBuf);
@@ -2739,7 +2734,7 @@ void appData::init() {
       *(const char **)(tmp + 10) = strMaster;
       *(uint16_t *)(tmp + 15)=0xE890;
       *(uintptr_t *)(tmp + 17) = getRel4FromVal(
-          (tmp + 17), (unsigned char *)sprintf_copy);
+          (tmp + 17), (unsigned char *)strcpy);
     }
     {
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
@@ -2750,7 +2745,7 @@ void appData::init() {
         *(const char **)(tmp + 1) = strMasterAvail;
         *(uint16_t *)(tmp + 6)=0xE890;
         *(uintptr_t *)(tmp + 8) = getRel4FromVal(
-            (tmp + 8), (unsigned char *)sprintf_copy);
+            (tmp + 8), (unsigned char *)strcpy);
       }
     }
     {
@@ -2783,12 +2778,6 @@ void appData::init() {
         *(uint16_t *)(tmp + 7) = 0x9090;
       }
     }
-
-    // master server XP2 fix
-    // spliceUp(scanBytes((unsigned char *)gEServer, gEServerSz,
-    //                    BYTES_SEARCH_FORMAT(
-    //                        "4084C975??C7??????????FFFFFFFFE8????????0FBE")),
-    //          (void *)hookChangeStr); // master server XP2 fix
   }
 }
 

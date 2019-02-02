@@ -1,0 +1,12 @@
+; gamecfg.txt
+; This file contains game configuration data for a single game's SKU's
+[General]
+;PRODUCT_MPFREE - Product is the MPFree SKU.
+PRODUCT_MPFREE=0
+[Client]
+Master=http://master.fear-combat.org/api/serverlist-ingame.php
+[Server]
+NS1=n1.fear-combat.org
+NS2=n2.fear-combat.org
+Available=fear.avail.fear-combat.org
+Master=fear.m.fear-combat.org

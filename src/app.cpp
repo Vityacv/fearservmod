@@ -2322,10 +2322,10 @@ void appData::initClient() {
   gFearExeSz = GetModuleSize((HMODULE)gFearExe);
 
   {
-    TCHAR cfg[2048];
+    TCHAR cfg[1024];
     // char *cfg = _T("gamecfg.txt");
     int sz;
-    sz = GetModuleFileNameW((HMODULE)gFearExe, cfg, sizeof(cfg));
+    sz = GetModuleFileNameW(0, cfg, sizeof(cfg));
     if (sz) {
       for (int i = sz; i != 0; i--) {
         if (cfg[i] == '\\') {
@@ -2656,7 +2656,7 @@ void appData::init() {
       TCHAR cfg[2048];
       // char *cfg = _T("gamecfg.txt");
       int sz;
-      sz = GetModuleFileNameW((HMODULE)gEServer, cfg, sizeof(cfg));
+      sz = GetModuleFileNameW(0, cfg, sizeof(cfg));
       if (sz) {
         for (int i = sz; i != 0; i--) {
           if (cfg[i] == '\\') {

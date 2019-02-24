@@ -8,8 +8,6 @@ Download https://github.com/Vityacv/libsplice and https://github.com/Vityacv/lib
 
 compile:
 ```
-./build -w #Initialization of symbolic links for ulink
-./build -g #compile precompiled header
 ./build -c
 ```
 # How to use:
@@ -18,6 +16,14 @@ compile:
 3. Move there new "StringEditRuntime.dll" and "Default.archcfg" (make backup of original "Default.archcfg")
 4. Now you can start your server with "FEARServerXP.exe" or check avaliable servers (only FEARXP2 servers, if there any) in game browser of "FEARXP2.exe" and play
 5. Type random text in CDKey before connect to server
+
+To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:
+
+[Server]
+NS1=n1.fear-combat.org
+NS2=n2.fear-combat.org
+Available=fear.avail.fear-combat.org
+Master=fear.m.fear-combat.org
 
 Added "coop mode" support:
 
@@ -41,3 +47,4 @@ PreventNoclip - prevents player to go through solid objects (walls for example)
 SyncObjects - synchronize all objects on map for all players (bottles, boxes, etc)
 
 BotsMP - AI fix for custom user maps
+

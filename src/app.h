@@ -43,6 +43,8 @@ class appData {
   unsigned char bPreventNoclip = 0;
   bool bIgnoreUnusedMsgID = 0;
   bool bSyncObjects = 0;
+  bool bCustomSkins = 0;
+  bool bShowIntro = 0;
   unsigned char bCoop = 0;
   bool bBotsMP = 0;
   char flagPatchHoleKillHives=-1;

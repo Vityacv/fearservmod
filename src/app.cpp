@@ -37,11 +37,16 @@ int regcall getCfgInt(char *pathCfg, char *valStr) {
   return GetPrivateProfileIntA("Extra", valStr, 0, pathCfg);
 }
 
-int regcall getCfgString(bool server, TCHAR *pathCfg, TCHAR *valStr,
+int regcall getGlobalCfgString(bool server, TCHAR *pathCfg, TCHAR *valStr,
                          TCHAR *strDefault, TCHAR *buf, int nSize) {
   TCHAR *app = server ? _T("Server") : _T("Client");
   GetPrivateProfileString(app, valStr, strDefault, buf, nSize, pathCfg);
   return _tcslen(buf) + 1;
+}
+
+int regcall getGlobalCfgInt(bool server, TCHAR *pathCfg, TCHAR *valStr) {
+  TCHAR *app = server ? _T("Server") : _T("Client");
+  return GetPrivateProfileInt(app, valStr, 0, pathCfg);
 }
 
 void regcall hookGameMode(reg *p) {
@@ -573,7 +578,7 @@ void regcall hookMID(reg *p) {
     HWEAPONDATA hWpnData = 0;
     float dist = 256.0f;
     bool bUnarmed = 0;
-
+    unsigned unarmFireDelay = 0;
     if (hWeapon &&
         hash_rta((char *)*(uintptr_t *)(hWeapon)) == hash_ct("Unarmed")) {
       if (hAmmo) {
@@ -583,20 +588,24 @@ void regcall hookMID(reg *p) {
           hAnim++;
           hAnimPenult++;
         }
+        if(!aData->bCustomSkins){
         switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
         case hash_ct("Melee_JabRight"):
         case hash_ct("Melee_JabLeft"):
+          unarmFireDelay = 0x100;
           if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
             break;
           p->state = 1;
           break;
         case hash_ct("Melee_RifleButt"):
+          unarmFireDelay = 0x100;
           // printf()
           // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
           //     break;
           //   p->state = 1;
           break;
         case hash_ct("Melee_SlideKick"):
+          unarmFireDelay = 0x16;
           if (pSdk->isXP2) {
             if (hAnim == 0x12C || hAnim == 0x47D)
               break;
@@ -606,10 +615,12 @@ void regcall hookMID(reg *p) {
           break;
         case hash_ct("Melee_RunKickLeft"):
         case hash_ct("Melee_RunKickRight"):
+          unarmFireDelay = 0x50;
           if (hAnim != 0x12E)
             p->state = 1;
           break;
         case hash_ct("Melee_JumpKick"):
+          unarmFireDelay = 0x30;
           if (hAnim != 0x12D)
             p->state = 1;
           break;
@@ -617,6 +628,7 @@ void regcall hookMID(reg *p) {
           p->state = 1;
           break;
         }
+      }
         // if(p->state)
         // printf("fired: %s %p %p %p\n",(char *)*(uintptr_t
         // *)(hAmmo),hAnim,hAnimPenult,p->state);
@@ -720,11 +732,11 @@ void regcall hookMID(reg *p) {
           pPlData->lastFireWeapon = pWeapon;
           unsigned dwAni = 8; // RELOAD
           // pSdk->g_pModelLT->GetAnimIndex(pWeapon->m_hModelObject,"Reload",dwAni);
-          pSdk->g_pModelLT->GetAnimLength(pWeapon->m_hModelObject, dwAni,
-                                          pPlData->lastFireWeaponReloadLength);
-          pPlData->lastFireWeaponReloadLength -= 96;
-          if ((int)(pPlData->lastFireWeaponReloadLength) < 0)
-            pPlData->lastFireWeaponReloadLength = 0;
+          // pSdk->g_pModelLT->GetAnimLength(pWeapon->m_hModelObject, dwAni,
+          //                                 pPlData->lastFireWeaponReloadLength);
+          // pPlData->lastFireWeaponReloadLength -= 96;
+          // if ((int)(pPlData->lastFireWeaponReloadLength) < 0)
+          //   pPlData->lastFireWeaponReloadLength = 0;
 
           /*pPlData->lastFireWeaponClipMax = ((unsigned(__thiscall *)(
               CWeaponDB *, HWEAPONDATA, char *, uintptr_t,
@@ -757,7 +769,7 @@ void regcall hookMID(reg *p) {
         }
         }
     }*/
-          pPlData->lastvPathFire = vPath;
+          //pPlData->lastvPathFire = vPath;
           /*if(pPlData->lastFireWeaponReload){
             pPlData->lastFireWeaponReload = 0;
             unsigned delta = fireTimestamp - pPlData->lastFireWeaponTimestamp;
@@ -787,6 +799,7 @@ void regcall hookMID(reg *p) {
           // unsigned delay = pPlData->lastFireWeaponDelay + 0x800;
           // if (fireServTimestamp > (delay + 1))
           //  fireServTimestampCheck = fireServTimestamp - delay;
+
           if (fireTimestamp > fireServTimestamp ||
               fireTimestamp < (fireServTimestamp - 5000)) {
             ((unsigned(__thiscall *)(CArsenal *, HAMMO))
@@ -804,6 +817,13 @@ void regcall hookMID(reg *p) {
              pPlData->lastFireWeaponTimestamp = 0;
              break;
            }*/
+          if( bUnarmed && (fireTimestamp - pPlData->lastFireWeaponTimestamp) < unarmFireDelay){ //original unarm FireDelay is 0 so we add extra check
+            p->state = 0;
+            pPlData->lastFireWeaponClipAmmo = 0;
+            pPlData->lastFireWeaponTimestamp = 0;
+            pPlData->lastFireWeaponIgnored = fireServTimestamp;
+            break;
+          }
         }
         pPlData->lastFireWeaponClipAmmo = ammoInClip;
         pPlData->lastFireWeaponTimestamp = fireTimestamp;
@@ -1278,12 +1298,12 @@ void regcall hookSetObjFlags(reg *p) {
     // if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
     bool isMatch = 0;
 
-    if (starCmp(objName, (char *)"library_chair*.Chair Physics"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Crate-CardBoard*.Box"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Table-Wall-Cover*.SlideTableAWM"))
-      isMatch = 1;
+    // if (starCmp(objName, (char *)"library_chair*.Chair Physics"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Crate-CardBoard*.Box"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Table-Wall-Cover*.SlideTableAWM"))
+    //   isMatch = 1;
     if (starCmp(objName, (char *)"VendingMachine*.Base"))
       isMatch = 1;
     if (starCmp(objName, (char *)"VendingMachine*.glow"))
@@ -1296,67 +1316,67 @@ void regcall hookSetObjFlags(reg *p) {
       isMatch = 1;
     if (starCmp(objName, (char *)"industrial_fridge*.glow"))
       isMatch = 1;
-    if (starCmp(objName, (char *)"Barrel*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Crate_*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"vase_*.Vase"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"vase_*.vase_top"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"vase_*.vase_bottom"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"box_single*.Box"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"box_single*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"TrafficBarrel*.TrafficBarrel"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Bucket*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Bucket*.Bucket"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"mopbucket_trans*.Bucket"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"junk_cone*.cone"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Cactus*.Cactus"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"Ind_Trashcan*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
-      isMatch = 1;
+    // if (starCmp(objName, (char *)"Barrel*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Crate_*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"vase_*.Vase"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"vase_*.vase_top"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"vase_*.vase_bottom"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"box_single*.Box"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"box_single*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"TrafficBarrel*.TrafficBarrel"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Bucket*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Bucket*.Bucket"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"mopbucket_trans*.Bucket"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"junk_cone*.cone"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Cactus*.Cactus"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"Ind_Trashcan*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"decor_TrashCan*.trashcan"))
+    //   isMatch = 1;
     if (starCmp(objName, (char *)"Sofa-2Seat*_Flip*.Sofa2"))
       isMatch = 1;
-    if (starCmp(objName, (char *)"GarbageCan*.WorldModel*"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"trash_can*.WorldModel*"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"chair_dress*.ChairPhysics"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"chair*.ChairPhysics"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
-      isMatch = 1;
-    if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
-      isMatch = 1;
+    // if (starCmp(objName, (char *)"GarbageCan*.WorldModel*"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"trash_can*.WorldModel*"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"chair_dress*.ChairPhysics"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"chair*.ChairPhysics"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
+    //   isMatch = 1;
+    // if (starCmp(objName, (char *)"apt_TV*.WorldModel00"))
+    //   isMatch = 1;
 
     if (isMatch) {
       // pObj[1]=0x71;
       pObj[2] = 0x40;
     }
-    switch (hash_rta(objName)) {
-    // case hash_ct("GarbageCan0100.WorldModel01"):
-    case hash_ct("40oz00.WorldModel00"):
-      // case hash_ct("Window-LobbyLrg00.WorldModel00"):
-      // hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
-      // pObj[1]=0x71;
-      pObj[2] = 0x40;
-      break;
-      break;
-    }
+    // switch (hash_rta(objName)) {
+    // // case hash_ct("GarbageCan0100.WorldModel01"):
+    // case hash_ct("40oz00.WorldModel00"):
+    //   // case hash_ct("Window-LobbyLrg00.WorldModel00"):
+    //   // hhcase hash_ct("Window-LobbyLrg01.WorldModel00"):
+    //   // pObj[1]=0x71;
+    //   pObj[2] = 0x40;
+    //   break;
+    //   break;
+    // }
     /*switch(hash_rta(objName)){
 case hash_ct("Barrel101.WorldModel00"):
 case hash_ct("Barrel207.WorldModel00"):
@@ -2056,13 +2076,14 @@ void appData::configHandle() {
         memcpy(tmp, moveax0, 5);
       }
     }
-    // } else {
-    //   unsigned char *tmp =
-    //       scanBytes((unsigned char *)gServer, gServerSz,
-    //                 BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
-    //   pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
-    //   spliceUp(tmp + 9, (void *)hookSetObjFlags);
-    // }
+    // } else 
+    {
+      unsigned char *tmp =
+          scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
+      pSdk->ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
+      spliceUp(tmp + 9, (void *)hookSetObjFlags);
+    }
     // custom sync end
     /*{
       unsigned char *tmp = scanBytes(
@@ -2141,6 +2162,7 @@ void appData::configParse(char *pathCfg) {
   bPreventNoclip = getCfgInt(pathCfg, (char *)"PreventNoclip");
   // bIgnoreUnusedMsgID = getCfgInt(pathCfg, (char *)"PreventSpecialMsg");
   bSyncObjects = getCfgInt(pathCfg, (char *)"SyncObjects");
+  bCustomSkins = getCfgInt(pathCfg, (char *)"CustomSkins");
   bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
   bRandWep = getCfgInt(pathCfg, (char *)"RandomWeapon");
   bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
@@ -2337,11 +2359,12 @@ void appData::initClient() {
       memcpy(cfg + sz, cfgName, sizeof(TCHAR) * sizeof("gamecfg.txt"));
       __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
       iniBuffer = (TCHAR *)malloc(cfgSize);
-      int sz = getCfgString(
+      int sz = getGlobalCfgString(
           0, cfg, _T("Master"),
           _T("http://master.fear-combat.org/api/serverlist-ingame.php"),
           iniBuffer, cfgSize);
       strMaster = _conv2mb(iniBuffer);
+      bShowIntro = getGlobalCfgInt(0, cfg,_T("ShowIntro"));
     }
   }
   {
@@ -2458,7 +2481,8 @@ void appData::initClient() {
       *(unsigned short *)(tmp) = 0x3BEB;
     }
   }
-#ifdef NOINTRO
+//#ifdef NOINTRO
+  if(!bShowIntro){
   /*{
     unsigned char *tmp = (unsigned char *)(scanBytes(
         (unsigned char *)gClient, gClientSz,
@@ -2492,7 +2516,8 @@ void appData::initClient() {
                           5); // no logos
     }
   }
-#endif
+}
+//#endif
   {
     unsigned char *tmp = (unsigned char *)(scanBytes(
         (unsigned char *)gClient, gClientSz,
@@ -2669,24 +2694,24 @@ void appData::init() {
         __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
         iniBuffer = (TCHAR *)malloc(cfgSize);
         TCHAR *pIniBuf = iniBuffer;
-        int sz = getCfgString(1, cfg, _T("NS1"), _T("natneg1.gamespy.com"),
+        int sz = getGlobalCfgString(1, cfg, _T("NS1"), _T("natneg1.gamespy.com"),
                               pIniBuf, cfgSize);
 
         strNs1 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("NS2"), _T("natneg2.gamespy.com"), pIniBuf,
+        sz = getGlobalCfgString(1, cfg, _T("NS2"), _T("natneg2.gamespy.com"), pIniBuf,
                           cfgSize);
         strNs2 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("Available"),
+        sz = getGlobalCfgString(1, cfg, _T("Available"),
                           _T("%s.available.gamespy.com"), pIniBuf, cfgSize);
         strMasterAvail = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(1, cfg, _T("Master"), _T("%s.master.gamespy.com"),
+        sz = getGlobalCfgString(1, cfg, _T("Master"), _T("%s.master.gamespy.com"),
                           pIniBuf, cfgSize);
         strMaster = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getCfgString(
+        sz = getGlobalCfgString(
             1, cfg, _T("MOTD"),
             (TCHAR
                  *)L"", // http://motd.gamespy.com/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s

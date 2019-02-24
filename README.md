@@ -19,11 +19,11 @@ compile:
 
 To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:
 
-[Server]
-NS1=n1.fear-combat.org
-NS2=n2.fear-combat.org
-Available=fear.avail.fear-combat.org
-Master=fear.m.fear-combat.org
+	[Server]
+	NS1=n1.fear-combat.org
+	NS2=n2.fear-combat.org
+	Available=fear.avail.fear-combat.org
+	Master=fear.m.fear-combat.org
 
 Added "coop mode" support:
 
@@ -37,8 +37,8 @@ All 55 SinglePlayer maps will be avaliable in server list. Players can use "Call
 Use "FEARXP2.exe" for play and "FEARServerXP.exe" to start local or public server.
 If you want start coop server - add to server config "ServerOptionsXXXX.txt" option:
 
-[Extra]
-CoopMode=1
+	[Extra]
+	CoopMode=1
 
 There are another options you can use in usual MP mode:
 

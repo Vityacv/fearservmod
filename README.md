@@ -23,8 +23,7 @@ compile:
 3. In game directory rename "StringEditRuntime.dll" to "StringEditRuntime_.dll"
 4. Move there new "StringEditRuntime.dll" https://github.com/Vityacv/fearservmod/blob/master/bin/StringEditRuntime.dll
 5. unpack files from archive (replace original files) https://www.upload.ee/files/9672698/fixfiles.7z.html (password: fix) to game directory 
-6. Type random text in CDKey "Multiplayer->Client settings" before connect to server
-
+6. Type random text in CDKey "Multiplayer->Client settings" before connect to server OR cdkey from https://fear-community.org - it needed to be put in Key.ini file that in profile folder
 To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:
 
 	[Server]
@@ -55,4 +54,3 @@ PreventNoclip - prevents player to go through solid objects (walls for example)
 SyncObjects - synchronize all objects on map for all players (bottles, boxes, etc)
 
 BotsMP - AI fix for custom user maps
-

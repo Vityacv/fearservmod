@@ -1456,7 +1456,7 @@ void appData::configHandle() {
   SetPriorityClass((HANDLE)-1, HIGH_PRIORITY_CLASS);
   unsigned char moveax0[] = {0xB8, 0x00, 0x00, 0x00, 0x00};
   pSdk->fearDataInitServ();
-  // patchClientServer(gEServer, gEServerSz);
+  patchClientServer(gEServer, gEServerSz);
 
   {
     unsigned char *tmp = scanBytes(
@@ -2415,7 +2415,7 @@ void appData::initClient() {
       *(unsigned short *)(tmp) = 0x9090;
     }
   }
-  // patchClientServer(gFearExe, gFearExeSz);
+  patchClientServer(gFearExe, gFearExeSz);
   {
     unsigned char *tmp =
         (unsigned char *)(scanBytes((unsigned char *)gFearExe, gFearExeSz,

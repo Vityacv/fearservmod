@@ -10,12 +10,20 @@ compile:
 ```
 ./build -c
 ```
-# How to use:
+# How to use F.E.A.R. Perseus Mandate:
 1. Download "F.E.A.R. Platinum" (GOG version)
 2. In "FEARXP2" directory rename "StringEditRuntime.dll" to "StringEditRuntime_.dll" (name "StringEditRuntime_.dll" is very important because dll loads it)
-3. Move there new "StringEditRuntime.dll" and "Default.archcfg" (make backup of original "Default.archcfg")
+3. Move there new "StringEditRuntime.dll" https://github.com/Vityacv/fearservmod/blob/master/bin/StringEditRuntime.dll and "Default.archcfg" https://github.com/Vityacv/fearservmod/blob/master/extra/Default.archcfg (make backup of original "Default.archcfg")
 4. Now you can start your server with "FEARServerXP.exe" or check avaliable servers (only FEARXP2 servers, if there any) in game browser of "FEARXP2.exe" and play
 5. Type random text in CDKey before connect to server
+
+# How to use F.E.A.R. Combat 1.08:
+1. Download FEAR Combat v1.07 Free Full Game from here http://www.gamershell.com/pc/fear_combat/ and while install do not accept punkbuster license (cdkey you should find in comments)
+2. Apply patch "FEAR Combat v1.08 US Patch"
+3. In game directory rename "StringEditRuntime.dll" to "StringEditRuntime_.dll"
+4. Move there new "StringEditRuntime.dll" https://github.com/Vityacv/fearservmod/blob/master/bin/StringEditRuntime.dll
+5. unpack files from archive (replace original files) https://www.upload.ee/files/9672698/fixfiles.7z.html (password: fix) to game directory 
+6. Type random text in CDKey "Multiplayer->Client settings" before connect to server
 
 To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:
 

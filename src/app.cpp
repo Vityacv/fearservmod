@@ -38,7 +38,7 @@ int regcall getCfgInt(char *pathCfg, char *valStr) {
 }
 
 int regcall getGlobalCfgString(bool server, TCHAR *pathCfg, TCHAR *valStr,
-                         TCHAR *strDefault, TCHAR *buf, int nSize) {
+                               TCHAR *strDefault, TCHAR *buf, int nSize) {
   TCHAR *app = server ? _T("Server") : _T("Client");
   GetPrivateProfileString(app, valStr, strDefault, buf, nSize, pathCfg);
   return _tcslen(buf) + 1;
@@ -588,47 +588,47 @@ void regcall hookMID(reg *p) {
           hAnim++;
           hAnimPenult++;
         }
-        if(!aData->bCustomSkins){
-        switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
-        case hash_ct("Melee_JabRight"):
-        case hash_ct("Melee_JabLeft"):
-          unarmFireDelay = 0x100;
-          if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
-            break;
-          p->state = 1;
-          break;
-        case hash_ct("Melee_RifleButt"):
-          unarmFireDelay = 0x100;
-          // printf()
-          // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
-          //     break;
-          //   p->state = 1;
-          break;
-        case hash_ct("Melee_SlideKick"):
-          unarmFireDelay = 0x16;
-          if (pSdk->isXP2) {
-            if (hAnim == 0x12C || hAnim == 0x47D)
+        if (!aData->bCustomSkins) {
+          switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
+          case hash_ct("Melee_JabRight"):
+          case hash_ct("Melee_JabLeft"):
+            unarmFireDelay = 0x100;
+            if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
               break;
             p->state = 1;
-          } else if (hAnim != 0x12B)
+            break;
+          case hash_ct("Melee_RifleButt"):
+            unarmFireDelay = 0x100;
+            // printf()
+            // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
+            //     break;
+            //   p->state = 1;
+            break;
+          case hash_ct("Melee_SlideKick"):
+            unarmFireDelay = 0x16;
+            if (pSdk->isXP2) {
+              if (hAnim == 0x12C || hAnim == 0x47D)
+                break;
+              p->state = 1;
+            } else if (hAnim != 0x12B)
+              p->state = 1;
+            break;
+          case hash_ct("Melee_RunKickLeft"):
+          case hash_ct("Melee_RunKickRight"):
+            unarmFireDelay = 0x50;
+            if (hAnim != 0x12E)
+              p->state = 1;
+            break;
+          case hash_ct("Melee_JumpKick"):
+            unarmFireDelay = 0x30;
+            if (hAnim != 0x12D)
+              p->state = 1;
+            break;
+          default:
             p->state = 1;
-          break;
-        case hash_ct("Melee_RunKickLeft"):
-        case hash_ct("Melee_RunKickRight"):
-          unarmFireDelay = 0x50;
-          if (hAnim != 0x12E)
-            p->state = 1;
-          break;
-        case hash_ct("Melee_JumpKick"):
-          unarmFireDelay = 0x30;
-          if (hAnim != 0x12D)
-            p->state = 1;
-          break;
-        default:
-          p->state = 1;
-          break;
+            break;
+          }
         }
-      }
         // if(p->state)
         // printf("fired: %s %p %p %p\n",(char *)*(uintptr_t
         // *)(hAmmo),hAnim,hAnimPenult,p->state);
@@ -769,7 +769,7 @@ void regcall hookMID(reg *p) {
         }
         }
     }*/
-          //pPlData->lastvPathFire = vPath;
+          // pPlData->lastvPathFire = vPath;
           /*if(pPlData->lastFireWeaponReload){
             pPlData->lastFireWeaponReload = 0;
             unsigned delta = fireTimestamp - pPlData->lastFireWeaponTimestamp;
@@ -817,7 +817,9 @@ void regcall hookMID(reg *p) {
              pPlData->lastFireWeaponTimestamp = 0;
              break;
            }*/
-          if( bUnarmed && (fireTimestamp - pPlData->lastFireWeaponTimestamp) < unarmFireDelay){ //original unarm FireDelay is 0 so we add extra check
+          if (bUnarmed && (fireTimestamp - pPlData->lastFireWeaponTimestamp) <
+                              unarmFireDelay) { // original unarm FireDelay is 0
+                                                // so we add extra check
             p->state = 0;
             pPlData->lastFireWeaponClipAmmo = 0;
             pPlData->lastFireWeaponTimestamp = 0;
@@ -1010,6 +1012,24 @@ void regcall hookMID(reg *p) {
       *(unsigned char*)(pGameClientData+0x74)=0xFF;
     }
     break;*/
+    case eClientConnectionState_CRCCheck: {
+      uint8_t aTcpIp[4];
+      uint16_t nPort;
+      pSdk->getClientAddr((HCLIENT)p->v0, aTcpIp, &nPort);
+      IPData block = {*(uint32_t *)aTcpIp,nPort};
+      EnterCriticalSection(&pSdk->g_ipchunkSection);
+      IPChunk::foreach (
+          pSdk->g_ipchunk, &block,
+          [](uintptr_t index, IPChunk *Chunk, IPData *Block) -> uintptr_t {
+            if (Chunk->buf[index].ip == Block->ip) {
+              Chunk->buf[index].ip = 0;
+              return 1;
+            }
+            return 0;
+          });
+      LeaveCriticalSection(&pSdk->g_ipchunkSection);
+      break;
+    }
     case eClientConnectionState_InWorld: {
       wchar_t playerName[16];
       unsigned len = pMsgRead->ReadWString(playerName, sizeof(playerName) /
@@ -1501,6 +1521,7 @@ void appData::configHandle() {
             "745D8B????????????8B????8B??C1????884C2414")); // show conn client
                                                             // ip
     if (tmp) {
+      spliceUp(tmp-7, (void *)fearData::hookUDPConnReq);
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
@@ -1563,6 +1584,21 @@ void appData::configHandle() {
                       "83C404F6????74??8B??E8????????6A00E8????????8B??E8"));
     if (tmp) {
       spliceUp(tmp, (void *)fearData::hookOnMapLoaded);
+    }
+  }
+  {
+    unsigned char *tmp = scanBytes((unsigned char *)gEServer, gEServerSz,
+                                   BYTES_SEARCH_FORMAT("7402893783FEFF7472"));
+    if (tmp) {
+      spliceUp(tmp, (void *)fearData::hookUDPRecvfrom);
+    }
+  }
+  {
+    unsigned char *tmp =
+        scanBytes((unsigned char *)gEServer, gEServerSz,
+                  BYTES_SEARCH_FORMAT("8B168BCEFF1284C0740E6A016A03568BCF"));
+    if (tmp) {
+      spliceUp(tmp, (void *)fearData::hookCheckUDPDisconnect);
     }
   }
   {
@@ -2076,7 +2112,7 @@ void appData::configHandle() {
         memcpy(tmp, moveax0, 5);
       }
     }
-    // } else 
+    // } else
     {
       unsigned char *tmp =
           scanBytes((unsigned char *)gServer, gServerSz,
@@ -2364,7 +2400,7 @@ void appData::initClient() {
           _T("http://master.fear-combat.org/api/serverlist-ingame.php"),
           iniBuffer, cfgSize);
       strMaster = _conv2mb(iniBuffer);
-      bShowIntro = getGlobalCfgInt(0, cfg,_T("ShowIntro"));
+      bShowIntro = getGlobalCfgInt(0, cfg, _T("ShowIntro"));
     }
   }
   {
@@ -2481,43 +2517,43 @@ void appData::initClient() {
       *(unsigned short *)(tmp) = 0x3BEB;
     }
   }
-//#ifdef NOINTRO
-  if(!bShowIntro){
-  /*{
-    unsigned char *tmp = (unsigned char *)(scanBytes(
-        (unsigned char *)gClient, gClientSz,
-        (char *)"83??????????FD8B??????????8B??68????????FF??????????85??"
-                "74"));  // No intro
-    if (tmp) {
-      unprotectCode(tmp);
-      *(unsigned short *)(tmp + 28) = 0x1EEB;
+  //#ifdef NOINTRO
+  if (!bShowIntro) {
+    /*{
+      unsigned char *tmp = (unsigned char *)(scanBytes(
+          (unsigned char *)gClient, gClientSz,
+          (char *)"83??????????FD8B??????????8B??68????????FF??????????85??"
+                  "74"));  // No intro
+      if (tmp) {
+        unprotectCode(tmp);
+        *(unsigned short *)(tmp + 28) = 0x1EEB;
+      }
+    }*/
+    {
+      unsigned char *tmp = (unsigned char *)(scanBytes(
+          (unsigned char *)gClient, gClientSz,
+          BYTES_SEARCH_FORMAT(
+              "5155568BF18B0D????????8B01FF90????????8BE8"))); // no splash
+                                                               // videos
+      if (tmp) {
+        patchData::addCode(tmp, 4);
+        *(unsigned *)(tmp) = 0x000004C2;
+      }
     }
-  }*/
-  {
-    unsigned char *tmp = (unsigned char *)(scanBytes(
-        (unsigned char *)gClient, gClientSz,
-        BYTES_SEARCH_FORMAT(
-            "5155568BF18B0D????????8B01FF90????????8BE8"))); // no splash
-                                                             // videos
-    if (tmp) {
-      patchData::addCode(tmp, 4);
-      *(unsigned *)(tmp) = 0x000004C2;
-    }
-  }
 
-  {
-    void *tmp = (unsigned *)(scanBytes(
-        (unsigned char *)gClient, gClientSz,
-        BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
-    if (tmp) {
-      patchData::codeswap((unsigned char *)tmp + 16,
-                          (unsigned char *)(const unsigned char[]){
-                              0xE9, 0xF4, 0x00, 0x00, 0x00},
-                          5); // no logos
+    {
+      void *tmp = (unsigned *)(scanBytes(
+          (unsigned char *)gClient, gClientSz,
+          BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76")));
+      if (tmp) {
+        patchData::codeswap((unsigned char *)tmp + 16,
+                            (unsigned char *)(const unsigned char[]){
+                                0xE9, 0xF4, 0x00, 0x00, 0x00},
+                            5); // no logos
+      }
     }
   }
-}
-//#endif
+  //#endif
   {
     unsigned char *tmp = (unsigned char *)(scanBytes(
         (unsigned char *)gClient, gClientSz,
@@ -2694,21 +2730,22 @@ void appData::init() {
         __int64 cfgSize = (FileSize(cfg) + 1024) * sizeof(TCHAR);
         iniBuffer = (TCHAR *)malloc(cfgSize);
         TCHAR *pIniBuf = iniBuffer;
-        int sz = getGlobalCfgString(1, cfg, _T("NS1"), _T("natneg1.gamespy.com"),
-                              pIniBuf, cfgSize);
+        int sz = getGlobalCfgString(
+            1, cfg, _T("NS1"), _T("natneg1.gamespy.com"), pIniBuf, cfgSize);
 
         strNs1 = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getGlobalCfgString(1, cfg, _T("NS2"), _T("natneg2.gamespy.com"), pIniBuf,
-                          cfgSize);
+        sz = getGlobalCfgString(1, cfg, _T("NS2"), _T("natneg2.gamespy.com"),
+                                pIniBuf, cfgSize);
         strNs2 = _conv2mb(pIniBuf);
         pIniBuf += sz;
         sz = getGlobalCfgString(1, cfg, _T("Available"),
-                          _T("%s.available.gamespy.com"), pIniBuf, cfgSize);
+                                _T("%s.available.gamespy.com"), pIniBuf,
+                                cfgSize);
         strMasterAvail = _conv2mb(pIniBuf);
         pIniBuf += sz;
-        sz = getGlobalCfgString(1, cfg, _T("Master"), _T("%s.master.gamespy.com"),
-                          pIniBuf, cfgSize);
+        sz = getGlobalCfgString(1, cfg, _T("Master"),
+                                _T("%s.master.gamespy.com"), pIniBuf, cfgSize);
         strMaster = _conv2mb(pIniBuf);
         pIniBuf += sz;
         sz = getGlobalCfgString(
@@ -2757,9 +2794,9 @@ void appData::init() {
       // if (*strGame)
       //   *(uintptr_t *)(tmp + 1) = (uintptr_t)strGame;
       *(const char **)(tmp + 10) = strMaster;
-      *(uint16_t *)(tmp + 15)=0xE890;
-      *(uintptr_t *)(tmp + 17) = getRel4FromVal(
-          (tmp + 17), (unsigned char *)strcpy);
+      *(uint16_t *)(tmp + 15) = 0xE890;
+      *(uintptr_t *)(tmp + 17) =
+          getRel4FromVal((tmp + 17), (unsigned char *)strcpy);
     }
     {
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
@@ -2768,9 +2805,9 @@ void appData::init() {
       if (tmp) {
         patchData::addCode(tmp + 1, 12);
         *(const char **)(tmp + 1) = strMasterAvail;
-        *(uint16_t *)(tmp + 6)=0xE890;
-        *(uintptr_t *)(tmp + 8) = getRel4FromVal(
-            (tmp + 8), (unsigned char *)strcpy);
+        *(uint16_t *)(tmp + 6) = 0xE890;
+        *(uintptr_t *)(tmp + 8) =
+            getRel4FromVal((tmp + 8), (unsigned char *)strcpy);
       }
     }
     {

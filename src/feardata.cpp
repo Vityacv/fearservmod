@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "intrin.h"
 #include "memory.h"
+#include "node.h"
 #include "splice.h"
 #include "splicealloc.h"
 #include "stl.h"
@@ -109,6 +110,14 @@ uint32_t fearData::getRealTimeMS() {
   return ((uint32_t(__thiscall *)(void *)) *
           (uintptr_t *)((unsigned char *)*(uintptr_t *)g_pLTServer +
                         ILTServer_GetRealTimeMS))(g_pLTServer);
+}
+
+LTRESULT fearData::getClientAddr(HCLIENT hClient, uint8_t pAddr[4],
+                                 uint16_t *pPort) {
+  return ((uint32_t(__thiscall *)(void *, HCLIENT, uint8_t[4], uint16_t *)) *
+          (uintptr_t *)((unsigned char *)*(uintptr_t *)g_pLTServer +
+                        ILTServer_GetClientAddr))(g_pLTServer, hClient, pAddr,
+                                                  pPort);
 }
 
 IDatabaseMgr *fearData::getDatabaseMgr() {
@@ -480,7 +489,9 @@ void fearData::fearDataInitServ() {
   unsigned char *gEServer = aData->gEServer;
   uintptr_t gEServerSz = aData->gEServerSz;
   uintptr_t gServerSz = aData->gServerSz;
-
+  InitializeCriticalSection(&g_ipchunkSection);
+  // g_ipchunk.add();
+  // g_ipchunk.at(0)->count = 0;
   aData->gDatabase = (unsigned char *)GetModuleHandle(_T(GDB_DLL_NAME));
   aData->gDatabaseSz = GetModuleSize((HMODULE)aData->gDatabase);
   g_pLTDatabase = getDatabaseMgr();
@@ -503,6 +514,15 @@ void fearData::fearDataInitServ() {
                     BYTES_SEARCH_FORMAT("8B??FF??????????8B????8B??6A32"));
     if (tmp) {
       ILTServer_GetRealTimeMS = *(unsigned *)(tmp + 4);
+    }
+  }
+  {
+    unsigned char *tmp = 0;
+    tmp = scanBytes((unsigned char *)gServer, gServerSz,
+                    BYTES_SEARCH_FORMAT(
+                        "FF92????????0FB64C24130FB65424128B44241051520FB6CC"));
+    if (tmp) {
+      ILTServer_GetClientAddr = *(unsigned *)(tmp + 2);
     }
   }
   {
@@ -1040,8 +1060,7 @@ void stdcall fearData::requestMasterServer(bool, unsigned short, char const *) {
   IsMasterServerRequestWorking = 1;
   *((unsigned char *)pSdk->g_pGameSpyBrowser + 0x84) = 0;
   pSdk->g_pGameSpyBrowser->RequestURLData(
-      aData->strMaster,
-      (void *)requestMasterServerCallback, nullptr);
+      aData->strMaster, (void *)requestMasterServerCallback, nullptr);
 }
 
 void fearData::addInternetServer(char *str) {
@@ -1149,6 +1168,127 @@ void regcall fearData::hookOnMapLoaded(reg *p) {
       //*(unsigned short *)(aData->aFreeMovement) = 0x9090;
     }
   }
+}
+
+uintptr_t IPChunk::foreach (nodeData<IPChunk> &Chunk, IPData * Block,
+                            uintptr_t(*func)(uintptr_t index, IPChunk *Chunk,
+                                             IPData *Block)) {
+  int cnt = Chunk.count();
+  uintptr_t result = 0;
+  for (int i = 0; i != cnt; ++i) {
+    IPChunk *p = Chunk.at(i);
+    for (int j = 0; j != p->count; ++j) {
+      result = func(j, p, Block);
+      if (result == -1 || result != 0)
+        return result;
+    }
+    // IPData * block = ipchunk.unused();
+    // block->ip = sin_addr.
+  }
+  return result;
+}
+
+IPData *IPChunk::add(nodeData<IPChunk> &Chunk, IPData *Block) {
+  int cnt = Chunk.count();
+  for (int i = 0; i != cnt; ++i) {
+    IPChunk *p = Chunk.at(i);
+    for (int j = 0; j != p->count; ++j) {
+      if (p->buf[j].ip == Block->ip) {
+        if (p->buf[j].port != Block->port)
+          return nullptr;
+        return &p->buf[j];
+      }
+      if (p->buf[j].ip == 0)
+        return &p->buf[j];
+    }
+    if (p->count != IPChunk::countMax) {
+      IPData *next = &p->buf[p->count];
+      ++p->count;
+      return next;
+    }
+  }
+  IPChunk *p = Chunk.add();
+  ++p->count;
+  return &p->buf[0];
+}
+
+// inline uintptr_t IPChunk::exist(uintptr_t index, IPChunk *Chunk, IPData
+// *Block) {
+//   if (Chunk->buf[index].ip == Block->ip)
+//     return 1;
+//   return 0;
+// }
+
+// inline uintptr_t IPChunk::clear(uintptr_t index, IPChunk *Chunk, IPData
+// *Block) {
+//   if (Chunk->buf[index].ip == Block->ip)
+//     return 1;
+//   return 0;
+// }
+
+void regcall fearData::hookUDPRecvfrom(reg *p) {
+  fearData *pSdk = &handleData::instance()->pSdk;
+  if (p->tsi != -1 && p->tsi) {
+    sockaddr_in *sock = (sockaddr_in *)(uintptr_t *)(p->tdi + 4);
+    IPData block = {sock->sin_addr.s_addr, htons(sock->sin_port)};
+    EnterCriticalSection(&pSdk->g_ipchunkSection);
+    if (IPChunk::foreach (
+            pSdk->g_ipchunk, &block,
+            [](uintptr_t index, IPChunk *Chunk, IPData *Block) -> uintptr_t {
+              if (Chunk->buf[index].ip == Block->ip) {
+                if (Chunk->buf[index].port == Block->port)
+                  return 2;
+                return 1;
+              }
+              return 0;
+            }) == 1) {
+      p->tsi = -1;
+      WSASetLastError(WSAEWOULDBLOCK);
+    }
+    LeaveCriticalSection(&pSdk->g_ipchunkSection);
+  }
+}
+
+void regcall fearData::hookUDPConnReq(reg *p) {
+  fearData *pSdk = &handleData::instance()->pSdk;
+  EnterCriticalSection(&pSdk->g_ipchunkSection);
+  sockaddr_in *sock = *(sockaddr_in **)((uintptr_t)(&p->retadr) + 0xC0);
+  IPData block = {sock->sin_addr.s_addr, htons(sock->sin_port),
+                  pSdk->getRealTimeMS()};
+  IPData *data = IPChunk::add(pSdk->g_ipchunk, &block);
+  data->ip = block.ip;
+  data->port = block.port;
+  data->timestamp = block.timestamp;
+  LeaveCriticalSection(&pSdk->g_ipchunkSection);
+}
+
+void regcall fearData::hookCheckUDPDisconnect(reg *p) {
+  fearData *pSdk = &handleData::instance()->pSdk;
+  sockaddr_in *sock = (sockaddr_in *)(p->tsi + 0x94);
+  EnterCriticalSection(&pSdk->g_ipchunkSection);
+  IPData block = {sock->sin_addr.s_addr, htons(sock->sin_port),
+                  pSdk->getRealTimeMS()};
+  if (IPChunk::foreach (
+          pSdk->g_ipchunk, &block,
+          [](uintptr_t index, IPChunk *Chunk, IPData *Block) -> uintptr_t {
+            uint32_t delta = Block->timestamp - Chunk->buf[index].timestamp;
+            if (Block->ip == Chunk->buf[index].ip) {
+              if (Block->port == Chunk->buf[index].port) {
+                if (delta > 10000)
+                  return 1;
+                return 0;
+              }
+            }
+            if (delta > 30000 // 300000
+            ) {
+              Chunk->buf[index].ip = 0;
+            }
+            return 0;
+          }) == 1) {
+    p->tax = 1;
+    p->state = 2;
+  }
+  LeaveCriticalSection(&pSdk->g_ipchunkSection);
 }
 
 void fearData::setRespawn(HOBJECT hObjResp) {

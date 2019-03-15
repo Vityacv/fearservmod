@@ -955,7 +955,7 @@ void regcall hookMID(reg *p) {
         unsigned trkId = pMsgRead->ReadBits(8);
         if (trkId != 0xFF) {                           // check is main tracker
           unsigned hWeight = pMsgRead->ReadBits(0x20); // hWeightSet
-          if (hWeight > 3) {
+          if (hWeight > 4) {
             DBGLOG("weight set %d", hWeight)
             pSdk->BootWithReason(pGameClientData,
                                  eClientConnectionError_PunkBuster,
@@ -967,7 +967,8 @@ void regcall hookMID(reg *p) {
         bool bEnabled = pMsgRead->ReadBits(1); // tracker info
         if (bPlayerBody && bEnabled) {
           unsigned hAnim = pMsgRead->ReadBits(0x20); // hAnim
-          if (hAnim >= (65 - pSdk->isXP2) && hAnim <= (107 - pSdk->isXP2))
+          if (!aData->bCustomSkins &&
+              (hAnim >= (65 - pSdk->isXP2) && hAnim <= (107 - pSdk->isXP2)))
             p->state = 1;
           // printf("anim: %p\n",hAnim);
           pPlData->hAnimPenult = pPlData->hAnim;
@@ -1016,7 +1017,7 @@ void regcall hookMID(reg *p) {
       uint8_t aTcpIp[4];
       uint16_t nPort;
       pSdk->getClientAddr((HCLIENT)p->v0, aTcpIp, &nPort);
-      IPData block = {*(uint32_t *)aTcpIp,nPort};
+      IPData block = {*(uint32_t *)aTcpIp, nPort};
       EnterCriticalSection(&pSdk->g_ipchunkSection);
       IPChunk::foreach (
           pSdk->g_ipchunk, &block,
@@ -1521,7 +1522,7 @@ void appData::configHandle() {
             "745D8B????????????8B????8B??C1????884C2414")); // show conn client
                                                             // ip
     if (tmp) {
-      spliceUp(tmp-7, (void *)fearData::hookUDPConnReq);
+      spliceUp(tmp - 7, (void *)fearData::hookUDPConnReq);
       patchData::addCode(tmp, 2);
       *(unsigned short *)(tmp) = 0x9090;
     }
@@ -2809,6 +2810,13 @@ void appData::init() {
         *(uintptr_t *)(tmp + 8) =
             getRel4FromVal((tmp + 8), (unsigned char *)strcpy);
       }
+    }
+    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+        (unsigned char *)gEServer, gEServerSz,
+        BYTES_SEARCH_FORMAT("6A1068????????8B??83????6A0083")));
+    if (tmp) {
+      patchData::addCode(tmp, 2);
+      *(uint16_t *)(tmp) = 0x27EB; // disable magic value
     }
     {
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(

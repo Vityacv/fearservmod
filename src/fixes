@@ -17,7 +17,7 @@ early respawn crash
 invalid skey/guid crash
 negative fRate crash
 force load new map crash
-x2 login nickname 0xFFFF crash
+x3 login nickname 0xFFFF crash
 FindObjectsCb log spam
 force default mp rules (players spawn bug)
 host options

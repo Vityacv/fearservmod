@@ -1013,24 +1013,6 @@ void regcall hookMID(reg *p) {
       *(unsigned char*)(pGameClientData+0x74)=0xFF;
     }
     break;*/
-    case eClientConnectionState_CRCCheck: {
-      uint8_t aTcpIp[4];
-      uint16_t nPort;
-      pSdk->getClientAddr((HCLIENT)p->v0, aTcpIp, &nPort);
-      IPData block = {*(uint32_t *)aTcpIp, nPort};
-      EnterCriticalSection(&pSdk->g_ipchunkSection);
-      IPChunk::foreach (
-          pSdk->g_ipchunk, &block,
-          [](uintptr_t index, IPChunk *Chunk, IPData *Block) -> uintptr_t {
-            if (Chunk->buf[index].ip == Block->ip) {
-              Chunk->buf[index].ip = 0;
-              return 1;
-            }
-            return 0;
-          });
-      LeaveCriticalSection(&pSdk->g_ipchunkSection);
-      break;
-    }
     case eClientConnectionState_InWorld: {
       wchar_t playerName[16];
       unsigned len = pMsgRead->ReadWString(playerName, sizeof(playerName) /
@@ -1093,6 +1075,23 @@ void regcall hookMID(reg *p) {
         p->state = 1;
         pSdk->BootWithReason(pGameClientData, eClientConnectionError_BadCDKey,
                              (char *)0);
+      }
+      {
+        uint8_t aTcpIp[4];
+        uint16_t nPort;
+        pSdk->getClientAddr((HCLIENT)p->v0, aTcpIp, &nPort);
+        IPData block = {*(uint32_t *)aTcpIp, nPort};
+        EnterCriticalSection(&pSdk->g_ipchunkSection);
+        IPChunk::foreach (
+            pSdk->g_ipchunk, &block,
+            [](uintptr_t index, IPChunk *Chunk, IPData *Block) -> uintptr_t {
+              if (Chunk->buf[index].ip == Block->ip) {
+                Chunk->buf[index].ip = 0;
+                return 1;
+              }
+              return 0;
+            });
+        LeaveCriticalSection(&pSdk->g_ipchunkSection);
       }
     } break;
     }
@@ -2373,13 +2372,92 @@ void regcall hookClientSettingsLoad(reg *p) {
     }
   }
 }
+#include "d3d9.h"
+
+// bool isTimerInit;
+//     LARGE_INTEGER frequency;
+//     LARGE_INTEGER t1,t2;
+//     unsigned frames;
+void regcall hookPresent(reg *p) {
+  // int i = 0;
+  // QueryPerformanceCounter(&t2);
+  // double elapsedTime;
+  // elapsedTime=(float)(t2.QuadPart-t1.QuadPart)/frequency.QuadPart;
+  // //  while(true){
+  // //    Sleep(0);
+  // //    ++i;
+  // //    if(i>2300)
+  // //      break;
+  // // }
+  //   QueryPerformanceFrequency(&frequency);
+  //   if(elapsedTime>=1.0){
+  //     DBGLOG("%d",frames)
+  //     frames=0;
+  //     QueryPerformanceCounter(&t1);
+  //   }
+
+  // ++frames;
+
+  static LARGE_INTEGER PerformanceCount1;
+  static LARGE_INTEGER PerformanceCount2;
+  static bool bOnce1 = false;
+  static double targetFrameTime = 1000.0 / 144.0f;
+  static double t = 0.0;
+  static DWORD i = 0;
+
+  if (!bOnce1) {
+    bOnce1 = true;
+    QueryPerformanceCounter(&PerformanceCount1);
+    PerformanceCount1.QuadPart = PerformanceCount1.QuadPart >> i;
+  }
+
+  while (true) {
+    QueryPerformanceCounter(&PerformanceCount2);
+    if (t == 0.0) {
+      LARGE_INTEGER PerformanceCount3;
+      static bool bOnce2 = false;
+
+      if (!bOnce2) {
+        bOnce2 = true;
+        QueryPerformanceFrequency(&PerformanceCount3);
+        i = 0;
+        t = 1000.0 / (double)PerformanceCount3.QuadPart;
+        auto v = t * 2147483648.0;
+        if (60000.0 > v) {
+          while (true) {
+            ++i;
+            v *= 2.0;
+            t *= 2.0;
+            if (60000.0 <= v)
+              break;
+          }
+        }
+      }
+      SleepEx(0, 1);
+      break;
+    }
+
+    if (((double)((PerformanceCount2.QuadPart >> i) -
+                  PerformanceCount1.QuadPart) *
+         t) >= targetFrameTime)
+      break;
+
+    SleepEx(0, 1);
+  }
+  QueryPerformanceCounter(&PerformanceCount2);
+  PerformanceCount1.QuadPart = PerformanceCount2.QuadPart >> i;
+}
 
 void appData::initClient() {
+  // IDirect3D9 *g_D3D=(IDirect3D9 *)malloc(32);
+  // char * test;
+  // char ** test2;
+  // g_D3D->CreateDevice(0,(D3DDEVTYPE)0,(HWND)0,0,(D3DPRESENT_PARAMETERS*)test,
+  // (IDirect3DDevice9**)test2);
   pSdk->aData = this;
   wchar_t str[1024];
   gFearExe = (uint8_t *)GetModuleHandle(0);
   gFearExeSz = GetModuleSize((HMODULE)gFearExe);
-
   {
     TCHAR cfg[1024];
     // char *cfg = _T("gamecfg.txt");
@@ -2412,6 +2490,15 @@ void appData::initClient() {
       spliceUp(tmp, (void *)hookClientSettingsLoad);
     }
   }
+  // {
+  //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+  //       (unsigned char *)gFearExe, gFearExeSz,
+  //       BYTES_SEARCH_FORMAT("75??B9????????E8????????B9????????E8????????E8")));
+  //   if (tmp) {
+  //     tmp += 2;
+  //     spliceUp(tmp, (void *)hookPresent);
+  //   }
+  // }
   {
     unsigned char *tmp =
         scanBytes((unsigned char *)gFearExe, gFearExeSz,

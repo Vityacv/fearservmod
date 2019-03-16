@@ -1,57 +1,53 @@
-Server crash fix:
-invalid skey/guid
-negative fRate
-force load new map
-invalid unicode chars in nickname
-FindObjectsCb
-force default mp rules (max players)
-early respawn
-
-Client crash fix:
-vote new map (out of index)
-negative fRate (from server)
-
 Client fix:
-without weapon
+vote new map crash (out of index)
+negative fRate crash (from server)
+without weapon (fast switch bug)
 disable logo/video
-grenade throw +5 when move +drop +C
+grenade throw (+5 when move +drop +C)
 keyboard reset non english
 full version can connect to combat servers
 check server list
 connect from favorites to remote servers
 
 Server fix:
+DoS fake players spam
 multiple kill / zombie
-clean vote on map load
-
-Server hacks fix:
+clean vote after map loaded
+early respawn crash
+invalid skey/guid crash
+negative fRate crash
+force load new map crash
+x2 login nickname 0xFFFF crash
+FindObjectsCb log spam
+force default mp rules (players spawn bug)
 host options
 server pause
 render stimulus
 object alpha
 frag self
 get weapons/health/armor/gear etc
-drop grenade
-noclip (auto kick)
+unlimited drop grenade
+noclip: no rand spawn, teleport, fake position
+x3 type of invisible player
 invalid skin
 immortal player
 send damage
 send sound
 rand pickup (2m limit)
 invalid team (auto kick)
-invalid team kick
-uncharged slowmo
+invalid team kick players
+activate slowmo without recharger or not charged
 teleport
 spawn teleport
 spawning of unlisted player (unlisted in game)
 chat size limit
-rapid fire (timer in future)
+rapid fire: timer in future, invalid msg, unarmed
 camera distance check from player body
 run speed (auto kick)
 ladder animation glitch
 remote flashlight
+melee mod
+drop ammo: weapon fire, weapon switch
 
-Server extra:
-objects on map now synchronize
-
-compatible with fearxp2 server/client
+Compatible client/server with fearxp2 v1.0 or fear v1.08
+(only original GameClient.dll, GameServer.dll, EngineServer.dll)

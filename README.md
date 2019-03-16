@@ -50,8 +50,6 @@ If you want start coop server - add to server config "ServerOptionsXXXX.txt" opt
 
 There are another options you can use in usual MP mode:
 
-PreventNoclip - prevents player to go through solid objects (walls for example)
-
 SyncObjects - synchronize all objects on map for all players (bottles, boxes, etc)
 
 BotsMP - AI fix for custom user maps

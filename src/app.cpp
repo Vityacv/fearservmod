@@ -223,6 +223,11 @@ void regcall hookOnAddClient_CheckNickname(reg *p) {
   }
 }
 
+void regcall hookEnterSlowMo(reg *p) {
+  fearData *pSdk = &handleData::instance()->pSdk;
+  p->v0 = (uintptr_t)pSdk->m_hFastForward;
+}
+
 void regcall hookRandomWeapon(reg *p) {
   p->state = 2;
   fearData *pSdk = &handleData::instance()->pSdk;
@@ -588,47 +593,47 @@ void regcall hookMID(reg *p) {
           hAnim++;
           hAnimPenult++;
         }
-        if (!aData->bCustomSkins) {
-          switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
-          case hash_ct("Melee_JabRight"):
-          case hash_ct("Melee_JabLeft"):
-            unarmFireDelay = 0x100;
-            if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
-              break;
-            p->state = 1;
-            break;
-          case hash_ct("Melee_RifleButt"):
-            unarmFireDelay = 0x100;
-            // printf()
-            // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
-            //     break;
-            //   p->state = 1;
-            break;
-          case hash_ct("Melee_SlideKick"):
-            unarmFireDelay = 0x16;
-            if (pSdk->isXP2) {
-              if (hAnim == 0x12C || hAnim == 0x47D)
-                break;
-              p->state = 1;
-            } else if (hAnim != 0x12B)
-              p->state = 1;
-            break;
-          case hash_ct("Melee_RunKickLeft"):
-          case hash_ct("Melee_RunKickRight"):
-            unarmFireDelay = 0x50;
-            if (hAnim != 0x12E)
-              p->state = 1;
-            break;
-          case hash_ct("Melee_JumpKick"):
-            unarmFireDelay = 0x30;
-            if (hAnim != 0x12D)
-              p->state = 1;
-            break;
-          default:
-            p->state = 1;
-            break;
-          }
-        }
+//        if (!aData->bCustomSkins) {
+//          switch (hash_rta((char *)*(uintptr_t *)(hAmmo))) {
+//          case hash_ct("Melee_JabRight"):
+//          case hash_ct("Melee_JabLeft"):
+//            unarmFireDelay = 0x100;
+//            if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
+//              break;
+//            p->state = 1;
+//            break;
+//          case hash_ct("Melee_RifleButt"):
+//            unarmFireDelay = 0x100;
+//            // printf()
+//            // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
+//            //     break;
+//            //   p->state = 1;
+//            break;
+//          case hash_ct("Melee_SlideKick"):
+//            unarmFireDelay = 0x16;
+//            if (pSdk->isXP2) {
+//              if (hAnim == 0x12C || hAnim == 0x47D)
+//                break;
+//              p->state = 1;
+//            } else if (hAnim != 0x12B)
+//              p->state = 1;
+//            break;
+//          case hash_ct("Melee_RunKickLeft"):
+//          case hash_ct("Melee_RunKickRight"):
+//            unarmFireDelay = 0x50;
+//            if (hAnim != 0x12E)
+//              p->state = 1;
+//            break;
+//          case hash_ct("Melee_JumpKick"):
+//            unarmFireDelay = 0x30;
+//            if (hAnim != 0x12D)
+//              p->state = 1;
+//            break;
+//          default:
+//            p->state = 1;
+//            break;
+//          }
+//        }
         // if(p->state)
         // printf("fired: %s %p %p %p\n",(char *)*(uintptr_t
         // *)(hAmmo),hAnim,hAnimPenult,p->state);
@@ -707,7 +712,6 @@ void regcall hookMID(reg *p) {
                             pSdk->CArsenal_GetCurWeapon)(pArsenal);
     unsigned ammoInClip;
     // bool isLastBullet=0;
-
     if ((bUnarmed || hWpnData) && pWeapon) {
       ammoInClip = pWeapon->m_nAmmoInClip;
       // if(ammoInClip == 1){
@@ -800,15 +804,17 @@ void regcall hookMID(reg *p) {
           // if (fireServTimestamp > (delay + 1))
           //  fireServTimestampCheck = fireServTimestamp - delay;
 
-          if (fireTimestamp > fireServTimestamp ||
-              fireTimestamp < (fireServTimestamp - 5000)) {
-            ((unsigned(__thiscall *)(CArsenal *, HAMMO))
-                 pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
-            pPlData->lastFireWeaponClipAmmo = 0;
-            pPlData->lastFireWeaponTimestamp = 0;
-            pPlData->lastFireWeaponIgnored = fireServTimestamp;
-            break;
-          } /*else if (fireTimestamp < fireServTimestampCheck) {
+//          if (fireTimestamp > fireServTimestamp ||
+//              fireTimestamp < (fireServTimestamp - 5000)) {
+//            ((unsigned(__thiscall *)(CArsenal *, HAMMO))
+//                 pSdk->CArsenal_DecrementAmmo)(pArsenal, hAmmo);
+//            pPlData->lastFireWeaponClipAmmo = 0;
+//            pPlData->lastFireWeaponTimestamp = 0;
+//            pPlData->lastFireWeaponIgnored = fireServTimestamp;
+//            break;
+//          }
+
+          /*else if (fireTimestamp < fireServTimestampCheck) {
              //p->state = 1;
              ((void(__thiscall *)(CPlayerObj *)) *
               (uintptr_t *)((unsigned char *)*(uintptr_t *)pPlayerObj +
@@ -922,11 +928,11 @@ void regcall hookMID(reg *p) {
   }
   break;*/
   case MID_PLAYER_UPDATE: {
-    unsigned timeMS = pSdk->getRealTimeMS();
-    pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
-    if (pPlData->thisMoveTimeMS >
-        timeMS) // ignore messages that claim they from future
-      p->state = 1;
+//    unsigned timeMS = pSdk->getRealTimeMS();
+//    pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
+//    if (pPlData->thisMoveTimeMS >
+//        timeMS) // ignore messages that claim they from future
+//      p->state = 1;
     uint16_t nClientChangeFlags = pMsgRead->ReadBits(8);
     if (nClientChangeFlags & CLIENTUPDATE_CAMERAINFO) {
       LTRotation rTrueCameraRot;
@@ -955,14 +961,14 @@ void regcall hookMID(reg *p) {
         unsigned trkId = pMsgRead->ReadBits(8);
         if (trkId != 0xFF) {                           // check is main tracker
           unsigned hWeight = pMsgRead->ReadBits(0x20); // hWeightSet
-          if (hWeight > 4) {
-            DBGLOG("weight set %d", hWeight)
-            pSdk->BootWithReason(pGameClientData,
-                                 eClientConnectionError_PunkBuster,
-                                 (char *)"error 1");
-            p->state = 1;
-            break;
-          }
+//          if (hWeight > 4) {
+//            DBGLOG("weight set %d", hWeight)
+//            pSdk->BootWithReason(pGameClientData,
+//                                 eClientConnectionError_PunkBuster,
+//                                 (char *)"error 1");
+//            p->state = 1;
+//            break;
+//          }
         }
         bool bEnabled = pMsgRead->ReadBits(1); // tracker info
         if (bPlayerBody && bEnabled) {
@@ -981,14 +987,14 @@ void regcall hookMID(reg *p) {
           bool bSetTime = pMsgRead->ReadBits(1);
           if (bSetTime) {
             unsigned n = pMsgRead->ReadBits(0x20);
-            if (n > 0xFFFF) {
-              DBGLOG("%d > 0xFFFF", n)
-              pSdk->BootWithReason(pGameClientData,
-                                   eClientConnectionError_PunkBuster,
-                                   (char *)"error 2");
-              p->state = 1;
-              break;
-            }
+//            if (n > 0xFFFF) {
+//              DBGLOG("%d > 0xFFFF", n)
+//              pSdk->BootWithReason(pGameClientData,
+//                                   eClientConnectionError_PunkBuster,
+//                                   (char *)"error 2");
+//              p->state = 1;
+//              break;
+//            }
           }
           bool bLooping = pMsgRead->ReadBits(1);
           bool bSetRate = pMsgRead->ReadBits(1);
@@ -1628,6 +1634,25 @@ void appData::configHandle() {
                                         "508BCEFF52??8B168BD86A20"));
       if (tmp) {
         spliceUp(tmp, (void *)hookPickupRndWeapon);
+      }
+    }
+    // {
+    //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+    //       (unsigned char *)gServer, gServerSz,
+    //       BYTES_SEARCH_FORMAT("740768????????EB0568????????E8????????89")));
+    //   if (tmp) {
+    //     tmp += 3;
+    //     patchData::addCode(tmp, 4);
+    //     *(const char **)tmp = "FastForward";
+    //   }
+    // }
+
+    {
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)gServer, gServerSz,
+          BYTES_SEARCH_FORMAT("83EC10568B74241885F6578BF9")));
+      if (tmp) {
+        spliceUp(tmp, (void *)hookEnterSlowMo);
       }
     }
 
@@ -2490,15 +2515,15 @@ void appData::initClient() {
       spliceUp(tmp, (void *)hookClientSettingsLoad);
     }
   }
-  // {
-  //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-  //       (unsigned char *)gFearExe, gFearExeSz,
-  //       BYTES_SEARCH_FORMAT("75??B9????????E8????????B9????????E8????????E8")));
-  //   if (tmp) {
-  //     tmp += 2;
-  //     spliceUp(tmp, (void *)hookPresent);
-  //   }
-  // }
+//  {
+//    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+//        (unsigned char *)gFearExe, gFearExeSz,
+//        BYTES_SEARCH_FORMAT("75??B9????????E8????????B9????????E8????????E8")));
+//    if (tmp) {
+//      tmp += 2;
+//      spliceUp(tmp, (void *)hookPresent);
+//    }
+//  }
   {
     unsigned char *tmp =
         scanBytes((unsigned char *)gFearExe, gFearExeSz,
@@ -2650,6 +2675,16 @@ void appData::initClient() {
     if (tmp) {
       patchData::addCode(tmp + 5, 1);
       *(tmp + 5) = 0xEB;
+    }
+  }
+  {
+    unsigned char *tmp = (unsigned char *)(scanBytes(
+        (unsigned char *)gClient, gClientSz,
+        BYTES_SEARCH_FORMAT(
+            "7D??B22D33??381088??????75"))); // cdkey menu fix
+    if (tmp) {
+      patchData::addCode(tmp, 1);
+      *(tmp) = 0xEB;
     }
   }
   /*{

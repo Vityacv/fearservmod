@@ -48,6 +48,7 @@ ladder animation glitch
 remote flashlight
 melee mod
 drop ammo: weapon fire, weapon switch
+pickup enemy/team proximity/remotes
 
 Compatible client/server with fearxp2 v1.0 or fear v1.08
 (only original GameClient.dll, GameServer.dll, EngineServer.dll)

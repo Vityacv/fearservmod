@@ -13,6 +13,15 @@
 #include "conv.h"
 #include "patch.h"
 
+/*
+push esi
+mov esi,dword ptr ds:[0x100FBF80]
+call dword ptr ds:[<&timeGetTime>]
+sub eax,esi
+add eax,0x30000000
+pop esi
+ret
+ */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -234,7 +243,7 @@ void fearData::updateMovement(CPlayerObj *pPlayerObj) {
       // determine the maximum allowed distance by scaling the velocity, but
       // don't reduce it below the minimum threshold
       float fLeashScale = 0.14f;
-      if (aData->bPreventNoclip == 2)
+      if (aData->bCoop) //aData->bPreventNoclip == 2)
         fLeashScale = 0.3f;
       float fMaxDistance =
           LTMAX(vVelocity.Mag() *
@@ -351,79 +360,80 @@ inline void fearData::handlePlayerPositionMessage(CPlayerObj *pPlayerObj,
     if (!((bool(__thiscall *)(void *))g_pGameServerShell_IsPaused)(
             g_pGameServerShell)) {
       bool bMove = 1;
-      LTVector oldPos;
-      if (pPlData->movePacketCnt >= 5) {
-        pPlData->movePacketCnt = 0;
-        oldPos = pPlData->lastPos;
-        // SYSTEMTIME time;
-        // GetSystemTime(&time);
-        // unsigned timeMs = (time.wSecond * 1000) + time.wMilliseconds;
-        // unsigned timeMs=getRealTimeMS();
+//      LTVector oldPos;
+//      if (pPlData->movePacketCnt >= 5) {
+//        pPlData->movePacketCnt = 0;
+//        oldPos = pPlData->lastPos;
+//        // SYSTEMTIME time;
+//        // GetSystemTime(&time);
+//        // unsigned timeMs = (time.wSecond * 1000) + time.wMilliseconds;
+//        // unsigned timeMs=getRealTimeMS();
 
-        /*if(pPlData->bLadderInUse && (pPlData->thisMoveTimeMS -
-        pPlData->ladderInUseTimer)>5120){ pPlData->ladderInUseTimer=0;
-          pPlData->bLadderInUse=0;
-        }*/
+//        /*if(pPlData->bLadderInUse && (pPlData->thisMoveTimeMS -
+//        pPlData->ladderInUseTimer)>5120){ pPlData->ladderInUseTimer=0;
+//          pPlData->bLadderInUse=0;
+//        }*/
 
-        if (pPlData->lastMoveTimeMS) {
-          HWEAPON hWeapon =
-              *(HWEAPON *)((unsigned char *)pArsenal + CArsenal_m_hCurWeapon);
-          if (pPlData->lastWep != hWeapon) {
-            pPlData->lastWep = hWeapon;
-            HWEAPONDATA hWpnData = GetWeaponData(hWeapon);
-            pPlData->fMovementMultiplier =
-                getFloatDB(hWpnData, WDB_WEAPON_fMovementMultiplier);
-            bMove = 1;
-          } else {
-            float x = (newPos.x - oldPos.x), y = (newPos.y - oldPos.y),
-                  z = (newPos.z - oldPos.z);
+//        if (pPlData->lastMoveTimeMS) {
+//          HWEAPON hWeapon =
+//              *(HWEAPON *)((unsigned char *)pArsenal + CArsenal_m_hCurWeapon);
+//          if (pPlData->lastWep != hWeapon) {
+//            pPlData->lastWep = hWeapon;
+//            HWEAPONDATA hWpnData = GetWeaponData(hWeapon);
+//            pPlData->fMovementMultiplier =
+//                getFloatDB(hWpnData, WDB_WEAPON_fMovementMultiplier);
+//            bMove = 1;
+//          } else {
+//            float x = (newPos.x - oldPos.x), y = (newPos.y - oldPos.y),
+//                  z = (newPos.z - oldPos.z);
 
-            float runSpeed = getFloatDB(m_hPlayer, PLAYER_BUTE_RUNSPEED);
+//            float runSpeed = getFloatDB(m_hPlayer, PLAYER_BUTE_RUNSPEED);
 
-            float fMoveMultiplier = *(float *)((unsigned char *)pPlayerObj +
-                                               CPlayerObj_m_fMoveMultiplier);
-            // float fJumpMultiplier = *(float *)((unsigned char
-            // *)pPlayerObj +
-            //               CPlayerObj_m_fJumpMultiplier);
-            float dist =
-                ((fsqrt((x * x) + (y * y) + (z * z))) * 0.1) * 0.1; // metre
-            float speed;                                            // = 60.0f;
-            if (oldPos.y == newPos.y) {
-              // speed = ((fMoveMultiplier * 2.0f) * 10.0f) *
-              //        pPlData->fMovementMultiplier;
-              speed = ((runSpeed + 60.0f) * 0.036f) *
-                      (fMoveMultiplier * pPlData->fMovementMultiplier);
-              float predict = (dist / speed) * 3600.0f;
-              float fTimeDelta = (float)(timeMs - pPlData->lastMoveTimeMS);
-              if ((fTimeDelta < predict)) {
-                // DBGLOG("%lf %lf %lf",predict,fTimeDelta,dist);
-                bMove = 0;
-              }
-            }
-          }
-        }
-        pPlData->lastMoveTimeMS = timeMs;
-        pPlData->lastPos = newPos;
-      } else {
-        pPlData->movePacketCnt++;
-      }
-      if (!bMove) {
-        pPlData->moveLimitExceedCnt++;
-        if (pPlData->moveLimitLastTimeMS) {
-          float fTimeDelta = (float)(timeMs - pPlData->moveLimitLastTimeMS);
-          if (fTimeDelta >= 15000)
-            pPlData->moveLimitExceedCnt = 0;
-        }
-        pPlData->moveLimitLastTimeMS = timeMs;
-        if (pPlData->moveLimitExceedCnt > 15) {
-          BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                         (char *)"Unstable connection or speedhack");
-          // DBGLOG("runspeed fail")
-        }
-        /*((void(__thiscall *)(CPlayerObj *,
-                           bool))CPlayerObj_TeleportClientToServerPos)(
-          pPlayerObj, true);*/
-      }
+//            float fMoveMultiplier = *(float *)((unsigned char *)pPlayerObj +
+//                                               CPlayerObj_m_fMoveMultiplier);
+//            // float fJumpMultiplier = *(float *)((unsigned char
+//            // *)pPlayerObj +
+//            //               CPlayerObj_m_fJumpMultiplier);
+//            float dist =
+//                ((fsqrt((x * x) + (y * y) + (z * z))) * 0.1) * 0.1; // metre
+//            float speed;                                            // = 60.0f;
+//            if (oldPos.y == newPos.y) {
+//              // speed = ((fMoveMultiplier * 2.0f) * 10.0f) *
+//              //        pPlData->fMovementMultiplier;
+//              speed = ((runSpeed + 60.0f) * 0.036f) *
+//                      (fMoveMultiplier * pPlData->fMovementMultiplier);
+//              float predict = (dist / speed) * 3600.0f;
+//              float fTimeDelta = (float)(timeMs - pPlData->lastMoveTimeMS);
+//              if ((fTimeDelta < predict)) {
+//                // DBGLOG("%lf %lf %lf",predict,fTimeDelta,dist);
+//                bMove = 0;
+//              }
+//            }
+//          }
+//        }
+//        pPlData->lastMoveTimeMS = timeMs;
+//        pPlData->lastPos = newPos;
+//      } else {
+//        pPlData->movePacketCnt++;
+//      }
+//      if (!bMove) {
+//        pPlData->moveLimitExceedCnt++;
+//        if (pPlData->moveLimitLastTimeMS) {
+//          float fTimeDelta = (float)(timeMs - pPlData->moveLimitLastTimeMS);
+//          if (fTimeDelta >= 15000)
+//            pPlData->moveLimitExceedCnt = 0;
+//        }
+//        pPlData->moveLimitLastTimeMS = timeMs;
+//        if (pPlData->moveLimitExceedCnt > 15) {
+//          pPlData->moveLimitExceedCnt=0;
+//          //BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+//          //               (char *)"Unstable connection or speedhack");
+//          // DBGLOG("runspeed fail")
+//        }
+//        /*((void(__thiscall *)(CPlayerObj *,
+//                           bool))CPlayerObj_TeleportClientToServerPos)(
+//          pPlayerObj, true);*/
+//      }
       // m_PlayerRigidBody.Update( newPos );
       ((void(__thiscall *)(void *,
                            LTVector &))CPlayerObj_m_PlayerRigidBody_Update)(
@@ -855,6 +865,9 @@ void fearData::fearDataInitServ() {
   HCATEGORY hGlobalCat = g_pLTDatabase->GetCategory(
       *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
       "Character/Models/Global");
+  m_hFastForward = g_pLTDatabase->GetAttribute(g_pLTDatabase->GetCategory(
+      *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
+      "SlowMo"), "TimeStop");
   m_hGlobalRecord = g_pLTDatabase->GetRecordByIndex(hGlobalCat, 0);
   m_hUnarmedRecord = g_pLTDatabase->GetRecordLink(
       g_pLTDatabase->GetAttribute(m_hRecGlobal, "Unarmed"), 0, 0);

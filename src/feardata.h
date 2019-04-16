@@ -99,6 +99,7 @@ public:
   HCATEGORY m_hCatAmmo;
   HRECORD m_hRecGlobal;
   HRECORD m_hGlobalRecord;
+  HRECORD m_hFastForward;
   HRECORD m_hPlayer;
   HWEAPON m_hUnarmedRecord;
   unsigned char randomWepTable[20];

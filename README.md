@@ -30,6 +30,8 @@ compile:
 6. Type random text in CDKey "Multiplayer->Client settings" before connect to server OR cdkey from https://fear-community.org
 
 To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:
+        [Client]
+        Master=http://master.fear-combat.org/api/serverlist-ingame.php
 
 	[Server]
 	NS1=n1.fear-combat.org

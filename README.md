@@ -43,9 +43,7 @@ To launch server with fear-combat.org as master you also need to add following l
 Added "coop mode" support:
 
 F.E.A.R.
-
 F.E.A.R. Extraction Point
-
 F.E.A.R. Perseus Mandate
 
 All 55 SinglePlayer maps will be avaliable in server list. Players can use "Call vote" -> "Next map" or "New map" to select specific map (for scroll list use PageUp/PageDown).
@@ -59,4 +57,6 @@ There are another options you can use in usual MP mode:
 
 SyncObjects - synchronize all objects on map for all players (bottles, boxes, etc)
 
-BotsMP - AI fix for custom user maps
+AI fix for custom user maps:
+
+	BotsMP=1

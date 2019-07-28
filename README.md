@@ -33,12 +33,14 @@ To launch server with fear-combat.org as master you also need to add following l
 
 	[Client]
 	Master=http://master.fear-combat.org/api/serverlist-ingame.php
-	MOTD=http://127.0.0.1/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
 	[Server]
 	NS1=n1.fear-combat.org
 	NS2=n2.fear-combat.org
 	Available=fear.avail.fear-combat.org
 	Master=fear.m.fear-combat.org
+
+Also there is MOTD option that should be defined in [Client] section like this:
+MOTD=http://yourserver_domain/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
 
 Added "coop mode" support:
 

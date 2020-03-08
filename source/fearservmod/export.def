@@ -1,0 +1,3 @@
+LIBRARY StringEditRuntime.dll
+EXPORTS
+GetIStringEditMgr = GetIStringEditMgrMy

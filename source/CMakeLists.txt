@@ -1,0 +1,5 @@
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories("${CMAKE_SOURCE_DIR}/thirdparty/include")
+add_subdirectory(shared)
+add_subdirectory(splice)
+add_subdirectory(fearservmod)

@@ -26,7 +26,7 @@ compile:
 2. Apply patch "FEAR Combat v1.08 US Patch"
 3. In game directory rename "StringEditRuntime.dll" to "StringEditRuntime_.dll"
 4. Move there new "StringEditRuntime.dll" https://github.com/Vityacv/fearservmod/blob/master/bin/StringEditRuntime.dll
-5. unpack files from archive (replace original files) https://www.upload.ee/files/12646804/fixfiles.7z.html (password: fix) to game directory
+5. unpack files from archive (replace original files) https://www.upload.ee/files/13405612/fixfiles.7z.html (password: fix) to game directory
 6. Type random text in CDKey "Multiplayer->Client settings" before connect to server OR cdkey from https://fear-community.org
 
 To launch server with fear-combat.org as master you also need to add following lines to gamecfg.txt:

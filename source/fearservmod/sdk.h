@@ -373,17 +373,22 @@ union LTGUID {
 };
 
 #ifdef __GNUC__
-inline float sqrtf(float fVal){
+inline float sqrtf_impl(float fVal){
     float result;
     __asm__(
         "fsqrt\n\t"   // st(0) = square root st(0)
         : "=t"(result) : "0"(fVal));
     return result;
 }
-#endif
+inline float LTSqrt(float fVal)    {if(fVal >= 0.0f) return sqrtf_impl(fVal);
+    else return 1.0f; }
 
+#else
 inline float LTSqrt(float fVal)    {if(fVal >= 0.0f) return sqrtf(fVal);
     else return 1.0f; }
+
+#endif
+
 
 
 //given two values this will return the larger of the two values using the < operator
@@ -577,7 +582,10 @@ struct TVector3 {
 };
 
 struct LTRotation {
-    float m_Quat[4];
+    union {
+        float x, y, z, w;
+        float m_Quat[4];
+    };
 };
 
 typedef TVector3<float> LTVector;
@@ -595,6 +603,15 @@ struct NetClientData
     uint8_t m_nTeamModelIndex;
 };
 
+#define LPAGGREGATE void *
+class ILTBaseClass
+{
+    virtual ~ILTBaseClass();
+public:
+    LPAGGREGATE m_pFirstAggregate;
+    HOBJECT m_hObject;
+    uint8_t           m_nType;
+};
 
 class SdkHandler;
 class appData;

@@ -1,0 +1,5 @@
+LIBRARY "system32\\winmm.dll"
+EXPORTS
+timeBeginPeriod = timeBeginPeriod
+timeEndPeriod = timeEndPeriod
+timeGetTime = timeGetTime

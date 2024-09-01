@@ -53,6 +53,7 @@ class AppHandler {
     bool bCustomSkins = 0;
     bool m_bDisableLights = false;
     uint8_t *m_isMultiplayerGameClient;
+    uint8_t *m_RunGameModeXP;
     uint8_t *m_gameClientStruct;
     uint8_t *m_database;
     uintptr_t m_databaseSz;
@@ -60,6 +61,7 @@ class AppHandler {
     uintptr_t m_ServerSz;
     uint8_t *m_eServer;
     uintptr_t m_eServerSz;
+    bool m_haved3d;
     uint8_t *m_Exec;
     uintptr_t m_ExecSz;
     uint8_t *m_Client;
@@ -80,6 +82,7 @@ class AppHandler {
     bool regcall isServer() { return m_eServer != nullptr; }
     static void regcall hookSwitchToSP(SpliceHandler::reg *p);
     static void regcall hookSwitchToMP(SpliceHandler::reg *p);
+    static void regcall hookSwitchToModeXP(SpliceHandler::reg *p);
     static void regcall hookStoryModeOn(SpliceHandler::reg *p);
     static void regcall hookDoorTimer(SpliceHandler::reg *p);
     static void regcall hookStoryModeOff(SpliceHandler::reg *p);
@@ -110,6 +113,8 @@ class AppHandler {
     void regcall loadConfig();
     void regcall patchEndpoints(uint8_t * mod, uint32_t modSz);
     void regcall init();
+    void regcall clientPreinitPatches();
+    void regcall serverPreinitPatches();
     void regcall initClient();
     uintptr_t regcall getCfgInt(char *pathCfg, char *valStr);
     size_t regcall getGlobalCfgString(wchar_t *pathCfg, wchar_t *valStr,

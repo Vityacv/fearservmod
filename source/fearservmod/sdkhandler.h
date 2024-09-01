@@ -38,6 +38,7 @@ struct playerData {
     unsigned hAnimPenult;
     bool isAimed;
     bool isAnim;
+    LTRotation camRot;
 };
 
 template <typename T>
@@ -307,6 +308,7 @@ class SdkHandler {
     void *unknownStruct1;
     void *unknownFunc2;
     void *getStructFromString1;
+    uint8_t * g_doConnectIpAdrExit;
 
     static constexpr uint8_t m_mapsIndex[] = {0,  1,  2,  3,  4,  5,
                                               6,  7,  8,  9,  10, 11,

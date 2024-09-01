@@ -1,0 +1,3 @@
+[submodule "sharedcode"]
+	path = sharedcode
+	url = git@github.com:Vityacv/sharedcode.git

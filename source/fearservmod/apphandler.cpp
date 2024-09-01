@@ -18,6 +18,7 @@ extern "C" volatile uint8_t *g_doConnectIpAdrTramp = 0;
 AppHandler::AppHandler() {
     m_eServer =
             reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")));
+    // m_haved3d = reinterpret_cast<uint8_t *>(GetModuleHandle(_T("d3dx9_27.dll"))) != nullptr;
     m_Exec = reinterpret_cast<uint8_t *>(GetModuleHandle(0));
     m_ExecSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Exec));
 }
@@ -56,7 +57,7 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
         BYTES_SEARCH_FORMAT("6A1068????????8B??83????6A0083")));
     if (tmp) {
       m_patchHandler->addCode(tmp, 2);
-      //*(uint16_t *)(tmp) = 0x27EB; // disable magic value
+      *(uint16_t *)(tmp) = 0x27EB; // disable magic value
     }
     if(mod == m_eServer) { //%s.ms%d.gamespy.com disable
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
@@ -123,15 +124,15 @@ void AppHandler::setMotd(uint8_t *mod, uintptr_t modSz)
 void AppHandler::hookSwitchToSP(SpliceHandler::reg *p) {
     auto &inst = *ExecutionHandler::instance()->sdkHandler();
     p->state = 2;
-    inst.setExeType(0);
+    inst.setExeType(false);
     p->tax = 0;
 }
 
 void AppHandler::hookSwitchToMP(SpliceHandler::reg *p) {
     auto &inst = *ExecutionHandler::instance()->sdkHandler();
     p->state = 2;
-    inst.setExeType(0);
-    p->tax = 0;
+    inst.setExeType(true);
+    p->tax = 1;
 }
 
 void AppHandler::hookStoryModeOn(SpliceHandler::reg *p) {
@@ -256,6 +257,15 @@ const char *wepsmpstr[] = {
     "Turret_Remote",   "Turret_Street", "Frag Grenade",
     "Proximity",       "Unarmed",       0};
 
+const char *wepsmpstr_xp2[] = {
+    "Remote Charge",   "Pistol",        "Submachinegun",
+    "Shotgun",         "Assault Rifle", "Nail Gun",
+    "Semi-auto Rifle", "Cannon",        "Missile Launcher",
+    "Plasma Weapon",   "Vulcan Cannon", "Turret_Helicopter",
+    "Turret_Remote",   "Turret_Street", "Frag Grenade",
+    "Proximity",       "Unarmed", "AdvancedRifle" , "Minigun",
+    "GrenadeLauncher", "LaserCarbine", "ChainLightningGun",
+    "DeployableTurretGrenade", 0};
 
 
 
@@ -264,20 +274,21 @@ void AppHandler::hookRandomWeapon(SpliceHandler::reg *p)
     p->state = 2;
     auto &sdk = *ExecutionHandler::instance()->sdkHandler();
     unsigned timeMS = sdk.getRealTimeMS();
+    unsigned wepCnt = sdk.isXP2 ? 23 : 17;
     if (!sdk.m_randomWeaponTime || timeMS - sdk.m_randomWeaponTime > 90000) {
       sdk.m_randomWeaponTime = timeMS;
-      if (sdk.m_currentRandomWeaponInd == 17) {
+      if (sdk.m_currentRandomWeaponInd == wepCnt) {
         sdk.m_currentRandomWeaponInd = 0;
         unsigned char *in = sdk.m_randomWepTable;
-        for (int i = 0; i != 17; i++) {
+        for (int i = 0; i != wepCnt; i++) {
             in[i] = i;
         }
-        shuffle(in, 17);
+        shuffle(in, wepCnt);
       }
       else
         sdk.m_currentRandomWeaponInd++;
       const char *szWep =
-          wepsmpstr[sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]];
+          sdk.isXP2 ? wepsmpstr_xp2[sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]] : wepsmpstr[sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]];
       sdk.m_currentRandomWeapon =
           sdk.g_pLTDatabase->GetRecordB(sdk.m_hCatWeapons, szWep);
       ((void(__thiscall *)(void *, const char *, uintptr_t,
@@ -293,9 +304,9 @@ void AppHandler::hookRandomWeapon(SpliceHandler::reg *p)
         ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
              sdk.CCommandMgr_QueueCommand)(sdk.pCmdMgr, str, 0, 0);
       }
-      ((void(__thiscall *)(void *, const char *, uintptr_t,
-                           uintptr_t))sdk.CCommandMgr_QueueCommand)(
-          sdk.pCmdMgr, "msg Player (ANIMATE DSlumpB)", 0, 0);
+//      ((void(__thiscall *)(void *, const char *, uintptr_t,
+//                           uintptr_t))sdk.CCommandMgr_QueueCommand)(
+//          sdk.pCmdMgr, "msg Player (ANIMATE DSlumpB)", 0, 0);
 //      if (!sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]) {
 //        ((void(__thiscall *)(void *, const char *, uintptr_t,
 //                             uintptr_t))sdk.CCommandMgr_QueueCommand)(
@@ -591,6 +602,7 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
     }
 }
 
+
 struct readMsg {
   int8_t pad4[4];
   int32_t f4;
@@ -600,7 +612,9 @@ struct readMsg {
   uint32_t f20;
   uint32_t f24;
 };
-
+//extern float __cdecl sinf(float _X);
+//extern float __cdecl cosf(float _X);
+#include <math.h>
 void AppHandler::hookMID(SpliceHandler::reg *p){
     p->argcnt = 2;
     auto &sdk = *ExecutionHandler::instance()->sdkHandler();
@@ -898,6 +912,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       float dist = 256.0f;
       bool bUnarmed = 0;
       unsigned unarmFireDelay = 0;
+      bool spawnLog = false;
+      sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
       if (hWeapon &&
           StringUtil::hash_rt((char *)*(uintptr_t *)(hWeapon)) == StringUtil::hash_ct("Unarmed")) {
         if (hAmmo) {
@@ -911,6 +927,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
             case StringUtil::hash_ct("Melee_JabRight"):
             case StringUtil::hash_ct("Melee_JabLeft"):
+                // spawnLog = true;
               unarmFireDelay = 0x100;
               if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
                 break;
@@ -918,6 +935,48 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
               break;
             case StringUtil::hash_ct("Melee_RifleButt"):
               unarmFireDelay = 0x100;
+
+            //          auto rot = LTRotation();
+
+//                  auto q = pPlData->camRot;
+//                  LTVector newPos;
+//                  constexpr double PI = 3.141592653589793238463;
+//                  float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+//                  float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+//                  float roll = std::atan2(sinr_cosp, cosr_cosp);
+
+//                  // pitch (y-axis rotation)
+//                  float sinp = 2 * (q.w * q.y - q.z * q.x);
+//                  float pitch;
+//                  if (std::abs(sinp) >= 1)
+//                      pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+//                  else
+//                      pitch = std::asin(sinp);
+
+//                  // yaw (z-axis rotation)
+//                  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+//                  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+//                  float yaw = atan2(siny_cosp, cosy_cosp);
+
+//                  float pitch = atan2(rot.m_Quat[1], -rot.m_Quat[2]);
+//                  float pitchAngle = pitch * (180 / PI);
+//                  float yaw = atan2(rot.m_Quat[0], -rot.m_Quat[2]);
+//                  float yawAngle = yaw * (180 / PI);
+//                  float roll = atan2(rot.m_Quat[0], -rot.m_Quat[1]);
+//                  float rollAngle = roll * (180 / PI);
+//                  constexpr float forwardMod = 100.0f;
+//                  printf("%lf %lf %lf\n", pitchAngle, yawAngle, rollAngle);
+//                  newPos[0] = curPos[0] + (forwardMod * cosf(pitchAngle));
+//                  newPos[1] = curPos[1] + (forwardMod * sinf(yawAngle));
+//                  newPos[2] = curPos[2]; //+ (forwardMod * cosf(rollAngle));
+//                  newPos[0] = curPos[0] + (forwardMod * roll);
+//                  newPos[1] = curPos[1] + (forwardMod * pitch);
+//                  newPos[2] = curPos[2] + (forwardMod * yaw);
+//                  newPos[2] = curPos[2] + (forwardMod * (cosf(yawRadian) * cosf(pitchRadian)));
+//                  newPos[0] = curPos[0] + (forwardMod * (sinf(yaw) * cosf(pitch)));
+//                  newPos[1] = curPos[1] + (forwardMod * -sinf(pitch));
+//                  newPos[2] = curPos[2] + (forwardMod * (cosf(yaw) * cosf(pitch)));
+
               // printf()
               // if (hAnimPenult == 0x343 || hAnimPenult == 0x34C)
               //     break;
@@ -1029,7 +1088,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
 
       bool bFire = 1;
       // pSdk->g_pLTServer->GetObjectPos(hTarget,&targetPos);
-      sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
+//      sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
 
       if (!curPos.NearlyEquals(firePos, dist)) {
         p->state = 1;
@@ -1141,14 +1200,15 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             // if (fireServTimestamp > (delay + 1))
             //  fireServTimestampCheck = fireServTimestamp - delay;
 
-//            if(fireTimestamp > (fireServTimestamp+fireServTimestamp)){
-//                ((unsigned(__thiscall *)(CArsenal *, HAMMO))
-//                     sdk.CArsenal_DecrementAmmo)(pArsenal, hAmmo);
-//                pPlData->lastFireWeaponClipAmmo = 0;
-//                pPlData->lastFireWeaponTimestamp = 0;
-//                pPlData->lastFireWeaponIgnored = fireServTimestamp;
-//                break;
-//              }
+            if(fireTimestamp > (fireServTimestamp+0xFFFF)){
+                ((unsigned(__thiscall *)(CArsenal *, HAMMO))
+                     sdk.CArsenal_DecrementAmmo)(pArsenal, hAmmo);
+                pPlData->lastFireWeaponClipAmmo = 0;
+                pPlData->lastFireWeaponTimestamp = 0;
+                pPlData->lastFireWeaponIgnored = fireServTimestamp;
+                p->state = 0;
+                break;
+              }
 
 
   //          if (fireTimestamp > fireServTimestamp ||
@@ -1183,6 +1243,34 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           pPlData->lastFireWeaponClipAmmo = ammoInClip;
           pPlData->lastFireWeaponTimestamp = fireTimestamp;
         }
+      }
+      if(spawnLog){
+
+          if(!inst.m_bRandWep) {
+
+          void * SpawnObject = inst.m_Server+0x16B650;
+          auto rot = LTRotation();
+          rot.m_Quat[0] = 0.0;
+          rot.m_Quat[1] = 0.0;
+          rot.m_Quat[2] = 1.0;
+          rot.m_Quat[3] = 1.0;
+
+          auto np = curPos;
+          np[1] -= 5.6;
+          np[2] -= 64.0;
+          ILTBaseClass * pObj = ((ILTBaseClass*(__cdecl *)(char *, const LTVector&, const LTRotation&))SpawnObject)((char *)"WeaponItem Gravity 0;MoveToFloor 0;AmmoAmount 10;WeaponType (a2x4);MPRespawn 0; DMTouchPickup 1;LifeTime 3000.00;Health 0;Placed 0", np, rot);
+          if(pObj && pObj->m_hObject) {
+              auto hObj = pObj->m_hObject;
+              ILTCommon * common = sdk.g_pLTServer->Common();
+              uint32_t nFlags = 0;
+              bool bGravityOn = true;
+//              common->GetObjectFlags(hObj, OFT_Flags, nFlags);
+//              bGravityOn = bGravityOn && (nFlags & FLAG_SOLID);
+              common->SetObjectFlags(hObj, OFT_Flags,
+                                          0x10c30,
+                                          0x10c30);
+          }
+          }
       }
 
     }
@@ -1282,8 +1370,9 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
   //      p->state = 1;
       uint16_t nClientChangeFlags = pMsgRead->ReadBits(8);
       if (nClientChangeFlags & CLIENTUPDATE_CAMERAINFO) {
-        LTRotation rTrueCameraRot;
-        pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
+//        LTRotation rTrueCameraRot;
+//        pMsgRead->ReadCompLTRotation(&rTrueCameraRot);
+        pMsgRead->ReadCompLTRotation(&pPlData->camRot);
         bool bSeparateCameraFromBody = pMsgRead->ReadBits(1);
         if (bSeparateCameraFromBody) {
           pMsgRead->ReadBits(0x20);
@@ -1309,7 +1398,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           if (trkId != 0xFF) {                           // check is main tracker
             unsigned hWeight = pMsgRead->ReadBits(0x20); // hWeightSet
             if (hWeight > 4) {
-              DBGLOG("weight set %d", hWeight)
+              // DBGLOG("weight set %d", hWeight)
               sdk.BootWithReason(pGameClientData,
                                    eClientConnectionError_PunkBuster,
                                    (char *)"error 1");
@@ -1348,7 +1437,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             if (bSetRate) {
               unsigned var = pMsgRead->ReadBits(0x20);
               float fRate = reinterpret_cast<float &>(var);
-              if (fRate < 0.0f) {
+              DBGLOG("fRate %llf", fRate);
+              if (fRate <= 0.0f || fRate > 100.0f) {
                 p->state = 1;
                 break;
               }
@@ -1607,16 +1697,16 @@ void AppHandler::configHandle()
             *(tmp + 15) = 0xEB;
         }
     }
-    {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "FF5204E8????????8A??????????05")); // disable punkbuster
-        if (tmp) {
-            hpatch.addCode(tmp, 4);
-            *(unsigned *)(tmp) = 0xE8909090;
-        }
-    }
+    // {
+    //     unsigned char *tmp =
+    //         scanBytes((unsigned char *)m_Server, m_ServerSz,
+    //                   BYTES_SEARCH_FORMAT(
+    //                       "FF5204E8????????8A??????????05")); // disable punkbuster
+    //     if (tmp) {
+    //         hpatch.addCode(tmp, 4);
+    //         *(unsigned *)(tmp) = 0xE8909090;
+    //     }
+    // }
     {
         unsigned char *tmp = scanBytes(
             (unsigned char *)m_eServer, m_eServerSz,
@@ -2367,13 +2457,13 @@ void AppHandler::loadConfig()
             m_iniBuffer = (TCHAR *)malloc(cfgSize);
             TCHAR *pIniBuf = m_iniBuffer;
             //int sz = getGlobalCfgString(cfg, _T("NS1"), _T(""/*"natneg1.gamespy.com"*/), pIniBuf, cfgSize);
-            int sz = getGlobalCfgString(cfg, _T("NS1"), L"", pIniBuf, cfgSize);
+            int sz = getGlobalCfgString(cfg, _T("NS1"), L"natneg1.openspy.net", pIniBuf, cfgSize);
 
             m_strNs1 = reinterpret_cast<char *>(pIniBuf);
             pIniBuf = reinterpret_cast<TCHAR*>(StringUtil::copyFromNative(pIniBuf,
                                                                       reinterpret_cast<char *>(pIniBuf), sz));
 //            sz = getGlobalCfgString(cfg, _T("NS2"), _T(""/*"natneg2.gamespy.com"*/), pIniBuf, cfgSize);
-            sz = getGlobalCfgString(cfg, _T("NS2"), L"", pIniBuf, cfgSize);
+            sz = getGlobalCfgString(cfg, _T("NS2"), L"natneg2.openspy.net", pIniBuf, cfgSize);
             m_strNs2 = reinterpret_cast<char *>(pIniBuf);
             pIniBuf = reinterpret_cast<TCHAR*>(StringUtil::copyFromNative(pIniBuf,
                                                                        reinterpret_cast<char *>(pIniBuf), sz));
@@ -2381,7 +2471,7 @@ void AppHandler::loadConfig()
 //                                    _T(""/*"%s.available.gamespy.com"*/), pIniBuf,
 //                                    cfgSize);
             sz = getGlobalCfgString(cfg, _T("Available"),
-                                    L"", pIniBuf,
+                                    L"available.openspy.net", pIniBuf,
                                     cfgSize);
             m_strMasterAvail = reinterpret_cast<char *>(pIniBuf);
             pIniBuf = reinterpret_cast<TCHAR*>(StringUtil::copyFromNative(pIniBuf,
@@ -2389,7 +2479,7 @@ void AppHandler::loadConfig()
 //            sz = getGlobalCfgString(cfg, _T("Master"),
 //                                    _T(""/*"%s.master.gamespy.com"*/), pIniBuf, cfgSize);
             sz = getGlobalCfgString(cfg, _T("Master"),
-                                    L"", pIniBuf, cfgSize);
+                                    L"master.openspy.net", pIniBuf, cfgSize);
             m_strMaster = reinterpret_cast<char *>(pIniBuf);
             pIniBuf = reinterpret_cast<TCHAR*>(StringUtil::copyFromNative(pIniBuf,
                                                                        reinterpret_cast<char *>(pIniBuf), sz));
@@ -2440,6 +2530,93 @@ void AppHandler::init()
     setMotd(m_eServer, m_eServerSz);
 }
 
+void AppHandler::serverPreinitPatches() {
+    m_eServer =
+            reinterpret_cast<uint8_t *>(LoadLibrary(_T("engineserver.dll")));
+    m_eServerSz = m_eServerSz = GetModuleSize((HMODULE)m_eServer);
+    { // KickPBCLDLL server
+        uint8_t *tmp =
+            scanBytes(m_eServer, m_eServerSz,
+                      BSF("A1????????85C00F85????????C705"));
+        if (tmp) {
+            unprotectCode(tmp, 1);
+            *static_cast<uint8_t *>(tmp) = 0xc3;
+        }
+    }
+}
+
+void AppHandler::clientPreinitPatches() {
+    { // KickGameSpy
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("75??33D2895424??895424??89"));
+        if (tmp) {
+            unprotectCode(tmp, 1);
+            *static_cast<uint8_t *>(tmp) = 0xeb;
+        }
+    }
+    { // FixDinputLag
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("74??6A02578BCEE8????????8B"));
+        if (tmp) {
+            unprotectCode(tmp, 1);
+            *static_cast<uint8_t *>(tmp) = 0xeb;
+        }
+    }
+    { // KickICMPDLL
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("74??E8????????68????????FF"));
+        if (tmp) {
+            unprotectCode(tmp, 1);
+            *static_cast<uint8_t *>(tmp) = 0xeb;
+        }
+    }
+    { // KickPBCLDLL
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("A1????????85C00F85????????C7"));
+        if (tmp) {
+            unprotectCode(tmp, 1);
+            *static_cast<uint8_t *>(tmp) = 0xc3;
+        }
+    }
+    { // NoMutex
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("6A006A00FF15????????8BF885FF74"));
+        if (tmp) {
+            unprotectCode(tmp, 5);
+            uint8_t d[] = {0x58, 0x31, 0xc0, 0xeb, 0x05};
+            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 5);
+        }
+    }
+    { // NoLosingFocus
+        uint8_t *tmp =
+            scanBytes(m_Exec, m_ExecSz,
+                      BSF("C705????????000000008B116A"));
+        if (tmp) {
+            tmp += 6;
+            unprotectCode(tmp, 7);
+            uint8_t d[] = {0x01, 0x00, 0x00, 0x00, 0x58, 0xeb, 0x38};
+            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 7);
+        }
+    }
+}
+
+void AppHandler::hookSwitchToModeXP(SpliceHandler::reg *p) {
+  auto &inst = *ExecutionHandler::instance()->appHandler();
+  if (p->tax == 2) {
+    p->tax = 0;
+    *(inst.m_RunGameModeXP + 13) = 0x3;
+    inst.setMpGame(1);
+  } else if (!p->tax) {
+    *(inst.m_RunGameModeXP + 13) = 0x2;
+    inst.setMpGame(0);
+  }
+}
+
 void AppHandler::initClient() {
 
     {
@@ -2466,7 +2643,7 @@ void AppHandler::initClient() {
 //                pIniBuf, cfgSize);
             size_t sz = getGlobalCfgString(
                 cfg, _T("Master"),
-                L"",
+                L"master.openspy.net",
                 pIniBuf, cfgSize);
             m_strMaster = reinterpret_cast<char *>(pIniBuf);
             m_isHttpMaster = memcmp(m_strMaster, L"http", sizeof(wchar_t)*4) == 0;
@@ -2606,13 +2783,13 @@ void AppHandler::initClient() {
         uint8_t *tmp = scanBytes(
             m_Client, m_ClientSz,
             BYTES_SEARCH_FORMAT(
-                "6A1BFF??????????0FBFC085C079??E8????????"));  // No escape
+                "6A1BFF??????????0FBFC085C079??E8????????"));  // No escape key
         // handling on
         // downloading
-        // content
+        // content (causes crash)
         if (tmp) {
             hpatch.addCode(tmp, 2);
-            *(unsigned short *)(tmp) = 0x3BEB;
+            *(unsigned short *)(tmp) = 0x3BEB; // or perhaps fix crash when download connect processed
         }
     }
     if (!m_bShowIntro) {
@@ -2698,14 +2875,14 @@ void AppHandler::initClient() {
             *(tmp) = 0xEB;
         } /*else {
             // Extraction Point
-            aRunGameModeXP =
-                scanBytes((uint8_t *)gClient, gClientSz,
+            m_RunGameModeXP =
+                scanBytes((uint8_t *)m_Client, m_ClientSz,
                           BYTES_SEARCH_FORMAT("FF????????????8B????????6A02FF5044"));
-            spliceUp(aRunGameModeXP, (void *)hookSwitchToModeXP);
-            aIsMultiplayerGameClient = scanBytes(
-                (uint8_t *)gClient, gClientSz,
+            hsplice.spliceUp(m_RunGameModeXP, (void *)hookSwitchToModeXP);
+            m_isMultiplayerGameClient = scanBytes(
+                (uint8_t *)m_Client, m_ClientSz,
                 BYTES_SEARCH_FORMAT("A1????????85??74??8B????83??0474??83??0574"));
-            unprotectCode(aIsMultiplayerGameClient);
+            unprotectCode(m_isMultiplayerGameClient);
         }*/
     }
     if (g_doConnectIpAdrTramp) {

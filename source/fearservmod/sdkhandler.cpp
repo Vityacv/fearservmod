@@ -11,6 +11,7 @@
 #include "executionhandler.h"
 #include "shared/string_utils.h"
 #include "apphandler.h"
+#include <cstdint>
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -862,6 +863,25 @@ void SdkHandler::initClient() {
             else
                 break;
     }
+    printf("clientfx");
+    handler.serverPreinitPatches();
+    {
+        uint8_t *tmp = scanBytes(
+            (uint8_t *)gClient, gClientSz,
+            BYTES_SEARCH_FORMAT("B9????????E8????????A1????????33F6"));
+        auto clientfx_ptr = *reinterpret_cast<uint32_t *>(tmp+1);
+        tmp = reinterpret_cast<uint8_t *>(*reinterpret_cast<uint32_t *>(clientfx_ptr+0x20));
+        auto modSz = GetModuleSize(tmp);
+        auto currentTmp = tmp;
+        for(int i = 0; i != 2; ++i){
+            currentTmp = scanBytes(
+                (unsigned char *)currentTmp, modSz-(currentTmp-tmp),
+                BYTES_SEARCH_FORMAT("C74018000080BF"));
+            auto patch_point = currentTmp+3;
+            unprotectCode(patch_point, 4);
+            memset(patch_point, 0, 4);
+        }
+    }
     {
         void *tmp =
             scanBytes((unsigned char *)gClient, gClientSz,
@@ -908,6 +928,8 @@ void SdkHandler::initClient() {
             scanBytes((unsigned char *)gFearExe, gFearExeSz,
                       BYTES_SEARCH_FORMAT("A1????????81EC????????85C0558BAC")),
             (void *)SdkHandlerUpdate);
+
+    g_doConnectIpAdrExit = reinterpret_cast<uint8_t *>(reinterpret_cast<uintptr_t>(g_doConnectIpAdrTramp) - 0xc);
     if (g_doConnectIpAdrTramp) {
         {
             void *tmp = scanBytes(
@@ -928,11 +950,8 @@ void SdkHandler::initClient() {
                               "8B0D????????50E8????????85C08B4C24108901740C"));
             unknownStruct1 = (void *)*(uintptr_t *)((unsigned char *)tmp + 2);
         }
-
-        hsplice.spliceUp(
-            scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                      BYTES_SEARCH_FORMAT("83E8028BCE74488B166A01FF12")),
-            (void *)hookOnConnectServer);
+        hsplice.spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
+                      BYTES_SEARCH_FORMAT("83E8028BCE74488B166A01FF12")), (void *)hookOnConnectServer);
     }
     g_pGameDatabaseMgr = (CGameDatabaseMgr *)*(uintptr_t *)*(
         uintptr_t *)(scanBytes((unsigned char *)gClient, gClientSz,
@@ -1528,6 +1547,9 @@ void SdkHandler::hookOnConnectServer(
     SpliceHandler::reg *p) {  // only FEAR.exe 1.08
     //    SdkHandler *pSdk = &handleData::instance()->pSdk;
     SdkHandler &handler = *ExecutionHandler::instance()->sdkHandler();
+    // if(p->tax-2 = 0 )
+    //     return;
+    DBGLOG("current %p", p->tax)
     unsigned char *structEsi = (unsigned char *)p->tsi,
                   *structEdi = (unsigned char *)p->tbp,
                   *structEbp = (unsigned char *)p->tdi,
@@ -1540,15 +1562,24 @@ void SdkHandler::hookOnConnectServer(
         if (struct2) {
             bool flag = *(uintptr_t *)((unsigned char *)structEdi + 0x68) == -1;
             unsigned char *struct3 = (unsigned char *)*(uintptr_t *)struct2;
-            if (!((bool(__thiscall *)(void *, bool, unsigned char *)) *
+            auto status = ((uintptr_t(__thiscall *)(void *, bool, unsigned char *)) *
                   (uintptr_t *)((unsigned char *)struct3 + 0x54))(
-                    struct2, flag, structEdi + 0x6C)) {
+                    struct2, flag, structEdi + 0x6C);
+            DBGLOG("%p tramp return? status %p", p->tax, status)
+            if (status == 0) {
                 *(uintptr_t *)((unsigned char *)structEsi + 0x1C) =
                     (uintptr_t)struct2;
                 p->origFunc = (uintptr_t)hookOnConnectServerRet;
+                DBGLOG("%p tramp return", p->tax)
+            } else {
+                p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
+                p->tax = status;
             }
         }
-    } else if (!state) {
+    }// else if (state == 0) {
+    //    return;
+    //}
+    else if (!state) {
         unsigned char *struct4 = ((unsigned char *)(*(
             uintptr_t *)((unsigned char *)structEbp + 0x1D8)));
         if (struct4) {
@@ -1560,11 +1591,18 @@ void SdkHandler::hookOnConnectServer(
                 ((bool(__thiscall *)(void *, unsigned char *, unsigned char *,
                                      unsigned))(void *)handler.unknownFunc2)(
                     structEsi, struct4, structEdi, 1);
-                if (!*(unsigned char *)structEdi + 4)
+                auto status = *((unsigned char *)structEdi + 4);
+                if (status == 0) {
                     p->origFunc = (uintptr_t)hookOnConnectServerRet;
+                    DBGLOG("%p tramp return 2", p->tax)
+                } else {
+                    p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
+                    p->tax = status;
+                }
             }
         }
     }
+    DBGLOG("%p return 32", p->tax)
 }
 
 void SdkHandler::hookUseSkin1(SpliceHandler::reg *p) {

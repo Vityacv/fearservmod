@@ -124,41 +124,46 @@ Allow run of multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
 Without weapon (fast switch bug)<br>
 Grenade throw (+5 when move +drop +C)<br>
-Keyboard reset non english on close game<br>
-Full version can connect to combat servers<br>
+Keyboard reset if non english on close game<br>
+Retail version can connect to Combat servers<br>
+Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
-DoS fake players spam<br>
-Vote new map crash clients (out of index)<br>
-Multiple kills of same target<br>
+DoS fake players spam hack<br>
+Vote new map crash clients hack (out of index)<br>
+Vote hack<br>
+Multiple kills of same target bug<br>
 Clear vote process after map loaded<br>
 Early respawn crash<br>
 Ainimation speed crash<br>
 Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
-Login x3 players with nickname 0xFFFF crash<br>
+Login x3 players with nickname 0xFFFF client crash<br>
 FindObjectsCb log spam<br>
 Player respawn bug (force default mp rules)<br>
+Chat string size limit<br>
 Host options hack<br>
 Server pause hack<br>
 Render stimulus crash hack<br>
 Object alpha crash hack<br>
-Frag self<br>
-Get weapons, health, armor, gear hack<br>
-Unlimited grenade drop<br>
-Fake fire position<br>
-Invalid skin<br>
-Immortal player<br>
-Send damage<br>
-Send sounds<br>
-Pickup distance (2m limit)<br>
-Invalid team kick players<br>
-Activate slowmo without recharger or not charged<br>
-Teleport to players<br>
-Teleport to respawn checkpoints<br>
-Teleport using SetObjectPos<br>
+Frag self hack<br>
+Get weapon hack<br>
+Get health hack<br>
+Get armor hack<br>
+Get gear hack<br>
+Unlimited drop grenade hack<br>
+Fake fire position hack<br>
+Invalid skin hack<br>
+Immortal player hack<br>
+Send damage hack<br>
+Send sounds hack<br>
+Pickup distance hack (2m limit)<br>
+Invalid team hack<br>
+Activate slowmo without recharger or not charged hack<br>
+Teleport to players hack<br>
+Teleport to respawn checkpoints hack<br>
+Teleport using SetObjectPos hack<br>
 Stealth join hack<br>
-Chat string size limit<br>
 Rapid fire timer in future hack<br>
 Rapid fire invalid msg hack<br>
 Rapid fire unarmed hack<br>
@@ -167,7 +172,8 @@ Remote flashlight hack<br>
 Melee ammo mod hack<br>
 Drop ammo weapon fire hack<br>
 Drop ammo weapon switch hack<br>
-Pickup enemy or team proximity and remotes hack
+Pickup enemy or team pickups hack<br>
+Enhanced server log<br>
 
 # How to compile:
 requirements: linux distribution (I use archlinux), mingw-w64, nasm.

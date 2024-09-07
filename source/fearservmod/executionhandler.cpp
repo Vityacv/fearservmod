@@ -15,37 +15,7 @@
 #include <windows.h>
 #endif
 
-
-uint8_t * hOrigMod, * hModBase;
-
-
-void regcall hookLdrGetDllHandleEx(SpliceHandler::reg *p) {
-    auto &inst = *ExecutionHandler::instance();
-    printf("test2");
-    p->state = 1;
-    p->argcnt = 5;
-    p->tax = ((uintptr_t(__stdcall *)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))p->origFunc)(
-          p->v0, p->v1, p->v2, p->v3, p->v4);
-    DBGLOG("YYYYYYYYYYYYY")
-    if(p->v4 && (*reinterpret_cast<uintptr_t *>(p->v4) == inst.m_instance)) {
-        DBGLOG("ZZZZZZZZZZZZ")
-        *reinterpret_cast<uintptr_t *>(p->v4) = inst.m_instance;
-    }
-    DBGLOG("VVVVVVVVVVVVVVV")
-}
-
-void regcall hookLdrLoadDll(SpliceHandler::reg *p) {
-    auto &inst = *ExecutionHandler::instance();
-    p->state = 1;
-    p->argcnt = 4;
-    p->tax = ((uintptr_t(__stdcall *)(uintptr_t, uintptr_t, uintptr_t, uintptr_t))p->origFunc)(
-          p->v0, p->v1, p->v2, p->v3);
-    if( p->v3 && (*reinterpret_cast<uintptr_t *>(p->v3) == inst.m_instance)) {
-        DBGLOG("????????")
-        *reinterpret_cast<uintptr_t *>(p->v3) = inst.m_instance;
-    }
-}
-
+extern "C" void __stdcall hideDll(HMODULE hmod1);
 
 ExecutionHandler::ExecutionHandler() {
     m_spliceHandler.reset(new SpliceHandler());
@@ -67,19 +37,12 @@ void ExecutionHandler::init() {
     appHandler.setPatchHandler(m_patchHandler.get());
     appHandler.setSdkHandler(m_sdkHandler.get());
     m_sdkHandler->setAppHandler(m_appHandler.get());
-    // auto hMod = GetModuleHandle(_T("ntdll"));
-    // DBGLOG("test");
-    // m_spliceHandler->spliceUp((void *)GetProcAddr(hMod, "LdrGetDllHandleEx"),
-    //    (void *)::hookLdrGetDllHandleEx);
-    // m_spliceHandler->spliceUp((void *)GetProcAddr(hMod, "LdrLoadDll"),
-    //    (void *)::hookLdrLoadDll);
-    // DBGLOG("test2");
-    // return;
     if (appHandler.isServer()) {
         appHandler.serverPreinitPatches();
         appHandler.init();
     } else {
         // ExecutionHandler *handler = instance();
+        hideDll(reinterpret_cast<HMODULE>(m_instance));
         appHandler.clientPreinitPatches();
         CloseHandle(CreateThread(0, 0x1000,
                                  reinterpret_cast<LPTHREAD_START_ROUTINE>(

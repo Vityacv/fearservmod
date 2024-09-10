@@ -41,9 +41,9 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
 {
 
     {
+      static auto pat = BSF("68????????50FF15????????83C40C8D");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)mod, modSz,
-          BYTES_SEARCH_FORMAT("68????????50FF15????????83C40C8D")));
+          (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
       if (tmp) {
         m_patchHandler->addCode(tmp + 1, 12);
         *(const char **)(tmp + 1) = m_strMasterAvail;
@@ -52,26 +52,27 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
             getRel4FromVal((tmp + 8), (unsigned char *)strcpy);
       }
     }
-    unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-        (unsigned char *)mod, modSz,
-        BYTES_SEARCH_FORMAT("6A1068????????8B??83????6A0083")));
-    if (tmp) {
-      m_patchHandler->addCode(tmp, 2);
-      *(uint16_t *)(tmp) = 0x27EB; // disable magic value
+    {
+      static auto pat = BSF("6A1068????????8B??83????6A0083");
+      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
+      if (tmp) {
+        m_patchHandler->addCode(tmp, 2);
+        *(uint16_t *)(tmp) = 0x27EB;  // disable magic value
+      }
     }
     if(mod == m_eServer) { //%s.ms%d.gamespy.com disable
+      static auto pat = BSF("760DB8060000005D81C4????????C3");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)mod, modSz,
-          BYTES_SEARCH_FORMAT("760DB8060000005D81C4????????C3")));
+          (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
       if (tmp) {
         m_patchHandler->addCode(tmp, 2);
         *(uint16_t *)(tmp) = 0x9090;
       }
       {
+        static auto pat = BSF("8B??????508D??????68??????????FF??????????83C4??8D??????68");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)mod, modSz,
-            BYTES_SEARCH_FORMAT(
-                "8B??????508D??????68??????????FF??????????83C4??8D??????68"));
+            (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat));
         m_patchHandler->addCode(tmp + 1, 22);
         //*(tmp) = 0x68;
         // if (*strGame)
@@ -83,9 +84,9 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
       }
     } else {
         {
+          static auto pat = BSF("68????????50FF15????????83C41068");
           unsigned char *tmp = (unsigned char*)(unsigned char *)(unsigned *)(scanBytes(
-              (unsigned char *)mod, modSz,
-              BYTES_SEARCH_FORMAT("68????????50FF15????????83C41068")));
+              (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
           if (tmp) {
             m_patchHandler->addCode(tmp + 1, 12);
             *(const char **)(tmp + 1) = m_strMaster;
@@ -100,9 +101,9 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
 void AppHandler::setMotd(uint8_t *mod, uintptr_t modSz)
 {
     {
+      static auto pat = BSF("68????????68????????FF15????????56");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)mod, modSz,
-          BYTES_SEARCH_FORMAT("68????????68????????FF15????????56")));
+          (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
       if (tmp) {
         tmp += 1;
         m_patchHandler->addCode(tmp, 4);
@@ -394,10 +395,9 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
     inst.m_Server = reinterpret_cast<uint8_t*>(p->tax);
     inst.m_ServerSz = GetModuleSize((HMODULE)inst.m_Server);
     {
+        static auto pat = BSF("E8????????8BC8E8????????8D4C????FF15????????8B");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)inst.m_Server, inst.m_ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "E8????????8BC8E8????????8D4C????FF15????????8B")); // Gamemode
+            (unsigned char *)inst.m_Server, inst.m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // Gamemode
         // reset Config
         // fix
         if (tmp) {
@@ -405,11 +405,12 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
             *(unsigned short *)(tmp) = 0x0AEB;
         }
     }
-    hsplice.spliceUp(scanBytes((unsigned char *)inst.m_Server, inst.m_ServerSz,
-                               BYTES_SEARCH_FORMAT(
-                                   "558BEC83E4??81EC????????????8B????85????89??????"
-                                   "0F??????????8B????85??0F??????????33C0")),
-                     (void *)hookConfigLoad2);
+    {
+      static auto pat = BSF("558BEC83E4??81EC????????????8B????85????89??????0F??????????8B????85??0F??????????33C0");
+      hsplice.spliceUp(
+          scanBytes((unsigned char *)inst.m_Server, inst.m_ServerSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookConfigLoad2);
+    }
 }
 
 // StarCompare() helper function
@@ -541,15 +542,15 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
     if (!inst.m_bSettingsLoaded) {
         inst.m_bSettingsLoaded = true;
         {
+            static auto pat1 = BSF("8B0D????????85C9A3????????A1????????0F95C3");
             uint8_t *tmp =
-                scanBytes(inst.m_Exec, inst.m_ExecSz,
-                          BSF("8B0D????????85C9A3????????A1????????0F95C3"));
+                scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat1));
             if (tmp) {
                 if (**reinterpret_cast<uintptr_t **>(tmp + 2)) {
                     {
+                        static auto pat = BSF("0F95C385C0885C24??74??B9");
                         uint8_t *tmp =
-                            scanBytes(inst.m_Exec, inst.m_ExecSz,
-                                      BSF("0F95C385C0885C24??74??B9"));
+                            scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
                             unprotectCode(tmp, 3);
                             *reinterpret_cast<uint16_t *>(tmp) = 0xDB30;
@@ -557,9 +558,9 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
                         }
                     }
                     {
+                        static auto pat = BSF("0F????????89??????????8B??????????89");
                         uint8_t *tmp = scanBytes(
-                            inst.m_Exec, inst.m_ExecSz,
-                            BSF("0F????????89??????????8B??????????89"));
+                            inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
                             unprotectCode(tmp, 5);
                             uint8_t d[] = {0xB9, 0x01, 0x00, 0x00, 0x00};
@@ -567,19 +568,18 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
                         }
                     }
                     {
+                        static auto pat = BSF("7402B0018B????8B????E8????????E8????????5F");
                         uint8_t *tmp = scanBytes(
-                            inst.m_Exec, inst.m_ExecSz,
-                            BSF("7402B0018B????8B????E8????????E8????????5F"));
+                            inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
                             unprotectCode(tmp, 2);
                             *reinterpret_cast<uint16_t *>(tmp) = 0x9090;
                         }
                     }
                     {
+                        static auto pat = BSF("6A00C705????????01000000C705????????000000008B116A06FF520C");
                         uint8_t *tmp =
-                            scanBytes(inst.m_Exec, inst.m_ExecSz,
-                                      BSF("6A00C705????????01000000C705????????"
-                                          "000000008B116A06FF520C"));
+                            scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
                             unprotectCode(tmp, 15);
                             *reinterpret_cast<uint16_t *>(tmp) = 0x9090;
@@ -587,13 +587,12 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
                         }
                     }
                     {
-                        uint8_t *tmp =
-                            scanBytes(inst.m_Exec, inst.m_ExecSz,
-                                      BSF("753468????????FF15????????E8?"
-                                          "???????85C074206A006A30"));
-                        if (tmp) {
-                            unprotectCode(tmp, 1);
-                            *tmp = 0xEB;
+                      static auto pat = BSF("753468????????FF15????????E8????????85C074206A006A30");
+                      uint8_t *tmp =
+                          scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+                      if (tmp) {
+                        unprotectCode(tmp, 1);
+                        *tmp = 0xEB;
                         }
                     }
                 }
@@ -1583,10 +1582,12 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       if (pMsgRead->ReadBits(3) == eVote_Start) {
         p->state = sdk.checkPlayerStatus(pGameClientData);
         if (pPlData->lastVoteTime) {
-          /*ServerSettings * pServSettings = (ServerSettings *)((unsigned char
-           * *)(((GameModeMgr * (*)()) pSdk->g_pGameModeMgr_instance)() +
-           * pSdk->GameModeMgr_ServerSettings));*/
-          unsigned voteDelay = 3000; //(*(uint8_t*)(pServSettings+0x100)*1000);
+          // ServerSettings * pServSettings = (ServerSettings *)((unsigned char
+          // *)(((GameModeMgr * (*)()) sdk.g_pGameModeMgr_instance)() +
+          // sdk.GameModeMgr_ServerSettings));
+          // auto value_test = (*(uint8_t*)(pServSettings+0x100)*1000);
+          // printf("value_test %d", value_test);
+          unsigned voteDelay = 3000;
           // if(voteDelay)
           // voteDelay-=250; //server timer may lag with client
           unsigned delta = voteTime - pPlData->lastVoteTime;
@@ -1672,9 +1673,9 @@ void AppHandler::configHandle()
     hsdk.initServer();
     patchClientServer(m_eServer, m_eServerSz);
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)m_Server, m_ServerSz,
-            BYTES_SEARCH_FORMAT("8D4C24??51505756FF15????????83C410C6????????5F"));
+        static auto pat = BSF("8D4C24??51505756FF15????????83C410C6????????5F");
+        unsigned char *tmp =
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             unsigned char *pfunc = (unsigned char *)*(uintptr_t *)(tmp + 10);
             hpatch.addCode(tmp + 8, 6);
@@ -1689,9 +1690,9 @@ void AppHandler::configHandle()
         }
     }
     {
+        static auto pat = BSF("508D442430508B430850FF524084C0");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("508D442430508B430850FF524084C0"));
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode(tmp + 15, 1); // allow connect with invalid assets
             *(tmp + 15) = 0xEB;
@@ -1708,10 +1709,9 @@ void AppHandler::configHandle()
     //     }
     // }
     {
+        static auto pat = BSF("745D8B????????????8B????8B??C1????884C2414");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)m_eServer, m_eServerSz,
-            BYTES_SEARCH_FORMAT(
-                "745D8B????????????8B????8B??C1????884C2414")); // show conn client
+            (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)); // show conn client
             // ip
         if (tmp) {
             hsplice.spliceUp(tmp - 7, (void *)SdkHandler::hookUDPConnReq);
@@ -1720,29 +1720,27 @@ void AppHandler::configHandle()
         }
     }
     {
+        static auto pat = BSF("74608B??????????8B??C1????88??????33");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)m_eServer, m_eServerSz,
-            BYTES_SEARCH_FORMAT(
-                "74608B??????????8B??C1????88??????33")); // show disco client ip
+            (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)); // show disco client ip
         if (tmp) {
             hpatch.addCode(tmp, 2);
             *(unsigned short *)(tmp) = 0x9090;
         }
     }
     {
+        static auto pat = BSF("8B5E0C81FB80000000732E8B06578B7C2410");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)m_eServer, m_eServerSz,
-            BYTES_SEARCH_FORMAT(
-                "8B5E0C81FB80000000732E8B06578B7C2410")); // FindObjects spam
+            (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)); // FindObjects spam
         if (tmp) {
             hpatch.addCode(tmp + 9, 2);
             *(unsigned short *)(tmp + 9) = 0x9090;
         }
     }
     {
+        static auto pat = BSF("750980E1??888E????????B001");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("750980E1??888E????????B001")); // combo
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // combo
             // death
             // fix
         if (tmp) {
@@ -1762,9 +1760,9 @@ void AppHandler::configHandle()
   }*/
 
     {
+        static auto pat = BSF("8A42??84C076??33C90FB6D0");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("8A42??84C076??33C90FB6D0"));
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode((unsigned char *)tmp + 5, 1);
             *(tmp + 5) =
@@ -1772,33 +1770,32 @@ void AppHandler::configHandle()
         }
     }
     {
+        static auto pat = BSF("83C404F6????74??8B??E8????????6A00E8????????8B??E8");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_eServer, m_eServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "83C404F6????74??8B??E8????????6A00E8????????8B??E8"));
+            scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp, (void *)SdkHandler::hookOnMapLoaded);
         }
     }
     {
-        unsigned char *tmp = scanBytes((unsigned char *)m_eServer, m_eServerSz,
-                                       BYTES_SEARCH_FORMAT("7402893783FEFF7472"));
+        static auto pat = BSF("7402893783FEFF7472");
+        unsigned char *tmp = scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp, (void *)SdkHandler::hookUDPRecvfrom);
         }
     }
     {
+        static auto pat = BSF("8B168BCEFF1284C0740E6A016A03568BCF");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_eServer, m_eServerSz,
-                      BYTES_SEARCH_FORMAT("8B168BCEFF1284C0740E6A016A03568BCF"));
+            scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp, (void *)SdkHandler::hookCheckUDPDisconnect);
         }
     }
     {
+        static auto pat = BSF("3B7C2410741F8B4E086A006A0351");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("3B7C2410741F8B4E086A006A0351"));
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode((unsigned char *)tmp + 4,
                                1); // ignore invalid world crc
@@ -1811,18 +1808,17 @@ void AppHandler::configHandle()
 //                      BYTES_SEARCH_FORMAT("0F84840000008B442420"))+6,
 //            (void *)hookLoadObject);
         {
+            static auto pat = BSF("6A005256FF90??0000008BF085F60F84????????8B");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("6A005256FF90??0000008BF085F60F84????????8B"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)hookRandomWeapon);
             }
         }
         {
+            static auto pat = BSF("8B0D????????8B168BF88B41??50A1????????508BCEFF52??8B168BD86A20");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("8B0D????????8B168BF88B41??50A1????????"
-                                              "508BCEFF52??8B168BD86A20"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)hookPickupRndWeapon);
             }
@@ -1839,9 +1835,9 @@ void AppHandler::configHandle()
         // }
 
         {
+            static auto pat = BSF("83EC10568B74241885F6578BF9");
             unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("83EC10568B74241885F6578BF9")));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)hookEnterSlowMo);
             }
@@ -1864,9 +1860,9 @@ void AppHandler::configHandle()
         m_bSyncObjects = 1;
         m_bBotsMP = 1;
         {
+            static auto pat = BSF("753F8D??????E8????????8B??????????8B");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("753F8D??????E8????????8B??????????8B"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hpatch.addCode((unsigned char *)tmp, 1);
                 *(tmp) = 0xEB; // dont crush players on player
@@ -1874,10 +1870,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("8B??????85????8B??74??8B??????????85??74??3B??74??68");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "8B??????85????8B??74??8B??????????85??74??3B??74??68")); // story
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // story
                 // mode
                 // on
             if (tmp) {
@@ -1885,35 +1880,34 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("8B??8B??????????85??75??68????????6A00E8????????");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT(
-                              "8B??8B??????????85??75??68????????6A00E8????????"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)hookStoryModeOff);
             }
         }
         {
-            unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C074??8D??????68??????????E8")); // use SP MAPS
+            static auto pat = BSF("E8????????84C074??8D??????68??????????E8");
+            unsigned char *tmp = scanBytes((unsigned char *)m_Server,
+                                           m_ServerSz, reinterpret_cast<uint8_t *>(&pat));  // use SP MAPS
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         if (m_bCoop == 1) {
-            hsplice.spliceUp(
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT(
-                              "6A00????FF??????????8B??85??74??E8????????84??74")),
-                (void *)SdkHandler::hookLoadMaps1);
-            hsplice.spliceUp(scanBytes((unsigned char *)m_Server, m_ServerSz,
-                               BYTES_SEARCH_FORMAT(
-                                   "5357??FF??????????3B??8B??0F??????????8B???????"
-                                   "???8B??68??????????FF????8B????????????FF")),
+            {
+                static auto pat = BSF("6A00????FF??????????8B??85??74??E8????????84??74");
+                hsplice.spliceUp(
+                    scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)),
+                    (void *)SdkHandler::hookLoadMaps1);
+        }
+        {
+            static auto pat = BSF("5357??FF??????????3B??8B??0F??????????8B??????????8B??68??????????FF????8B????????????FF");
+            hsplice.spliceUp(scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)),
                      (void *)SdkHandler::hookLoadMaps2);
+        }
 
             /*{
       unsigned char *tmp =
@@ -1924,34 +1918,33 @@ void AppHandler::configHandle()
       }
     }*/
         } else if (m_bCoop == 2) {
+            static auto pat = BSF("88861C0200008B44243C888E1D020000");
             hsplice.spliceUp(
-                scanBytes((unsigned char *)m_eServer, m_eServerSz,
-                          BYTES_SEARCH_FORMAT("88861C0200008B44243C888E1D020000")),
+                scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
                 (void *)hookComposeArchives);
         }
         {
+            static auto pat = BSF("8B??????????F6????74????8D??????????8B");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("8B??????????F6????74????8D??????????8B"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 *(tmp + 9) = 0xEB;
             }
         }
         {
+            static auto pat = BSF("83E0FB68????????8B??89");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("83E0FB68????????8B??89"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 *(unsigned short *)(tmp + 1) = 0x0BC8;
             }
         }
         {
+            static auto pat = BSF("8B??????83????3B????75??8B??E8??????????????83????C3");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("8B??????83????3B????75??8B??E8????????"
-                                              "??????83????C3")); // cutscene
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // cutscene
                 // player
                 // numbers
             if (tmp) {
@@ -1960,10 +1953,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("8A5C2408F6DB565768000100008BF9");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "8A5C2408F6DB565768000100008BF9")); // CANACTIVATE always 1
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // CANACTIVATE always 1
             if (tmp) {
                 hpatch.addCode((unsigned char *)tmp, 4);
                 *(unsigned *)(tmp) = 0x909001B3;
@@ -1971,11 +1963,9 @@ void AppHandler::configHandle()
         }
 
         {
+            static auto pat = BSF("D9????EB??D9??????8B??????????D9??????????89??????68????????8B??E8????????85??74??83??0375??D9??24EB??D9????0C");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "D9????EB??D9??????8B??????????D9??????????89??????68????????8B??"
-                    "E8????????85??74??83??0375??D9??24EB??D9????0C"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 // unprotectCode(tmp);
 
@@ -1985,23 +1975,20 @@ void AppHandler::configHandle()
         }
 
         {
-            unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("EB??D9????0C8B??????????D9??????????68????????"
-                                    "8B??89??????E8????????85??74??83????75??D9????"
-                                    "EB??D9??????68????????D9??????????8B"));
+            static auto pat = BSF("EB??D9????0C8B??????????D9??????????68????????8B??89??????E8????????85??74??83????75??D9????EB??D9??????68????????D9??????????8B");
+            unsigned char *tmp =
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp + 29, (void *)hookDoorTimer);
             }
         }
         {
+            static auto pat = BSF("D9??24EB??D9????0C8B??????????D9??????????68");
             unsigned char *tmp = m_Server;
 
             unsigned i = 0;
             while (true) {
-                tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
-                                BYTES_SEARCH_FORMAT(
-                                    "D9??24EB??D9????0C8B??????????D9??????????68"));
+                tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp, reinterpret_cast<uint8_t *>(&pat));
                 if (tmp) {
                     hsplice.spliceUp(tmp - 14, (void *)hookDoorTimer);
                 }
@@ -2012,13 +1999,12 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("508B??FF??????????8B??E8????????88??????????8A");
             unsigned char *tmp = m_Server;
 
             unsigned i = 0;
             while (true) {
-                tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
-                                BYTES_SEARCH_FORMAT(
-                                    "508B??FF??????????8B??E8????????88??????????8A"));
+                tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp, reinterpret_cast<uint8_t *>(&pat));
                 if (tmp) {
                     hsplice.spliceUp(tmp, (void *)SdkHandler::hookUseSkin1);
                 }
@@ -2029,9 +2015,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("75??8B??????????68????????E8??????????8B??FF");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("75??8B??????????68????????E8??????????8B??FF"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 *(unsigned short *)(tmp) = 0x9090;
@@ -2040,10 +2026,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("75??E8????????84??74??8B??????????8B??6A006A0068??????????FF");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "75??E8????????84??74??8B??????????8B??6A006A0068??????????FF"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 tmp += 2;
                 unprotectCode(tmp);
@@ -2051,9 +2036,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("75??E8????????84??74??8B??????????8B??6A00");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("75??E8????????84??74??8B??????????8B??6A00"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 tmp += 2;
                 unprotectCode(tmp);
@@ -2062,20 +2047,18 @@ void AppHandler::configHandle()
         }
 
         {
+            static auto pat = BSF("E8????????84C074??8A??????????84C075??83??????75??8B");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C074??8A??????????84C075??83??????75??8B"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("74??0F????8B??????????89??????????EB??"
-                                              "A1????????C7??????????010000008B"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 uint8_t d[] = {0xB8, 0x03, 0x00, 0x00,0x00};
@@ -2085,98 +2068,92 @@ void AppHandler::configHandle()
         }
 
         {
+            static auto pat = BSF("8B??85??????????????????C7??????????????C7??????????????74");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "8B??85??????????????????C7??????????????C7??????????????74"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)SdkHandler::hookRespawnStartPoint);
             }
         }
         {
+            static auto pat = BSF("A1????????8B??????????8B????????????8B????????????E8????????C3");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("A1????????8B??????????8B????????????"
-                                              "8B????????????E8????????C3"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp, (void *)SdkHandler::hookCheckpointEvent);
             }
         }
         {
+            static auto pat = BSF("8A8424A000000084C074");
             unsigned char *tmp = m_Server;
             tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
-                            BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
+                            reinterpret_cast<uint8_t *>(&pat));
             tmp += 9;
             unprotectCode(tmp);
             *(unsigned short *)(tmp) = 0x9090;
             tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
-                            BYTES_SEARCH_FORMAT("8A8424A000000084C074"));
+                            reinterpret_cast<uint8_t *>(&pat));
             tmp += 9;
             unprotectCode(tmp);
             *(unsigned short *)(tmp) = 0x9090;
         }
         {
+            static auto pat = BSF("56E8????????8B??????????E8????????8B??????????8B");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT(
-                              "56E8????????8B??????????E8????????8B??????????8B"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 *(uintptr_t *)(tmp) = 0x90c301b0;
             }
         }
         {
+            static auto pat = BSF("8B????????????8D????????????83C4183B??74");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("8B????????????8D????????????83C4183B??74"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hsplice.spliceUp(tmp + 7, (void *)hookGameMode);
             }
         }
         {
+            static auto pat = BSF("E8????????84C074??8B0D????????68????????E8????????D9");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C074??8B0D????????68????????E8????????D9"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("E8????????84C08B??????????74??68????????EB??68");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT(
-                              "E8????????84C08B??????????74??68????????EB??68"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("E8????????84C075??8B??????????8B0D??????????6A01E8");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT(
-                              "E8????????84C075??8B??????????8B0D??????????6A01E8"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("E8????????84C08B??????????74??68????????EB??68????????E8????????83EC08");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("E8????????84C08B??????????74??68??????"
-                                              "??EB??68????????E8????????83EC08"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("E8????????84C074??8B??????????6A????6A00E8");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("E8????????84C074??8B??????????6A????6A00E8"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 m_SPModeSpawn = tmp;
@@ -2185,9 +2162,9 @@ void AppHandler::configHandle()
             }
         }
         {
+            static auto pat = BSF("75??8D??????E8????????8B????8B????8B????89");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT("75??8D??????E8????????8B????8B????8B????89"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 m_patchHoleKillHives = tmp - 5;
                 hsplice.spliceUp(m_patchHoleKillHives, (void *)SdkHandler::hookPatchHoleKillHives);
@@ -2196,20 +2173,18 @@ void AppHandler::configHandle()
     }
     if (m_bBotsMP) {
         {
+            static auto pat = BSF("E8????????84C074??8B??8B??FF??????????84??74??E8????????8A");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C074??8B??8B??FF??????????84??74??E8????????8A"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
         {
+            static auto pat = BSF("E8????????84??0F??????????E8????????8A??????????05????????84??74??8B");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("E8????????84??0F??????????E8????????"
-                                              "8A??????????05????????84??74??8B"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
@@ -2217,9 +2192,9 @@ void AppHandler::configHandle()
         }
     }
     {
+        static auto pat = BSF("84C07408??8B??E8????????????C20800");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("84C07408??8B??E8????????????C20800"));
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             // unprotectCode(tmp);
             hpatch.addCode(tmp + 8, 4);
@@ -2241,12 +2216,9 @@ void AppHandler::configHandle()
         }
 
         if (m_preventNoclip == 2) {
+            static auto pat = BSF("8BCFFF90????????3BC3A3????????7410C705????????????????893D????????391D????????75688B0D????????891D????????891D????????891D????????8B1168????????8BF9FF92????????3BC3A3????????75??8B0753");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz,
-                BYTES_SEARCH_FORMAT(
-                    "8BCFFF90????????3BC3A3????????7410C705????????????????893D??????"
-                    "??391D????????75688B0D????????891D????????891D????????891D??????"
-                    "??8B1168????????8BF9FF92????????3BC3A3????????75??8B0753"));
+                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 tmp += 82;
                 uint8_t d[] = {0xB9, 0x00, 0x00, 0x80, 0x3F, 0x90, 0x90, 0x8B, 0x07, 0x51};
@@ -2269,14 +2241,15 @@ void AppHandler::configHandle()
     }
     // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
     // *)"83????3D????????0F??????????0F"),(void *)hookMID_);
-    hsplice.spliceUp(scanBytes((unsigned char *)m_Server, m_ServerSz,
-                       BYTES_SEARCH_FORMAT(
-                           "53568B74????85F68BD90F??????????578B??????56")),
-             (void *)hookMID);
     {
+        static auto pat = BSF("53568B74????85F68BD90F??????????578B??????56");
+        hsplice.spliceUp(scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)),
+                         (void *)hookMID);
+    }
+    {
+        static auto pat = BSF("508B??E8????????84C074??8D??????50");
         unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz,
-                      BYTES_SEARCH_FORMAT("508B??E8????????84C074??8D??????50"));
+            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         hsdk.g_pGetNetClientData = getVal4FromRel(tmp + 4);
         hsplice.spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
     }
@@ -2314,10 +2287,9 @@ void AppHandler::configHandle()
         // custom sync
         // if (bCoop) {
         {
+            static auto pat = BSF("E8????????84C074??F6??????74??68????????8B??E8????????85C074");
             unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("E8????????84C074??F6??????74??68????"
-                                              "????8B??E8????????85C074"));
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 unprotectCode(tmp);
                 memcpy(tmp, moveax0, 5);
@@ -2325,11 +2297,11 @@ void AppHandler::configHandle()
         }
         // } else
         {
-            unsigned char *tmp =
-                scanBytes((unsigned char *)m_Server, m_ServerSz,
-                          BYTES_SEARCH_FORMAT("834E08048D????85??8D??????????74"));
-            hsdk.ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
-            hsplice.spliceUp(tmp + 9, (void *)hookSetObjFlags);
+          static auto pat = BSF("834E08048D????85??8D??????????74");
+          unsigned char *tmp =
+              scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+          hsdk.ObjectCreateStruct_m_Name = *(unsigned *)(tmp + 11);
+          hsplice.spliceUp(tmp + 9, (void *)hookSetObjFlags);
         }
         // custom sync end
         /*{
@@ -2369,20 +2341,18 @@ void AppHandler::configHandle()
           }*/
 
             {
+                static auto pat = BSF("E8????????88??????8D??????????8B??8B??8B????8B????89");
                 unsigned char *tmp = scanBytes(
-                    (unsigned char *)m_Server, m_ServerSz,
-                    BYTES_SEARCH_FORMAT("E8????????88??????8D??????????8B??8B??8B????"
-                                        "8B????89")); // ragdoll time Multi/SP
+                    (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // ragdoll time Multi/SP
                 if (tmp) {
                     hpatch.addCode(tmp, 5);
                     memcpy(tmp, moveax0, 5);
                 }
             }
             {
+                static auto pat = BSF("E8????????8B????8A??88??????8B????????????E8");
                 unsigned char *tmp = scanBytes(
-                    (unsigned char *)m_Server, m_ServerSz,
-                    BYTES_SEARCH_FORMAT(
-                        "E8????????8B????8A??88??????8B????????????E8")); // ragdoll
+                    (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // ragdoll
                     // type
                     // Multi/SP
                 if (tmp) {
@@ -2408,10 +2378,8 @@ void AppHandler::patchClientServer(uint8_t *mod, uint32_t modSz) {
     // limit loop (synch) to 2^16 coz it may cause infinte loop
     PatchHandler &hpatch = *patchHandler();
     {
-        uint8_t *tmp = scanBytes(
-            mod, modSz,
-            BSF("DFE0F6C4057A2BC784248400000000000000C744241C00000000C744"
-                "241800000000C744241000000000C74424140000803F"));
+        static auto pat = BSF("DFE0F6C4057A2BC784248400000000000000C744241C00000000C744241800000000C744241000000000C74424140000803F");
+        uint8_t *tmp = scanBytes(mod, modSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             uint8_t d[] = {
                 0x66, 0xC7, 0x44, 0x24, 0x58, 0x00, 0x00, 0x90, 0x90, 0x90,
@@ -2424,9 +2392,9 @@ void AppHandler::patchClientServer(uint8_t *mod, uint32_t modSz) {
         }
     }
     {
+        static auto pat = BSF("C784248400000000000000E9F5FEFFFF");
         unsigned char *tmp =
-            scanBytes((unsigned char *)mod, modSz,
-                      BYTES_SEARCH_FORMAT("C784248400000000000000E9F5FEFFFF"));
+            scanBytes((unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             uint8_t d[] = {0x66, 0xFF, 0x44, 0x24, 0x58, 0x74,
                                  0x09, 0x90, 0x90, 0x90, 0x90, 0xE9,
@@ -2502,23 +2470,23 @@ void AppHandler::init()
     m_eServerSz = GetModuleSize((HMODULE)m_eServer);
     SpliceHandler &hsplice = *spliceHandler();
     {
+        static auto pat = BSF("84??75????68??????????E8????????8B??83C40885??74");
         hsplice.spliceUp(
-            scanBytes((unsigned char *)m_eServer, m_eServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "84??75????68??????????E8????????8B??83C40885??74")),
+            scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
             (void *)hookLoadGameServer);
     }
-
-    hsplice.spliceUp(scanBytes(
-                 (unsigned char *)m_Exec, m_ExecSz,
-                 BYTES_SEARCH_FORMAT(
-                     "8D????????????8B??E8????????8B????85C075??E8????????8B")),
-             (void *)hookConfigLoad);
+    {
+      static auto pat = BSF("8D????????????8B??E8????????8B????85C075??E8????????8B");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookConfigLoad);
+    }
 
     {
+      static auto pat = BSF("A1????????508B??E8????????83");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)m_eServer, m_eServerSz,
-          BYTES_SEARCH_FORMAT("A1????????508B??E8????????83")));
+          (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)));
       if (tmp) {
         const char **arr = (const char **)*(uintptr_t *)(tmp + 1);
         unprotectMem((uint8_t *)arr);
@@ -2535,9 +2503,9 @@ void AppHandler::serverPreinitPatches() {
             reinterpret_cast<uint8_t *>(LoadLibrary(_T("engineserver.dll")));
     m_eServerSz = m_eServerSz = GetModuleSize((HMODULE)m_eServer);
     { // KickPBCLDLL server
+        static auto pat = BSF("A1????????85C00F85????????C705");
         uint8_t *tmp =
-            scanBytes(m_eServer, m_eServerSz,
-                      BSF("A1????????85C00F85????????C705"));
+            scanBytes(m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             unprotectCode(tmp, 1);
             *static_cast<uint8_t *>(tmp) = 0xc3;
@@ -2546,63 +2514,52 @@ void AppHandler::serverPreinitPatches() {
 }
 
 void AppHandler::clientPreinitPatches() {
-    { // KickGameSpy
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("75??33D2895424??895424??89"));
-        if (tmp) {
-            unprotectCode(tmp, 1);
-            *static_cast<uint8_t *>(tmp) = 0xeb;
-        }
-    }
-    { // FixDinputLag
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("74??6A02578BCEE8????????8B"));
-        if (tmp) {
-            unprotectCode(tmp, 1);
-            *static_cast<uint8_t *>(tmp) = 0xeb;
-        }
-    }
-    { // KickICMPDLL
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("74??E8????????68????????FF"));
-        if (tmp) {
-            unprotectCode(tmp, 1);
-            *static_cast<uint8_t *>(tmp) = 0xeb;
-        }
-    }
-    { // KickPBCLDLL
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("A1????????85C00F85????????C7"));
-        if (tmp) {
-            unprotectCode(tmp, 1);
-            *static_cast<uint8_t *>(tmp) = 0xc3;
-        }
-    }
-    { // NoMutex
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("6A006A00FF15????????8BF885FF74"));
-        if (tmp) {
-            unprotectCode(tmp, 5);
-            uint8_t d[] = {0x58, 0x31, 0xc0, 0xeb, 0x05};
-            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 5);
-        }
-    }
-    { // NoLosingFocus
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("C705????????000000008B116A"));
-        if (tmp) {
-            tmp += 6;
-            unprotectCode(tmp, 7);
-            uint8_t d[] = {0x01, 0x00, 0x00, 0x00, 0x58, 0xeb, 0x38};
-            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 7);
-        }
-    }
+  // NoAvailableGameSpy
+  if (static auto pat = BSF("75??33D2895424??895424??89");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    unprotectCode(adr, 1);
+    *static_cast<uint8_t *>(adr) = 0xEB;
+  }
+  // FixDinputLag
+  if (static auto pat = BSF("74??6A02578BCEE8????????8B");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    unprotectCode(adr, 1);
+    *static_cast<uint8_t *>(adr) = 0xEB;
+  }
+  // NoICMPDLL
+  if (static auto pat = BSF("74??E8????????68????????FF");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    unprotectCode(adr, 1);
+    *static_cast<uint8_t *>(adr) = 0xEB;
+  }
+  // NoPBCLDLL
+  if (static auto pat = BSF("A1????????85C00F85????????C7");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    unprotectCode(adr, 1);
+    *static_cast<uint8_t *>(adr) = 0xC3;
+  }
+  // NoMutex
+  if (static auto pat = BSF("6A006A00FF15????????8BF885FF74");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    unprotectCode(adr, 5);
+    static uint8_t d[] = {0x58, 0x31, 0xC0, 0xEB, 0x05};
+    memcpy(adr, reinterpret_cast<uint8_t *>(&d), 5);
+  }
+  // NoLosingFocus
+  if (static auto pat = BSF("C705????????000000008B116A");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz,
+                    reinterpret_cast<uint8_t *>(&pat))) {
+    adr += 6;
+    unprotectCode(adr, 7);
+    static uint8_t d[] = {0x01, 0x00, 0x00, 0x00, 0x58, 0xEB, 0x38};
+    memcpy(adr, reinterpret_cast<uint8_t *>(&d), 7);
+  }
 }
 
 void AppHandler::hookSwitchToModeXP(SpliceHandler::reg *p) {
@@ -2676,9 +2633,9 @@ void AppHandler::initClient() {
 //        }
 //    }
     {
+        static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
         uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("8B??????????85F60F??????????A1????????F6C40174"));
+            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp,
                              reinterpret_cast<void *>(hookClientSettingsLoad));
@@ -2686,8 +2643,8 @@ void AppHandler::initClient() {
     }
 
     {
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz,
-                                 BSF("A1????????8B??????????8B????FF????33"));
+        static auto pat = BSF("A1????????8B??????????8B????FF????33");
+        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         uint8_t *adr;
         m_gameClientStruct = reinterpret_cast<uint8_t *>(
             *reinterpret_cast<uintptr_t *>(tmp + 1));
@@ -2724,44 +2681,43 @@ void AppHandler::initClient() {
 //    }
     patchClientServer(m_Exec, m_ExecSz);
     {
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, BSF("74278D4C2410518D54240852"));
+        static auto pat = BSF("74278D4C2410518D54240852");
+        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode(tmp,2);
             *(uint16_t *)(tmp) = 0x53EB;  // kick GameSpy key
         }
     }
     {
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, BSF("837C24??0175??33D2"));
+        static auto pat = BSF("837C24??0175??33D2");
+        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode(tmp+5,1);
             *(tmp+5) = 0xEB;  //%s.available.gamespy.com
         }
     }
     {
+        static auto pat = BSF("8B??74??E8????????68????????FF??????????85??89");
         uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BSF("8B??74??E8????????68????????FF??????????85??89"));
+            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode(tmp+2,1);
             *(tmp+2) = 0xEB;  // ICMP disable
         }
     }
     {
+        static auto pat = BSF("B9????????E8????????B9????????E8????????B9????????C7");
         uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BYTES_SEARCH_FORMAT(
-                          "B9????????E8????????B9????????E8????????B9????????"
-                          "C7"));  // Punkbuster disable
+            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));  // Punkbuster disable
         if (tmp) {
             tmp = (uint8_t *)*(unsigned *)(tmp + 11);
             *(uintptr_t *)(tmp + 0x10) = 0;
         }
     }
     {
+        static auto pat = BSF("E8????????8A??????????B8????????33FF84C875");
         uint8_t *tmp = scanBytes(
-            m_Client, m_ClientSz,
-            BYTES_SEARCH_FORMAT(
-                "E8????????8A??????????B8????????33FF84C875"));  // fix
+            m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // fix
         // keyboard
         if (tmp) {
             uint8_t d[] = {0x90, 0x90, 0x90, 0x90, 0x90};
@@ -2770,20 +2726,18 @@ void AppHandler::initClient() {
         }
     }
     {
+        static auto pat = BSF("74??8B????FF????????????6A");
         uint8_t *tmp =
-            scanBytes(m_Client, m_ClientSz,
-                      BYTES_SEARCH_FORMAT(
-                          "74??8B????FF????????????6A"));  // no weapon bug
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // no weapon bug
         if (tmp) {
             hpatch.addCode(tmp + 1, 1);
             *(uint8_t *)(tmp + 1) -= 7;
         }
     }
     {
+        static auto pat = BSF("6A1BFF??????????0FBFC085C079??E8????????");
         uint8_t *tmp = scanBytes(
-            m_Client, m_ClientSz,
-            BYTES_SEARCH_FORMAT(
-                "6A1BFF??????????0FBFC085C079??E8????????"));  // No escape key
+            m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // No escape key
         // handling on
         // downloading
         // content (causes crash)
@@ -2794,11 +2748,9 @@ void AppHandler::initClient() {
     }
     if (!m_bShowIntro) {
         {
-            uint8_t *tmp = scanBytes(
-                m_Client, m_ClientSz,
-                BYTES_SEARCH_FORMAT(
-                    "5155568BF18B0D????????8B01FF90????????8BE8"));  // no
-                                                                     // splash
+            static auto pat = BSF("5155568BF18B0D????????8B01FF90????????8BE8");
+            uint8_t *tmp = scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // no
+                                                                  // splash
             // videos
             if (tmp) {
                 hpatch.addCode(tmp, 4);
@@ -2807,9 +2759,9 @@ void AppHandler::initClient() {
         }
 
         {
+            static auto pat = BSF("8B0D??????????FF57??85ED89??????76");
             uint8_t *tmp = scanBytes(
-                m_Client, m_ClientSz,
-                BYTES_SEARCH_FORMAT("8B0D??????????FF57??85ED89??????76"));
+                m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 uint8_t d[] = {0xE9, 0xF4, 0x00, 0x00, 0x00};
                 hpatch.addCode(tmp + 16, 5);
@@ -2818,58 +2770,57 @@ void AppHandler::initClient() {
         }
     }
     {
+        static auto pat = BSF("FF????84??75??A1????????6A01??8D????????8B");
         uint8_t *tmp = scanBytes(
-            m_Client, m_ClientSz,
-            BYTES_SEARCH_FORMAT(
-                "FF????84??75??A1????????6A01??8D????????8B"));  // MOTD
+            m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // MOTD
         if (tmp) {
             hpatch.addCode(tmp + 5, 1);
             *(tmp + 5) = 0xEB;
         }
     }
     {
+        static auto pat = BSF("7D??B22D33??381088??????75");
         uint8_t *tmp =
-            scanBytes(m_Client, m_ClientSz,
-                      BYTES_SEARCH_FORMAT(
-                          "7D??B22D33??381088??????75"));  // cdkey menu fix
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // cdkey menu fix
         if (tmp) {
             hpatch.addCode(tmp, 1);
             *(tmp) = 0xEB;
         }
     }
     {
+        static auto pat = BSF("0F94C16A01518B8E??00000052");
         uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz,
-                      BYTES_SEARCH_FORMAT("0F94C16A01518B8E??00000052"));
+            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hpatch.addCode((uint8_t *)tmp, 4);
             *(unsigned *)tmp = 0x6a90c931;
         }
     }
-
-    g_doConnectIpAdrTramp = scanBytes(
-        m_Exec, m_ExecSz,
-        BYTES_SEARCH_FORMAT("8BCF89B71C060000E8????????8B871C060000"));
-    hsplice.spliceUp(
-        scanBytes(m_Exec, m_ExecSz,
-                  BYTES_SEARCH_FORMAT("FFD38B54242083C40C80660CDF")),
-        (void *)hookModelMsg);
+    {
+      static auto pat = BSF("8BCF89B71C060000E8????????8B871C060000");
+      g_doConnectIpAdrTramp = scanBytes(
+          m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    }
+    {
+      static auto pat = BSF("FFD38B54242083C40C80660CDF");
+      hsplice.spliceUp(
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookModelMsg);
+    }
     hsdk.initClient();
     {
-        uint8_t *tmp = scanBytes(
-            m_Exec, m_ExecSz,
-            BYTES_SEARCH_FORMAT(
-                "0F8467010000A1????????85C08BC87522A1????????5068????????E8"));
-        if (tmp) {
-            hpatch.addCode(tmp + 2, 2);
-            *(unsigned short *)(tmp + 2) = 0x007D;
+      static auto pat = BSF("0F8467010000A1????????85C08BC87522A1????????5068????????E8");
+      uint8_t *tmp = scanBytes(
+          m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+      if (tmp) {
+        hpatch.addCode(tmp + 2, 2);
+        *(unsigned short *)(tmp + 2) = 0x007D;
         }
     }
     {
+        static auto pat = BSF("74078BCEE8????????8B166A008BCEFF5268");
         uint8_t *tmp =
-            scanBytes(m_Client, m_ClientSz,
-                      BYTES_SEARCH_FORMAT(
-                          "74078BCEE8????????8B166A008BCEFF5268"));  // MOTD
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // MOTD
         if (tmp) {
             hpatch.addCode(tmp, 1);
             *(tmp) = 0xEB;
@@ -2886,37 +2837,37 @@ void AppHandler::initClient() {
         }*/
     }
     if (g_doConnectIpAdrTramp) {
+      {
+        static auto pat = BSF("E8????????84C074218D4C2404E8????????6A016A008D44240C50");
         hsplice.spliceUp(
             scanBytes(
-                m_Client, m_ClientSz,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C074218D4C2404E8????????6A016A008D44240C50")),
+                m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat)),
             (void *)hookSwitchToSP /*, (void *)6*/);
-        void *tmp = scanBytes(
-            m_Client, m_ClientSz,
-            BYTES_SEARCH_FORMAT(
-                "E8????????84C0754B8D4C2404E8????????6A016A008D44240C50"));
+      }
+      {
+        static auto pat =
+            BSF("E8????????84C0754B8D4C2404E8????????6A016A008D44240C50");
+        void *tmp = scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         m_isMultiplayerGameClient = (uint8_t *)((uint8_t *)tmp + 1) +
                                     (*(uintptr_t *)((uint8_t *)tmp + 1)) + 4;
         unprotectCode(m_isMultiplayerGameClient, 100);
         hsplice.spliceUp(tmp, (void *)hookSwitchToMP);
+    }
 
-        // toggleIsMPGame();
+      // toggleIsMPGame();
     }
     {
+        static auto pat = BSF("A1????????8A887806000084C9740E8A887906000084C974048AC3");
         uint8_t *tmp = scanBytes(
-            m_Client, m_ClientSz,
-            BYTES_SEARCH_FORMAT(
-                "A1????????8A887806000084C9740E8A887906000084C974048AC3"));
+            m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             m_storyModeStruct = (uint8_t *)*(uintptr_t *)(tmp + 1);
         }
     }
     {
+        static auto pat = BSF("6A00FF??????????8B??????????8B????FF??????????8B");
         uint8_t *tmp =
-            scanBytes(m_Client, m_ClientSz,
-                      BYTES_SEARCH_FORMAT(
-                          "6A00FF??????????8B??????????8B????FF??????????8B"));
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             unprotectCode(tmp, 100);
             *(unsigned short *)(tmp) = 0x9050;
@@ -2925,30 +2876,28 @@ void AppHandler::initClient() {
         }
     }
     {
+        static auto pat = BSF("50E8????????8B??E8????????84C00F????????????E8");
         uint8_t *tmp =
-            scanBytes(m_Client, m_ClientSz,
-                      BYTES_SEARCH_FORMAT(
-                          "50E8????????8B??E8????????84C00F????????????E8"));
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp, (void *)hookClientGameMode);
         }
     }
     {
-        uint8_t *tmp = m_Client;
-        unsigned i = 0;
-        while (true) {
-            tmp = scanBytes(
-                (uint8_t *)tmp, (m_ClientSz + m_Client) - tmp,
-                BYTES_SEARCH_FORMAT(
-                    "E8????????84C075??8B??????????8B??8D????????33??FF"));
-            if (tmp) {
-                unprotectCode(tmp, 100);
-                m_flashlightAdr[i] = tmp;
-                // memcpy(tmp,moveax0,5);
-            }
-            tmp++;
-            i++;
-            if (i == 2) break;
+      static auto pat = BSF("E8????????84C075??8B??????????8B??8D????????33??FF");
+      uint8_t *tmp = m_Client;
+      unsigned i = 0;
+      while (true) {
+        tmp = scanBytes(
+            (uint8_t *)tmp, (m_ClientSz + m_Client) - tmp, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+          unprotectCode(tmp, 100);
+          m_flashlightAdr[i] = tmp;
+          // memcpy(tmp,moveax0,5);
+        }
+        tmp++;
+        i++;
+        if (i == 2) break;
         }
     }
 }

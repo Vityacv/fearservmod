@@ -123,27 +123,23 @@ IDatabaseMgr *SdkHandler::getDatabaseMgr() {
 void SdkHandler::getLTServerClient(unsigned char *baseMod, uintptr_t szMod) {
     {
         unsigned char *tmp = baseMod;
+        static auto pat = BSF("6A6968????????68????????E8????????68????????E8????????83C410");
         for (unsigned i = 0; i != 2; i++) {
-            tmp =
-                scanBytes((unsigned char *)tmp, (szMod + baseMod) - tmp,
-                          BYTES_SEARCH_FORMAT("6A6968????????68????????E8??????"
-                                              "??68????????E8????????83C410"));
-            if (!tmp) break;
-            if (!memcmp((char *)*(uintptr_t *)((unsigned char *)tmp + 3),
-                        "ILTClient", 9))
-                g_pLTClient =
-                    (ILTClient *)*(uintptr_t *)((unsigned char *)tmp + 8);
-            else if (!memcmp((char *)*(uintptr_t *)((unsigned char *)tmp + 3),
-                             "ILTServer", 9))
-                g_pLTServer =
-                    (ILTServer *)*(uintptr_t *)((unsigned char *)tmp + 8);
-            tmp++;
+          tmp = scanBytes((unsigned char *)tmp, (szMod + baseMod) - tmp, reinterpret_cast<uint8_t *>(&pat));
+          if (!tmp) break;
+          if (!memcmp((char *)*(uintptr_t *)((unsigned char *)tmp + 3),
+                      "ILTClient", 9))
+            g_pLTClient = (ILTClient *)*(uintptr_t *)((unsigned char *)tmp + 8);
+          else if (!memcmp((char *)*(uintptr_t *)((unsigned char *)tmp + 3),
+                           "ILTServer", 9))
+            g_pLTServer = (ILTServer *)*(uintptr_t *)((unsigned char *)tmp + 8);
+          tmp++;
         }
     }
     if (!g_pLTServer) {
         unsigned char *tmp = 0;
-        tmp = scanBytes((unsigned char *)baseMod, szMod,
-                        BYTES_SEARCH_FORMAT("6A69E9????????68????????E8"));
+        static auto pat = BSF("6A69E9????????68????????E8");
+        tmp = scanBytes((unsigned char *)baseMod, szMod, reinterpret_cast<uint8_t *>(&pat));
         g_pLTServer = (ILTServer *)*(uintptr_t *)((unsigned char *)tmp + 8);
     }
 }
@@ -482,45 +478,43 @@ void SdkHandler::initServer() {
     g_pPhysicsLT = g_pLTServer->Physics();
     g_pModelLT = g_pLTServer->GetModelLT();
     {
+        static auto pat = BSF("8D????????????8B??E8????????8B????85");
         unsigned char *tmp = 0;
-        tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8D????????????8B??E8????????8B????85"));
+        tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             GameModeMgr_ServerSettings = *(unsigned *)(tmp + 2);
         }
     }
     {
+        static auto pat = BSF("8B??FF??????????8B????8B??6A32");
         unsigned char *tmp = 0;
-        tmp = scanBytes((unsigned char *)Server, ServerSz,
-                        BYTES_SEARCH_FORMAT("8B??FF??????????8B????8B??6A32"));
+        tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             ILTServer_GetRealTimeMS = *(unsigned *)(tmp + 4);
         }
     }
     {
+        static auto pat = BSF("FF92????????0FB64C24130FB65424128B44241051520FB6CC");
         unsigned char *tmp = 0;
         tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "FF92????????0FB64C24130FB65424128B44241051520FB6CC"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             ILTServer_GetClientAddr = *(unsigned *)(tmp + 2);
         }
     }
     {
+        static auto pat = BSF("0D0800800089??????????8B??????????68");
         unsigned char *tmp = 0;
         tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("0D0800800089??????????8B??????????68"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             g_pServerDB = *(CServerDB **)*(uintptr_t *)(tmp + 13);
         }
     }
     {
+        static auto pat = BSF("83E8??746F48741948");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("83E8??746F48741948"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         unsigned char i = *(tmp + 2);
         ukPEDropWeapon = i + 2;
         ukPENextSpawnPoint = i + 1;
@@ -537,143 +531,130 @@ void SdkHandler::initServer() {
             uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTServer) + n));
     }
     {
+        static auto pat = BSF("8B0D??????????6A00E8????????84C075??85??74??8B??8B");
         unsigned char *tmp = 0;
         tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "8B0D??????????6A00E8????????84C075??85??74??8B??8B"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             g_pServerMissionMgrAdr =
                 (CServerMissionMgr **)*(uintptr_t *)(tmp + 2);
         }
     }
-    g_pGameDatabaseMgr = (CGameDatabaseMgr *)*(uintptr_t *)*(
-        uintptr_t *)(scanBytes((unsigned char *)Server, ServerSz,
-                               BYTES_SEARCH_FORMAT(
-                                   "8B0D??????????E8????????85C074??80380074?"
-                                   "???8D????85")) +
-                     2);
     {
+        static auto pat = BSF("8B0D??????????E8????????85C074??80380074????8D????85");
+        g_pGameDatabaseMgr = (CGameDatabaseMgr *)*(uintptr_t *)*(
+            uintptr_t *)(scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat)) + 2);
+    }
+    {
+        static auto pat = BSF("8B????????????FF????8B????8B????8B??????8B");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8B????????????FF????8B????8B????8B??????8B"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pArsenal = (CArsenal *)**(unsigned **)(tmp + 2);
         CArsenal_m_pAmmo = *(unsigned char *)(tmp + 12);
     }
 
     {
+        static auto pat = BSF("E8????????8A??????????8A??????05");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("E8????????8A??????????8A??????05"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pGameModeMgr_instance = getVal4FromRel(tmp + 1);
     }
     {
+        static auto pat = BSF("FF??0884C00F??????????E8????????8BC8E8");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("FF??0884C00F??????????E8????????8BC8E8"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pServerVoteMgr_instance = getVal4FromRel(tmp + 12);
         g_pServerVoteMgr =
             ((ServerVoteMgr * (*)()) g_pServerVoteMgr_instance)();
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "E8????????8B??????83????0F??????????FF????????????8B"));
+        static auto pat = BSF("E8????????8B??????83????0F??????????FF????????????8B");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pServerVoteMgr_ClearVote = getVal4FromRel(tmp + 1);
     }
     {
+        static auto pat = BSF("E8????????8BC8E8????????85C074128B");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("E8????????8BC8E8????????85C074128B"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pServerConnectionMgr_instance = getVal4FromRel(tmp + 1);
         g_pGetGameClientData = getVal4FromRel(tmp + 8);
         g_pServerConnectionMgr =
             ((ServerConnectionMgr * (*)()) g_pServerConnectionMgr_instance)();
     }
     {
+        static auto pat = BSF("6A006A0351E8????????8BC8E8");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("6A006A0351E8????????8BC8E8"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pBootWithReason = getVal4FromRel(tmp + 13);
     }
 
     {
+        static auto pat = BSF("D986????????D94424??D84C24??D94424??D84C24??DEC1D94424??D84C24??DEC1D9C1");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("D986????????D94424??D84C24??D94424??"
-                                "D84C24??DEC1D94424??D84C24??DEC1D9C1"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_fLeashLen = *(unsigned *)(tmp + 2);
     }
     {
+        static auto pat = BSF("8B86????????50578D4C24??518D4C24??E8");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8B86????????50578D4C24??518D4C24??E8"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_fLeashSpringRate = *(unsigned *)(tmp + 2);
     }
     {
+        static auto pat = BSF("D986????????D94424??D84C24??D94424??D84C24??DEC1D94424??D84C24??DEC1D9FA");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("D986????????D94424??D84C24??D94424??"
-                                "D84C24??DEC1D94424??D84C24??DEC1D9FA"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_fLeashSpring = *(unsigned *)(tmp + 2);
     }
     {
+        static auto pat = BSF("D88E????????D95424??D8D9DFE0F6C405");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("D88E????????D95424??D8D9DFE0F6C405"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_fLeashScale = *(unsigned *)(tmp + 2);
     }
     {
+        static auto pat = BSF("8986????????E9????????8B0D????????8B");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8986????????E9????????8B0D????????8B"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_nLastPositionForcedTime = *(unsigned *)(tmp + 2);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("83????568BF18B86????????85C00F84????????E8"));
+        static auto pat = BSF("83????568BF18B86????????85C00F84????????E8");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_UpdateMovement = tmp;
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8B0D????????535350E8????????8B4424??473BF8"));
+        static auto pat = BSF("8B0D????????535350E8????????8B4424??473BF8");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         pCmdMgr = **(void ***)(tmp + 2);
         CCommandMgr_QueueCommand = getVal4FromRel(tmp + 10);
     }
     {
+        static auto pat = BSF("6A016A016A006A01528BCFE8");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("6A016A016A006A01528BCFE8"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_ChangeWeapon = getVal4FromRel(tmp + 12);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8D8B????????E8????????8BF88A4424??84C0"));
+        static auto pat = BSF("8D8B????????E8????????8BF88A4424??84C0");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_Arsenal = *(unsigned *)(tmp + 2);
         CArsenal_GetAmmoCount = getVal4FromRel(tmp + 7);
     }
     {
+        static auto pat = BSF("83BF??????????74??????????C2");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("83BF??????????74??????????C2"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_ePlayerState = *(unsigned *)(tmp + 2);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("4874??480F??????????8B??8B??FF??????????"));
+        static auto pat = BSF("4874??480F??????????8B??8B??FF??????????");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_DropCurrentWeapon = *(unsigned *)(tmp + 16);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "8B????????????89??????????E8????????8B??E8????????"
-                "85C00F??????????3A??????????0F??????????8A??????88"));
+        static auto pat = BSF("8B????????????89??????????E8????????8B??E8????????85C00F??????????3A??????????0F??????????8A??????88");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CPlayerObj_m_hClient = *(unsigned *)(tmp + 2);
             CPlayerObj_m_eStandingOnSurface = *(unsigned *)(tmp + 9);
@@ -682,11 +663,9 @@ void SdkHandler::initServer() {
         }
     }
     {
+        static auto pat = BSF("89??????????89??????????89??????????8B??????????E8????????84C00F??????????8D????????8D??????????E8");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "89??????????89??????????89??????????8B??????????E8??????"
-                "??84C00F??????????8D????????8D??????????E8"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CPlayerObj_m_vLastVelocity = *(unsigned *)(tmp + 2);
             g_pGameServerShell = (void *)*(uintptr_t *)*(unsigned *)(tmp + 20);
@@ -696,20 +675,17 @@ void SdkHandler::initServer() {
         }
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("C6??????????01EB0F68????????6A01E8??????"
-                                "??83C4088B??????8B??????8B??????89"));
+        static auto pat = BSF("C6??????????01EB0F68????????6A01E8????????83C4088B??????8B??????8B??????89");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CPlayerObj_m_bUseLeash = *(unsigned *)(tmp + 2);
             CPlayerObj_m_vLastClientPos = *(unsigned *)(tmp + 38);
         }
     }
     {
+        static auto pat = BSF("D9??????????D8??????????8B??6A208B??D9??????8B442414");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "D9??????????D8??????????8B??6A208B??D9??????8B442414"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CPlayerObj_m_fMoveMultiplier = *(unsigned *)(tmp + 8);
             CPlayerObj_m_fJumpMultiplier =
@@ -717,87 +693,75 @@ void SdkHandler::initServer() {
         }
     }
     {
+        static auto pat = BSF("83EC????8B??8B??????????85??0F??????????8B??????????8B");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT(
-                "83EC????8B??8B??????????85??0F??????????8B??????????8B"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CPlayerObj_TeleportClientToServerPos = (void *)tmp;
         }
     }
     {
+        static auto pat = BSF("8B86????????85C08BBE????????7405BFC8000000");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("8B86????????85C08BBE????????7405BFC8000000"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CCharacter_m_hLadderObject = *(unsigned *)(tmp + 2);
         }
     }
     {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("8B4708508BCBE8????????84C0"));
+        static auto pat = BSF("8B4708508BCBE8????????84C0");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             CGrenadeProximity_IsEnemy = getVal4FromRel(tmp + 7);
         }
     }
     {
+        static auto pat = BSF("508B44????508BCBE8????????8B44242C");
         unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("508B44????508BCBE8????????8B44242C"));
+            (unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CArsenal_SetAmmo = getVal4FromRel(tmp + 9);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("508B44????508BCBE8????????8B44242C"));
+        static auto pat = BSF("508B44????508BCBE8????????8B44242C");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CArsenal_SetAmmo = getVal4FromRel(tmp + 9);
     }
     {
+        static auto pat = BSF("E8????????8B??????????8B??????8B??89??????6A01");
         unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "E8????????8B??????????8B??????8B??89??????6A01"));
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CArsenal_m_hCurWeapon = *(unsigned *)(tmp + 7) - CPlayerObj_m_Arsenal;
         CArsenal_m_pPlayer = CArsenal_m_hCurWeapon - sizeof(uintptr_t);
         CArsenal_GetCurWeapon = getVal4FromRel(tmp + 1);
     }
     {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("8B??????85C0568BF1742A"));
+        static auto pat = BSF("8B??????85C0568BF1742A");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CArsenal_DecrementAmmo = tmp;
     }
 
     {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "8D??????????E8????????8B??????????3B??74??6A01"));
+        static auto pat = BSF("8D??????????E8????????8B??????????3B??74??6A01");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         CPlayerObj_m_Inventory = *(unsigned *)(tmp + 2);
     }
 
     {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT(
-                          "FF52??89??????8B????????6A00??8B??????????E8"));
+        static auto pat = BSF("FF52??89??????8B????????6A00??8B??????????E8");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pWeaponDB = (CWeaponDB *)*(uintptr_t *)*(uintptr_t *)(tmp + 17);
         g_pWeaponDB_GetWeaponData = getVal4FromRel(tmp + 22);
     }
 
     {
-        unsigned char *tmp =
-            scanBytes((unsigned char *)Server, ServerSz,
-                      BYTES_SEARCH_FORMAT("E8????????8B??????????6A006A0068????"
-                                          "??????89??????E8????????83"));
+        static auto pat = BSF("E8????????8B??????????6A006A0068??????????89??????E8????????83");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pWeaponDB_GetAmmoData = getVal4FromRel(tmp + 1);
         g_pWeaponDB_GetInt32 = getVal4FromRel(tmp + 26);
     }
     {
-        unsigned char *tmp = scanBytes(
-            (unsigned char *)Server, ServerSz,
-            BYTES_SEARCH_FORMAT("6A006A0068????????56E8????????84C07514"));
+        static auto pat = BSF("6A006A0068????????56E8????????84C07514");
+        unsigned char *tmp = scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pWeaponDB_GetBool = getVal4FromRel(tmp + 11);
     }
     m_hPlayer = g_pLTDatabase->GetRecord(
@@ -852,9 +816,9 @@ void SdkHandler::initClient() {
     g_pLTDatabase = getDatabaseMgr();
     getLTServerClient(gFearExe, gFearExeSz);
     {
+        static auto pat = BSF("8B0D????????83C40481C1????????56894C242CE8");
         void *tmp = scanBytes(
-            (unsigned char *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT("8B0D????????83C40481C1????????56894C242CE8"));
+            (unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
         g_pInterfaceMgr = (CInterfaceMgr *)*(uintptr_t *)*(
             uintptr_t *)((unsigned char *)tmp + 2);
         while (true)
@@ -866,9 +830,8 @@ void SdkHandler::initClient() {
     printf("clientfx");
     handler.serverPreinitPatches();
     {
-        uint8_t *tmp = scanBytes(
-            (uint8_t *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT("B9????????E8????????A1????????33F6"));
+        static auto pat = BSF("B9????????E8????????A1????????33F6");
+        uint8_t *tmp = scanBytes((uint8_t *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
         auto clientfx_ptr = *reinterpret_cast<uint32_t *>(tmp+1);
         tmp = reinterpret_cast<uint8_t *>(*reinterpret_cast<uint32_t *>(clientfx_ptr+0x20));
         auto modSz = GetModuleSize(tmp);
@@ -883,39 +846,36 @@ void SdkHandler::initClient() {
         }
     }
     {
+        static auto pat = BSF("8B??????????85C95774??8B11FF????");
         void *tmp =
-            scanBytes((unsigned char *)gClient, gClientSz,
-                      BYTES_SEARCH_FORMAT("8B??????????85C95774??8B11FF????"));
+            scanBytes((unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
         ClientConnectionMgr_IGameSpyBrowser =
             *(uintptr_t *)((unsigned char *)tmp + 2);
     }
 
     {
+        static auto pat = BSF("8B0D????????5053E8????????8AD88B44240CF6DB1ADB8D4C2410");
         void *tmp = scanBytes(
-            (unsigned char *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT(
-                "8B0D????????5053E8????????8AD88B44240CF6DB1ADB8D4C2410"));
+            (unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
         g_pClientConnectionMgr =
             (ClientConnectionMgr *)*(uintptr_t *)((unsigned char *)tmp + 2);
     }
     {
+        static auto pat = BSF("892D????????E8????????A1????????508D8D????????E8????????33DBC685????????01");
         unsigned char *tmp = (unsigned char *)(uintptr_t *)(scanBytes(
-            (unsigned char *)gClient, gClientSz,
-            BYTES_SEARCH_FORMAT(
-                "892D????????E8????????A1????????508D8D????????E8????????"
-                "33DBC685????????01")));
+            (unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat)));
         if (tmp) g_pScreenMultiAdr = tmp + 2;
     }
-    hsplice.spliceUp(
-        scanBytes((unsigned char *)gClient, gClientSz,
-                  BYTES_SEARCH_FORMAT(
-                      "8B??68????????E8????????8B????8B??????????8B??33?"
-                      "?????68??????????FF")),
-        (void *)hookGetScreenMulti);
+    {
+      static auto pat = BSF("8B??68????????E8????????8B????8B??????????8B??33??????68??????????FF");
+      hsplice.spliceUp(
+          scanBytes((unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookGetScreenMulti);
+    }
     if (g_pScreenMultiAdr) {
+        static auto pat = BSF("8B44240483EC1885C0744E8038007449");
         g_pScreenMulti_RequestServerDetails =
-            scanBytes((unsigned char *)gClient, gClientSz,
-                      BYTES_SEARCH_FORMAT("8B44240483EC1885C0744E8038007449"));
+            scanBytes((unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
     }
 
     /*spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
@@ -923,42 +883,42 @@ void SdkHandler::initClient() {
     /*spliceUp(scanBytes((unsigned char *)gClient, gClientSz,
                     (char
      *)"8B??????81??03020000??8B??????0F"),SdkHandlerUpdate);*/
-    if(handler.m_isHttpMaster)
-        hsplice.spliceUp(
-            scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                      BYTES_SEARCH_FORMAT("A1????????81EC????????85C0558BAC")),
-            (void *)SdkHandlerUpdate);
+    if(handler.m_isHttpMaster){
+      static auto pat = BSF("A1????????81EC????????85C0558BAC");
+      hsplice.spliceUp(
+          scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)SdkHandlerUpdate);
+    }
 
     g_doConnectIpAdrExit = reinterpret_cast<uint8_t *>(reinterpret_cast<uintptr_t>(g_doConnectIpAdrTramp) - 0xc);
     if (g_doConnectIpAdrTramp) {
         {
-            void *tmp = scanBytes(
-                (unsigned char *)gFearExe, gFearExeSz,
-                BYTES_SEARCH_FORMAT("6A00??6A00E8????????8B??85??7417"));
+            static auto pat = BSF("6A00??6A00E8????????8B??85??7417");
+            void *tmp = scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat));
             tmp = (unsigned char *)tmp + ((sizeof("6A00??6A00E8") - 1) / 2);
             tmp = (unsigned char *)tmp + (*(uintptr_t *)tmp) + 4;
             unknownFunc2 = tmp;
         }
-        getStructFromString1 =
-            scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                      BYTES_SEARCH_FORMAT("5355568BE98B45145733FF85C07638"));
+        {
+          static auto pat = BSF("5355568BE98B45145733FF85C07638");
+          getStructFromString1 =
+              scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat));
+        }
 
         {
-            void *tmp =
-                scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                          BYTES_SEARCH_FORMAT(
-                              "8B0D????????50E8????????85C08B4C24108901740C"));
-            unknownStruct1 = (void *)*(uintptr_t *)((unsigned char *)tmp + 2);
+          static auto pat = BSF("8B0D????????50E8????????85C08B4C24108901740C");
+          void *tmp = scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat));
+          unknownStruct1 = (void *)*(uintptr_t *)((unsigned char *)tmp + 2);
         }
         hsplice.spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
                       BYTES_SEARCH_FORMAT("83E8028BCE74488B166A01FF12")), (void *)hookOnConnectServer);
     }
-    g_pGameDatabaseMgr = (CGameDatabaseMgr *)*(uintptr_t *)*(
-        uintptr_t *)(scanBytes((unsigned char *)gClient, gClientSz,
-                               BYTES_SEARCH_FORMAT(
-                                   "8B0D????????8B41248B1650A1????????"
-                                   "508BCEFF526885C08BCF751350E8")) +
-                     2);
+    {
+      static auto pat = BSF("8B0D????????8B41248B1650A1????????508BCEFF526885C08BCF751350E8");
+      g_pGameDatabaseMgr = (CGameDatabaseMgr *)*(uintptr_t *)*(
+          uintptr_t *)(scanBytes((unsigned char *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat)) +
+                       2);
+    }
     m_hModelsCat = g_pLTDatabase->GetCategory(
         *(HDATABASE *)((unsigned char *)g_pGameDatabaseMgr + 0x20),
         "Character/Models");

@@ -20,6 +20,7 @@ class ExecutionHandler {
     }
     static ExecutionHandler *regcall instance();
     static uintptr_t stdcall handleClientThread();
+    static uintptr_t stdcall handleServerThread();
     void init();
     AppHandler *regcall appHandler() { return m_appHandler.get(); }
     SdkHandler *regcall sdkHandler() { return m_sdkHandler.get(); }

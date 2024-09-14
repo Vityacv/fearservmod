@@ -97,6 +97,7 @@ OpenSpy is default master server, but if you want connect to alternative server,
 ```
 [Client]
 Master=http://cpp.mx/api/serverlist-ingame.php
+; ShowIntro=1
 ; MOTD=http://motd.gamespy.com/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
 [Server]
 NS1=n1.fear-combat.org
@@ -134,7 +135,8 @@ Vote hack<br>
 Multiple kills of same target bug<br>
 Clear vote process after map loaded<br>
 Early respawn crash<br>
-Ainimation speed crash<br>
+Animation speed crash<br>
+RunSpeed hack v1<br>
 Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
@@ -176,9 +178,9 @@ Pickup enemy or team pickups hack<br>
 Enhanced server log<br>
 
 # How to compile:
-requirements: linux distribution (I use archlinux), mingw-w64, nasm.
+Requirements: linux distribution (I use archlinux), mingw-w64, nasm.
 
-build steps:
+Build steps:
 ```
 git clone https://github.com/Vityacv/fearservmod.git
 cd fearservmod

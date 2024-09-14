@@ -1,4 +1,8 @@
 #include "pch.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 #include "shared/common_macro.h"
 #include "shared/string_utils.h"
 #include "shared/memory_utils.h"
@@ -10,10 +14,7 @@
 #include "shared/patch_handler.h"
 #include "apphandler.h"
 #include "sdkhandler.h"
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
+
 
 extern "C" void __stdcall hideDll(HMODULE hmod1);
 
@@ -42,7 +43,7 @@ void ExecutionHandler::init() {
         appHandler.init();
     } else {
         // ExecutionHandler *handler = instance();
-        hideDll(reinterpret_cast<HMODULE>(m_instance));
+        // hideDll(reinterpret_cast<HMODULE>(m_instance));
         appHandler.clientPreinitPatches();
         CloseHandle(CreateThread(0, 0x1000,
                                  reinterpret_cast<LPTHREAD_START_ROUTINE>(
@@ -54,6 +55,12 @@ void ExecutionHandler::init() {
 uintptr_t ExecutionHandler::handleClientThread() {
     ExecutionHandler *handler = instance();
     handler->appHandler()->initClient();
+    return 0;
+}
+
+uintptr_t ExecutionHandler::handleServerThread() {
+    ExecutionHandler *handler = instance();
+    handler->appHandler()->init();
     return 0;
 }
 

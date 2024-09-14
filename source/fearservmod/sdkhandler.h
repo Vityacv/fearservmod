@@ -39,6 +39,8 @@ struct playerData {
     bool isAimed;
     bool isAnim;
     LTRotation camRot;
+    bool invalidSpeed;
+    int invalidSpeedCnt;
 };
 
 template <typename T>
@@ -264,7 +266,6 @@ class SdkHandler {
     HCATEGORY m_hModelsCat;
     HCATEGORY m_hCatGlobal;
     HRECORD m_hRecGlobal;
-    HRECORD m_hPlayer;
     uint32_t ILTServer_GetRealTimeMS;
     uint32_t ILTServer_GetClientAddr;
     uint32_t GameClientData_m_nClientMoveCode;
@@ -274,7 +275,7 @@ class SdkHandler {
     uint32_t CPlayerObj_m_PlayerRigidBody;
     uint32_t CPlayerObj_m_bUseLeash;
     uint32_t CPlayerObj_m_vLastClientPos;
-    uint32_t CPlayerObj_m_fMoveMultiplier;
+    
     uint32_t CPlayerObj_m_fJumpMultiplier;
     uint32_t CPlayerObj_DropCurrentWeapon;
     uint32_t CPlayerObj_m_fLeashLen;
@@ -283,7 +284,6 @@ class SdkHandler {
     uint32_t CPlayerObj_m_fLeashScale;
     uint32_t CPlayerObj_m_nLastPositionForcedTime;
     uint32_t CArsenal_m_pPlayer;
-    uint32_t GameModeMgr_ServerSettings;
     uint32_t CCharacter_m_hLadderObject;
     uint32_t ClientConnectionMgr_IGameSpyBrowser;
     uint32_t m_timerGamespyServ;
@@ -321,6 +321,9 @@ class SdkHandler {
                                               45, 46, 47, 23, 24, 25,
                                               22};  //,26,27,28,29,30,52,53};;
    public:
+    uint32_t CPlayerObj_m_fMoveMultiplier;
+    HRECORD m_hPlayer;
+    uint32_t GameModeMgr_ServerSettings;
     std::shared_ptr<CRITICAL_SECTION> g_ipchunkSection;
     std::unordered_map<uint32_t, std::unordered_map<uint16_t, uint32_t>> m_ipData;
     uint8_t ukPEPrevSpawnPoint;

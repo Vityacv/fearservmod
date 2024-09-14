@@ -1,4 +1,9 @@
 #include "pch.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <float.h>
+#endif
 #include "shared/common_macro.h"
 #include "shared/memory_utils.h"
 #include "shared/string_utils.h"
@@ -8,19 +13,28 @@
 #include "apphandler.h"
 #include "sdkhandler.h"
 #include "executionhandler.h"
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <float.h>
-#endif
+
 extern "C" volatile uint8_t *g_doConnectIpAdrTramp = 0;
 
 AppHandler::AppHandler() {
-    m_eServer =
-            reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")));
-    // m_haved3d = reinterpret_cast<uint8_t *>(GetModuleHandle(_T("d3dx9_27.dll"))) != nullptr;
-    m_Exec = reinterpret_cast<uint8_t *>(GetModuleHandle(0));
-    m_ExecSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Exec));
+
+  m_eServerModule =
+        reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")));
+  // {
+  //   auto exec_section =
+  //       GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_eServerModule));
+  //   m_eServer = reinterpret_cast<uint8_t *>(m_eServerModule +
+  //                                           exec_section->VirtualAddress);
+  //   m_eServerSz = exec_section->SizeOfRawData;
+  // }
+  {
+    m_ExecModule = reinterpret_cast<uint8_t *>(GetModuleHandle(0));
+    auto exec_section =
+        GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_ExecModule));
+    m_Exec = reinterpret_cast<uint8_t *>(m_ExecModule +
+                                         exec_section->VirtualAddress);
+    m_ExecSz = exec_section->SizeOfRawData;
+  }
 }
 
 void AppHandler::hookPlayWave(SpliceHandler::reg *p)
@@ -346,7 +360,7 @@ void AppHandler::hookGameMode2(SpliceHandler::reg *p) {
 
 void AppHandler::configParse(char *pathCfg)
 {
-    m_preventNoclip = getCfgInt(pathCfg, (char *)"PreventNoclip");
+    m_preventNoclip = getCfgInt(pathCfg, (char *)"PreventNoclip", 1);
     // bIgnoreUnusedMsgID = getCfgInt(pathCfg, (char *)"PreventSpecialMsg");
     m_bSyncObjects = getCfgInt(pathCfg, (char *)"SyncObjects");
     bCustomSkins = getCfgInt(pathCfg, (char *)"CustomSkins");
@@ -392,8 +406,16 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
     auto &inst = *ExecutionHandler::instance()->appHandler();
     auto &hsplice = *inst.spliceHandler();
     auto &hpatch = *inst.patchHandler();
-    inst.m_Server = reinterpret_cast<uint8_t*>(p->tax);
-    inst.m_ServerSz = GetModuleSize((HMODULE)inst.m_Server);
+    // inst.m_Server = reinterpret_cast<uint8_t *>(p->tax);
+    // inst.m_ServerSz = GetModuleSize((HMODULE)inst.m_Server);
+    {
+      inst.m_ServerModule = reinterpret_cast<uint8_t *>(p->tax);
+      auto exec_section =
+          GetModuleFirstExecSection(reinterpret_cast<HMODULE>(inst.m_ServerModule));
+      inst.m_Server = reinterpret_cast<uint8_t *>(inst.m_ServerModule +
+                                           exec_section->VirtualAddress);
+      inst.m_ServerSz = exec_section->SizeOfRawData;
+    }
     {
         static auto pat = BSF("E8????????8BC8E8????????8D4C????FF15????????8B");
         unsigned char *tmp = scanBytes(
@@ -926,14 +948,14 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
             case StringUtil::hash_ct("Melee_JabRight"):
             case StringUtil::hash_ct("Melee_JabLeft"):
-                // spawnLog = true;
-              unarmFireDelay = 0x100;
+                spawnLog = true;
+              // unarmFireDelay = 0x100;
               if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
                 break;
               p->state = 1;
               break;
             case StringUtil::hash_ct("Melee_RifleButt"):
-              unarmFireDelay = 0x100;
+              // unarmFireDelay = 0x100;
 
             //          auto rot = LTRotation();
 
@@ -982,7 +1004,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
               //   p->state = 1;
               break;
             case StringUtil::hash_ct("Melee_SlideKick"):
-              unarmFireDelay = 0x16;
+              // unarmFireDelay = 0x16;
               if (sdk.isXP2) {
                 if (hAnim == 0x12C || hAnim == 0x47D)
                   break;
@@ -992,12 +1014,12 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
               break;
             case StringUtil::hash_ct("Melee_RunKickLeft"):
             case StringUtil::hash_ct("Melee_RunKickRight"):
-              unarmFireDelay = 0x50;
+              // unarmFireDelay = 0x50;
               if (hAnim != 0x12E)
                 p->state = 1;
               break;
             case StringUtil::hash_ct("Melee_JumpKick"):
-              unarmFireDelay = 0x30;
+              // unarmFireDelay = 0x30;
               if (hAnim != 0x12D)
                 p->state = 1;
               break;
@@ -1009,20 +1031,20 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
               switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
               case StringUtil::hash_ct("Melee_JabRight"):
               case StringUtil::hash_ct("Melee_JabLeft"):
-                unarmFireDelay = 0x100;
+                // unarmFireDelay = 0x100;
                 break;
               case StringUtil::hash_ct("Melee_RifleButt"):
-                unarmFireDelay = 0x100;
+                // unarmFireDelay = 0x100;
                 break;
               case StringUtil::hash_ct("Melee_SlideKick"):
-                unarmFireDelay = 0x16;
+                // unarmFireDelay = 0x16;
                 break;
               case StringUtil::hash_ct("Melee_RunKickLeft"):
               case StringUtil::hash_ct("Melee_RunKickRight"):
-                unarmFireDelay = 0x50;
+                // unarmFireDelay = 0x50;
                 break;
               case StringUtil::hash_ct("Melee_JumpKick"):
-                unarmFireDelay = 0x30;
+                // unarmFireDelay = 0x30;
                 break;
               default:
                 p->state = 1;
@@ -1205,6 +1227,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                 pPlData->lastFireWeaponClipAmmo = 0;
                 pPlData->lastFireWeaponTimestamp = 0;
                 pPlData->lastFireWeaponIgnored = fireServTimestamp;
+                // pPlData->invalidSpeed=true;
                 p->state = 0;
                 break;
               }
@@ -1229,13 +1252,16 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                pPlData->lastFireWeaponTimestamp = 0;
                break;
              }*/
+              DBGLOG("UNARM delta %d delay %d anim %s", (fireTimestamp - pPlData->lastFireWeaponTimestamp), unarmFireDelay, (char *)*(uintptr_t *)(hAmmo));
             if (bUnarmed && (fireTimestamp - pPlData->lastFireWeaponTimestamp) <
                                 unarmFireDelay) { // original unarm FireDelay is 0
                                                   // so we add extra check
+                DBGLOG("detected UNARM RAPID?")
               p->state = 0;
               pPlData->lastFireWeaponClipAmmo = 0;
               pPlData->lastFireWeaponTimestamp = 0;
               pPlData->lastFireWeaponIgnored = fireServTimestamp;
+              // pPlData->invalidSpeed=true;
               break;
             }
           }
@@ -1243,11 +1269,9 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           pPlData->lastFireWeaponTimestamp = fireTimestamp;
         }
       }
-      if(spawnLog){
+      if(inst.m_bRandWep && spawnLog){
 
-          if(!inst.m_bRandWep) {
-
-          void * SpawnObject = inst.m_Server+0x16B650;
+          void * SpawnObject = inst.m_ServerModule+0x16B650;
           auto rot = LTRotation();
           rot.m_Quat[0] = 0.0;
           rot.m_Quat[1] = 0.0;
@@ -1269,7 +1293,6 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                           0x10c30,
                                           0x10c30);
           }
-          }
       }
 
     }
@@ -1282,8 +1305,10 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       }
       HGEAR hGear =
           pMsgRead->ReadDatabaseRecord(sdk.g_pLTDatabase, sdk.m_hCatGear);
-      if (hGear && StringUtil::hash_rt((char *)*(uintptr_t *)(hGear)) != StringUtil::hash_ct("MedKit"))
+      if (hGear && StringUtil::hash_rt((char *)*(uintptr_t *)(hGear)) != StringUtil::hash_ct("MedKit")) {
+        pPlData->invalidSpeed=true;
         p->state = 1;
+        }
       break;
     } break;
     case MID_DROP_GRENADE: {
@@ -1436,15 +1461,44 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             if (bSetRate) {
               unsigned var = pMsgRead->ReadBits(0x20);
               float fRate = reinterpret_cast<float &>(var);
-              DBGLOG("fRate %llf", fRate);
+              // DBGLOG("fRate %llf", fRate);
               if (fRate <= 0.0f || fRate > 100.0f) {
+                pPlData->invalidSpeed = true;
                 p->state = 1;
                 break;
+              } else{
+                CArsenal *pArsenal = (CArsenal *)((unsigned char *)pPlayerObj +
+                                                  sdk.CPlayerObj_m_Arsenal);
+                if (pArsenal) {
+                  HWEAPON hWeapon = *(HWEAPON *)((unsigned char *)pArsenal +
+                                                 sdk.CArsenal_m_hCurWeapon);
+                  HWEAPONDATA hWpnData = sdk.GetWeaponData(hWeapon);
+                  uint32_t nValueIndex = 0;
+                  float fDef = 0.0f;
+                  float fMovementMultiplier = sdk.g_pLTDatabase->GetFloat(
+                      sdk.g_pLTDatabase->GetAttribute(
+                          hWpnData, WDB_WEAPON_fMovementMultiplier),
+                      nValueIndex, fDef);
+                  float fMoveMultiplier =
+                      *(float *)((unsigned char *)pPlayerObj +
+                                 sdk.CPlayerObj_m_fMoveMultiplier);
+                  auto f = fMovementMultiplier * fMoveMultiplier;
+                  // DBGLOG("whatever speed? %llf", f);
+                  if (fRate > f) {
+                    if((pPlData->invalidSpeedCnt++)==2) {
+                        DBGLOG("invalid speed detected! f=%llf frate=%llf", f, fRate);
+                        pPlData->invalidSpeed = true;
+                    }
+                  }
+                  else pPlData->invalidSpeedCnt = 0;
+                }
               }
             }
           }
         }
       }
+      if(pPlData->invalidSpeed)
+        p->state = 1;
     } break;
     case MID_CLIENTCONNECTION:
       switch (pMsgRead->ReadBits(8)) {
@@ -2467,13 +2521,15 @@ void AppHandler::init()
 {
     srand(time(0));
     loadConfig();
-    m_eServerSz = GetModuleSize((HMODULE)m_eServer);
     SpliceHandler &hsplice = *spliceHandler();
     {
         static auto pat = BSF("84??75????68??????????E8????????8B??83C40885??74");
         hsplice.spliceUp(
             scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
             (void *)hookLoadGameServer);
+        // hsplice.spliceUp(
+        //     scanBytes((unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+        //     (void *)hookLoadGameServer);
     }
     {
       static auto pat = BSF("8D????????????8B??E8????????8B????85C075??E8????????8B");
@@ -2499,9 +2555,17 @@ void AppHandler::init()
 }
 
 void AppHandler::serverPreinitPatches() {
-    m_eServer =
-            reinterpret_cast<uint8_t *>(LoadLibrary(_T("engineserver.dll")));
-    m_eServerSz = m_eServerSz = GetModuleSize((HMODULE)m_eServer);
+  if(m_eServerModule =
+        reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")))){
+    auto exec_section =
+        GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_eServerModule));
+    m_eServer = reinterpret_cast<uint8_t *>(m_eServerModule +
+                                            exec_section->VirtualAddress);
+    m_eServerSz = exec_section->SizeOfRawData;
+  }
+    // m_eServer =
+    //         reinterpret_cast<uint8_t *>(LoadLibrary(_T("engineserver.dll")));
+    // m_eServerSz = m_eServerSz = GetModuleSize((HMODULE)m_eServer);
     { // KickPBCLDLL server
         static auto pat = BSF("A1????????85C00F85????????C705");
         uint8_t *tmp =
@@ -2667,9 +2731,16 @@ void AppHandler::initClient() {
             }
             Sleep(50);
         }
-        m_Client = reinterpret_cast<uint8_t *>(adr);
+        m_ClientModule = reinterpret_cast<uint8_t *>(adr);
     }
-    m_ClientSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Client));
+    {
+      auto exec_section =
+          GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_ClientModule));
+      m_Client = reinterpret_cast<uint8_t *>(m_ClientModule +
+                                           exec_section->VirtualAddress);
+      m_ClientSz = exec_section->SizeOfRawData;
+    }
+    // m_ClientSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Client));
 //    {
 //        uint8_t *tmp =
 //            scanBytes(m_Client, m_ClientSz,
@@ -2788,6 +2859,16 @@ void AppHandler::initClient() {
         }
     }
     {
+        static auto pat = BSF("FF50??8BF085F60F84????????8B0655");
+        uint8_t *tmp = scanBytes(
+            m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // NoUpdatePunkBuster
+        if (tmp) {
+            uint8_t d[] = {0x58, 0x31, 0xC0};
+            hpatch.addCode(tmp,3);
+            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 3);
+        }
+    }
+    {
         static auto pat = BSF("0F94C16A01518B8E??00000052");
         uint8_t *tmp =
             scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
@@ -2902,8 +2983,8 @@ void AppHandler::initClient() {
     }
 }
 
-uintptr_t AppHandler::getCfgInt(char *pathCfg, char *valStr) {
-    return GetPrivateProfileIntA("Extra", valStr, 0, pathCfg);
+uintptr_t AppHandler::getCfgInt(char *pathCfg, char *valStr, int def) {
+    return GetPrivateProfileIntA("Extra", valStr, def, pathCfg);
 }
 
 size_t AppHandler::getGlobalCfgString(wchar_t *pathCfg, wchar_t *valStr,

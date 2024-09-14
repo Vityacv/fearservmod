@@ -1,4 +1,9 @@
 #include "pch.h"
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#endif
 #include "shared/common_macro.h"
 #include "shared/memory_utils.h"
 #include "shared/debug.h"
@@ -12,11 +17,7 @@
 #include "shared/string_utils.h"
 #include "apphandler.h"
 #include <cstdint>
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#endif
+
 
 bool SdkHandler::isValidIpAddressPort(char *ipAddress) {
     sockaddr adr;
@@ -116,7 +117,7 @@ LTRESULT SdkHandler::getClientAddr(HCLIENT hClient, uint8_t pAddr[4],
 
 IDatabaseMgr *SdkHandler::getDatabaseMgr() {
     return ((IDatabaseMgr * (__stdcall *)()) GetProcAddress(
-        (HMODULE)ExecutionHandler::instance()->appHandler()->m_database,
+        (HMODULE)ExecutionHandler::instance()->appHandler()->m_databaseModule,
         "GetIDatabaseMgr"))();
 }
 
@@ -253,8 +254,9 @@ void SdkHandler::updateMovement(CPlayerObj *pPlayerObj) {
             pPlData->leashBrokenTimeMS = timeMs;
             if (pPlData->leashBrokenExceedCnt > 4)
               // g_pLTServer->KickClient(hClient);
-              BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Unstable connection or noclip");
+              pPlData->invalidSpeed = true;
+              // BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+              //                (char *)"Unstable connection or noclip");
             // DBGLOG("noclip fail")
             /*BootWithReason(pGameClientData,
                eClientConnectionError_InvalidAssets, (char *)0);*/
@@ -470,8 +472,15 @@ void SdkHandler::initServer() {
     uintptr_t gEServerSz = happ.m_eServerSz;
     g_ipchunkSection.reset(static_cast<CRITICAL_SECTION*>(new CRITICAL_SECTION()));
     InitializeCriticalSection(static_cast<CRITICAL_SECTION*>(g_ipchunkSection.get()));
-    happ.m_database = (unsigned char *)GetModuleHandle(L"GameDatabase");
-    happ.m_databaseSz = GetModuleSize((HMODULE)happ.m_database);
+    happ.m_databaseModule =
+        reinterpret_cast<uint8_t *>(GetModuleHandle(L"GameDatabase"));
+    auto exec_section = GetModuleFirstExecSection(
+        reinterpret_cast<HMODULE>(happ.m_databaseModule));
+    happ.m_database = reinterpret_cast<uint8_t *>(
+        happ.m_databaseModule + exec_section->VirtualAddress);
+    happ.m_databaseSz = exec_section->SizeOfRawData;
+    // happ.m_database = (unsigned char *)GetModuleHandle(L"GameDatabase");
+    // happ.m_databaseSz = GetModuleSize((HMODULE)happ.m_database);
     g_pLTDatabase = getDatabaseMgr();
     getLTServerClient(gEServer, gEServerSz);
     g_pCommonLT = g_pLTServer->Common();
@@ -811,8 +820,15 @@ void SdkHandler::initClient() {
     unsigned char *gFearExe = handler.m_Exec;
     uintptr_t gFearExeSz = handler.m_ExecSz;
     uintptr_t gClientSz = handler.m_ClientSz;
-    handler.m_database = (unsigned char *)GetModuleHandle(L"GameDatabase");
-    handler.m_databaseSz = GetModuleSize((HMODULE)handler.m_database);
+    handler.m_databaseModule =
+        reinterpret_cast<uint8_t *>(GetModuleHandle(L"GameDatabase"));
+    auto exec_section = GetModuleFirstExecSection(
+        reinterpret_cast<HMODULE>(handler.m_databaseModule));
+    handler.m_database = reinterpret_cast<uint8_t *>(
+        handler.m_databaseModule + exec_section->VirtualAddress);
+    handler.m_databaseSz = exec_section->SizeOfRawData;
+    // handler.m_database = (unsigned char *)GetModuleHandle(L"GameDatabase");
+    // handler.m_databaseSz = GetModuleSize((HMODULE)handler.m_database);
     g_pLTDatabase = getDatabaseMgr();
     getLTServerClient(gFearExe, gFearExeSz);
     {
@@ -827,14 +843,23 @@ void SdkHandler::initClient() {
             else
                 break;
     }
-    printf("clientfx");
-    handler.serverPreinitPatches();
+    // handler.serverPreinitPatches();
+    // if(handler.m_eServer)
+    // CloseHandle(CreateThread(0, 0x1000,
+    //                          reinterpret_cast<LPTHREAD_START_ROUTINE>(
+    //                              ExecutionHandler::handleServerThread),
+    //                          0, 0, 0));
     {
         static auto pat = BSF("B9????????E8????????A1????????33F6");
         uint8_t *tmp = scanBytes((uint8_t *)gClient, gClientSz, reinterpret_cast<uint8_t *>(&pat));
         auto clientfx_ptr = *reinterpret_cast<uint32_t *>(tmp+1);
-        tmp = reinterpret_cast<uint8_t *>(*reinterpret_cast<uint32_t *>(clientfx_ptr+0x20));
-        auto modSz = GetModuleSize(tmp);
+        tmp = reinterpret_cast<uint8_t *>(
+            *reinterpret_cast<uint32_t *>(clientfx_ptr + 0x20));
+        // auto modSz = GetModuleSize(tmp);
+        auto exec_section =
+            GetModuleFirstExecSection(reinterpret_cast<HMODULE>(tmp));
+        tmp = reinterpret_cast<uint8_t *>(tmp + exec_section->VirtualAddress);
+        auto modSz = exec_section->SizeOfRawData;
         auto currentTmp = tmp;
         for(int i = 0; i != 2; ++i){
             currentTmp = scanBytes(
@@ -1544,23 +1569,25 @@ void SdkHandler::hookOnConnectServer(
             uintptr_t *)((unsigned char *)structEbp + 0x1D8)));
         if (struct4) {
             unsigned char *struct5 = (unsigned char *)*(uintptr_t *)struct4;
-            if (!((bool(__thiscall *)(void *, unsigned char *))(void *)*(
-                    uintptr_t *)((unsigned char *)struct5 + 0x30))(
+            int status;
+            if ((status = ((int(__thiscall *)(void *, unsigned char *))(
+                    void *)*(uintptr_t *)((unsigned char *)struct5 + 0x30))(
                     struct4,
-                    (unsigned char *)((unsigned char *)structEdi + 0xD4))) {
-                ((bool(__thiscall *)(void *, unsigned char *, unsigned char *,
-                                     unsigned))(void *)handler.unknownFunc2)(
-                    structEsi, struct4, structEdi, 1);
-                auto status = *((unsigned char *)structEdi + 4);
-                if (status == 0) {
-                    p->origFunc = (uintptr_t)hookOnConnectServerRet;
-                    DBGLOG("%p tramp return 2", p->tax)
-                } else {
-                    p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
-                    p->tax = status;
-                }
+                    (unsigned char *)((unsigned char *)structEdi + 0xD4))) == 0) {
+              status = ((int(__thiscall *)(void *, unsigned char *, unsigned char *,
+                                   unsigned))(void *)handler.unknownFunc2)(
+                  structEsi, struct4, structEdi, 1);
+              // status = *((unsigned char *)structEdi + 4);
+            }
+            if (status == 0) {
+                p->origFunc = (uintptr_t)hookOnConnectServerRet;
+                DBGLOG("%p tramp return 2", p->tax)
+            } else {
+                p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
+                p->tax = status;
             }
         }
+
     }
     DBGLOG("%p return 32", p->tax)
 }

@@ -55,15 +55,20 @@ class AppHandler {
     uint8_t *m_isMultiplayerGameClient;
     uint8_t *m_RunGameModeXP;
     uint8_t *m_gameClientStruct;
+    uint8_t *m_databaseModule;
     uint8_t *m_database;
     uintptr_t m_databaseSz;
+    uint8_t *m_ServerModule;
     uint8_t *m_Server;
     uintptr_t m_ServerSz;
-    uint8_t *m_eServer;
+    uint8_t *m_eServerModule = nullptr;
+    uint8_t *m_eServer = nullptr;
     uintptr_t m_eServerSz;
     bool m_haved3d;
+    uint8_t *m_ExecModule;
     uint8_t *m_Exec;
     uintptr_t m_ExecSz;
+    uint8_t *m_ClientModule;
     uint8_t *m_Client;
     uintptr_t m_ClientSz;
     int m_playSound = 0;
@@ -79,7 +84,7 @@ class AppHandler {
     }
     SdkHandler *regcall sdkHandler() { return m_sdkHandler; }
     void regcall setSdkHandler(SdkHandler *handler) { m_sdkHandler = handler; }
-    bool regcall isServer() { return m_eServer != nullptr; }
+    bool regcall isServer() { return m_eServerModule != nullptr; }
     static void regcall hookSwitchToSP(SpliceHandler::reg *p);
     static void regcall hookSwitchToMP(SpliceHandler::reg *p);
     static void regcall hookSwitchToModeXP(SpliceHandler::reg *p);
@@ -116,7 +121,7 @@ class AppHandler {
     void regcall clientPreinitPatches();
     void regcall serverPreinitPatches();
     void regcall initClient();
-    uintptr_t regcall getCfgInt(char *pathCfg, char *valStr);
+    uintptr_t regcall getCfgInt(char *pathCfg, char *valStr, int def= 0);
     size_t regcall getGlobalCfgString(wchar_t *pathCfg, wchar_t *valStr,
                                       wchar_t *strDefault, wchar_t *buf,
                                       size_t nSize);

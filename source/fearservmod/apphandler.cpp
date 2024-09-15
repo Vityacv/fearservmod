@@ -778,6 +778,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         p->state = 1;
         break;
       }
+      pPlData->speedPrev = -1.0f;
+      pPlData->invalidSpeedCnt = 0;
       pPlData->onChangeWeaponHWEAPON =
           *(HWEAPON *)((unsigned char *)pArsenal + sdk.CArsenal_m_hCurWeapon);
       pPlData->onChangeWeaponTime = sdk.getRealTimeMS();
@@ -1463,7 +1465,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
               float fRate = reinterpret_cast<float &>(var);
               // DBGLOG("fRate %llf", fRate);
               if (fRate <= 0.0f || fRate > 100.0f) {
-                pPlData->invalidSpeed = true;
+                // pPlData->invalidSpeed = true;
                 p->state = 1;
                 break;
               } else{
@@ -1484,13 +1486,14 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                  sdk.CPlayerObj_m_fMoveMultiplier);
                   auto f = fMovementMultiplier * fMoveMultiplier;
                   // DBGLOG("whatever speed? %llf", f);
-                  if (fRate > f) {
-                    if((pPlData->invalidSpeedCnt++)==2) {
+                  if (pPlData->speedPrev <= 0) {
+                    pPlData->speedPrev = f;
+                  }
+                  pPlData->speedPrev = fRate > pPlData->speedPrev ? pPlData->speedPrev : fRate;
+                  if ((pPlData->speedPrev > f && (pPlData->invalidSpeedCnt++)==16) || (fRate > fMoveMultiplier+0.25f)) {
                         DBGLOG("invalid speed detected! f=%llf frate=%llf", f, fRate);
                         pPlData->invalidSpeed = true;
-                    }
-                  }
-                  else pPlData->invalidSpeedCnt = 0;
+                  } else {pPlData->invalidSpeedCnt = 0;}
                 }
               }
             }

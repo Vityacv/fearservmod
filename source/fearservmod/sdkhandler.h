@@ -41,6 +41,8 @@ struct playerData {
     LTRotation camRot;
     bool invalidSpeed;
     int invalidSpeedCnt;
+    float speedPrev;
+    float speedAvg;
 };
 
 template <typename T>

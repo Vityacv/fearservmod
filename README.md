@@ -10,6 +10,7 @@ Server side fixes (anti-cheat and server crash hacks)<br>
 Allows coop mode based on "F.E.A.R. Platinum"<br>
 Allows to play all singleplayer maps "F.E.A.R. Platinum" in "F.E.A.R. Perseus Mandate"<br>
 Allows connect to servers created on retail version to combat version and vice versa
+Allows to create 64 players servers
 
 # How to play F.E.A.R. Combat v1.08:
 1. Find game on https://github.com/anzz1/openspy-client
@@ -118,6 +119,7 @@ and make it read only to avoid reset
 # List of fixes:
 Allow use of FEAR.exe as FEARMP.exe to bypass DRM crash<br>
 Fix dinput random high drop fps<br>
+Fix SetWindowsHookExA input lag<br>
 Fix explosion flickering on high refresh rate monitors, like 144hz+<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Fix crash on pressing ESC while downloading content<br>

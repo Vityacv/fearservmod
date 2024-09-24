@@ -47,6 +47,7 @@ class AppHandler {
     unsigned m_storyModeCnt;
     char flagPatchHoleKillHives=-1;
     bool m_bCoop = 0;
+    bool m_bAdditionalContent = 0;
     bool m_bRandWep = 0;
     bool m_bExeType;
     uint8_t skinState;
@@ -103,6 +104,8 @@ class AppHandler {
     void regcall configParse(char * pathCfg);
     static void regcall hookConfigLoad(SpliceHandler::reg *p);
     static void regcall hookConfigLoad2(SpliceHandler::reg *p);
+    static void regcall hookMaxPlayers(SpliceHandler::reg *p);
+    static void regcall hookMaxPlayersHUD(SpliceHandler::reg *p);
     static void regcall hookLoadGameServer(SpliceHandler::reg *p);
     static void regcall hookSetObjFlags(SpliceHandler::reg *p);
     static void regcall hookStoryModeView(SpliceHandler::reg *p);

@@ -41,6 +41,7 @@ struct playerData {
     LTRotation camRot;
     bool invalidSpeed;
     int invalidSpeedCnt;
+    uint32_t spawnTime;
     float speedPrev;
     float speedAvg;
 };
@@ -241,7 +242,8 @@ void shuffle(T *array, size_t n) {
 //    }
 //};
 
-
+#define MAX_PLAYERS 256
+#define MAX_PLAYERSF MAX_PLAYERS
 class SdkHandler {
     AppHandler *m_appHandler;
     ILTCommon *g_pCommonLT;
@@ -327,6 +329,7 @@ class SdkHandler {
     HRECORD m_hPlayer;
     uint32_t GameModeMgr_ServerSettings;
     std::shared_ptr<CRITICAL_SECTION> g_ipchunkSection;
+    std::shared_ptr<CRITICAL_SECTION> g_pldataSection;
     std::unordered_map<uint32_t, std::unordered_map<uint16_t, uint32_t>> m_ipData;
     uint8_t ukPEPrevSpawnPoint;
     uint8_t ukPENextSpawnPoint;
@@ -431,6 +434,6 @@ class SdkHandler {
     static char *regcall getCurrentLevelNameStatic();
     SdkHandler();
     ~SdkHandler();
-    playerData pPlayerData[64];
+    playerData pPlayerData[MAX_PLAYERS];
 };
 #endif

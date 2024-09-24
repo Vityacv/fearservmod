@@ -471,7 +471,9 @@ void SdkHandler::initServer() {
     unsigned char *gEServer = happ.m_eServer;
     uintptr_t gEServerSz = happ.m_eServerSz;
     g_ipchunkSection.reset(static_cast<CRITICAL_SECTION*>(new CRITICAL_SECTION()));
+    g_pldataSection.reset(static_cast<CRITICAL_SECTION*>(new CRITICAL_SECTION()));
     InitializeCriticalSection(static_cast<CRITICAL_SECTION*>(g_ipchunkSection.get()));
+    InitializeCriticalSection(static_cast<CRITICAL_SECTION*>(g_pldataSection.get()));
     happ.m_databaseModule =
         reinterpret_cast<uint8_t *>(GetModuleHandle(L"GameDatabase"));
     auto exec_section = GetModuleFirstExecSection(
@@ -813,6 +815,10 @@ void SdkHandler::initServer() {
         0, 0);
 }
 
+bool callbackReturnTrue() {
+    return true;
+}
+
 void SdkHandler::initClient() {
     AppHandler &handler = *m_appHandler;
     SpliceHandler &hsplice = *handler.spliceHandler();
@@ -831,6 +837,12 @@ void SdkHandler::initClient() {
     // handler.m_databaseSz = GetModuleSize((HMODULE)handler.m_database);
     g_pLTDatabase = getDatabaseMgr();
     getLTServerClient(gFearExe, gFearExeSz);
+    unprotectMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
+                                                    uintptr_t *)g_pLTClient) +
+                                                0x1E0),
+                 sizeof(void *));
+    *(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTClient) + 0x1E0) =
+        (uintptr_t)&callbackReturnTrue;
     {
         static auto pat = BSF("8B0D????????83C40481C1????????56894C242CE8");
         void *tmp = scanBytes(
@@ -935,8 +947,10 @@ void SdkHandler::initClient() {
           void *tmp = scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat));
           unknownStruct1 = (void *)*(uintptr_t *)((unsigned char *)tmp + 2);
         }
-        hsplice.spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz,
-                      BYTES_SEARCH_FORMAT("83E8028BCE74488B166A01FF12")), (void *)hookOnConnectServer);
+        {
+        static auto pat = BSF("83E8028BCE74488B166A01FF12");
+            hsplice.spliceUp(scanBytes((unsigned char *)gFearExe, gFearExeSz, reinterpret_cast<uint8_t *>(&pat)), (void *)hookOnConnectServer);
+        }
     }
     {
       static auto pat = BSF("8B0D????????8B41248B1650A1????????508BCEFF526885C08BCF751350E8");
@@ -1113,10 +1127,6 @@ void SdkHandler::setExeType(bool state){
           (void *)(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTClient) +
                                 0x1E0),
           4, PAGE_READWRITE, (PDWORD)&tmp);*/
-    unprotectMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
-                                                    uintptr_t *)g_pLTClient) +
-                                                0x1E0),
-                 sizeof(void *));
     if (state)
         *(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTClient) + 0x1E0) =
             (uintptr_t)m_appHandler->m_isMultiplayerGameClient;

@@ -66,15 +66,23 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
             getRel4FromVal((tmp + 8), (unsigned char *)strcpy);
       }
     }
-    {
-      static auto pat = BSF("6A1068????????8B??83????6A0083");
-      unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
-          (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
-      if (tmp) {
-        m_patchHandler->addCode(tmp, 2);
-        *(uint16_t *)(tmp) = 0x27EB;  // disable magic value
-      }
+    // NoAvailableGameSpy
+    if (static auto pat = BSF("75??33D2895424??895424??89");
+        uint8_t *adr =
+            scanBytes(mod, modSz, reinterpret_cast<uint8_t *>(&pat))) {
+      m_patchHandler->addCode(adr, 1);
+      *static_cast<uint8_t *>(adr) = 0xEB;
     }
+
+    // {
+    //   static auto pat = BSF("6A1068????????8B??83????6A0083");
+    //   unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+    //       (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
+    //   if (tmp) {
+    //     m_patchHandler->addCode(tmp, 2);
+    //     *(uint16_t *)(tmp) = 0x27EB;  // disable magic value
+    //   }
+    // }
     if(mod == m_eServer) { //%s.ms%d.gamespy.com disable
       static auto pat = BSF("760DB8060000005D81C4????????C3");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
@@ -97,6 +105,16 @@ void AppHandler::patchEndpoints(uint8_t *mod, uint32_t modSz)
             getRel4FromVal((tmp + 17), (unsigned char *)strcpy);
       }
     } else {
+        //Fix +join ip:port crash
+        {
+            static auto pat = BSF("78??A1????????????E8????????83");
+              unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
+                  (unsigned char *)mod, modSz, reinterpret_cast<uint8_t *>(&pat)));
+              if(tmp) {
+                m_patchHandler->addCode(tmp, 1);
+                *reinterpret_cast<uint8_t *>(tmp) = 0xeb;
+              }
+        }
         {
           static auto pat = BSF("68????????50FF15????????83C41068");
           unsigned char *tmp = (unsigned char*)(unsigned char *)(unsigned *)(scanBytes(
@@ -365,6 +383,7 @@ void AppHandler::configParse(char *pathCfg)
     m_bSyncObjects = getCfgInt(pathCfg, (char *)"SyncObjects");
     bCustomSkins = getCfgInt(pathCfg, (char *)"CustomSkins");
     m_bCoop = getCfgInt(pathCfg, (char *)"CoopMode");
+    m_bAdditionalContent = getCfgInt(pathCfg, (char *)"AdditionalContent");
     m_bRandWep = getCfgInt(pathCfg, (char *)"RandomWeapon");
     m_bBotsMP = getCfgInt(pathCfg, (char *)"BotsMP");
     // pSdk->freeMovement=bPreventNoclip;
@@ -664,7 +683,9 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                   sdk.CPlayerObj_m_ePlayerState);
       if (inst.m_bCoop && !pPlData->bIsDead &&
           playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
+        EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         pPlData->bIsDead = 1;
+        LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         if (*(unsigned char *)((unsigned char *)pPlayerObj +
                                sdk.CCharacter_m_bOnGround)) {
           // HCLIENT playerClient = *(HCLIENT*)((unsigned char
@@ -778,11 +799,13 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         p->state = 1;
         break;
       }
+      EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       pPlData->speedPrev = -1.0f;
       pPlData->invalidSpeedCnt = 0;
       pPlData->onChangeWeaponHWEAPON =
           *(HWEAPON *)((unsigned char *)pArsenal + sdk.CArsenal_m_hCurWeapon);
       pPlData->onChangeWeaponTime = sdk.getRealTimeMS();
+      LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       HWEAPON hWeapon =
           pMsgRead->ReadDatabaseRecord(sdk.g_pLTDatabase, sdk.m_hCatWeapons);
       HAMMO hAmmo =
@@ -841,9 +864,31 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       if (len > (63 * sizeof(wchar_t)))
         p->state = 1;
     } break;
+    case MID_PLAYER_SPECTATORMODE: {
+      p->state = sdk.checkPlayerStatus(pGameClientData);
+      if (p->state) {
+        sdk.g_pLTServer->KickClient((HCLIENT)p->v0);
+        p->state = 1;
+      }
+      if ((playerState == ePlayerState_Alive) ||
+          (playerState == ePlayerState_Dying_Stage2) ||
+          (playerState == ePlayerState_Dying_Stage1)) {
+        p->state = 1;
+        break;
+      }
+    }
     case MID_PLAYER_RESPAWN: {
-
+      // TODO: nullify on malloc
+      // auto prevSpawn = sdk.pPlayerData[clientId].spawnTime;
+      EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       memset(&sdk.pPlayerData[clientId], 0, sizeof(playerData));
+      LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
+      // auto currentSpawnTime = sdk.getRealTimeMS();
+      // sdk.pPlayerData[clientId].spawnTime = currentSpawnTime;
+     //  if((currentSpawnTime - prevSpawn) < 2000) {
+     //    p->state = 1;
+     //    break;
+     // }
       p->state = sdk.checkPlayerStatus(pGameClientData);
       if (p->state) {
         sdk.g_pLTServer->KickClient((HCLIENT)p->v0);
@@ -1141,18 +1186,23 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         if (delta > 2048) { // rapid fire timer
           ((void(__thiscall *)(uintptr_t, uintptr_t, uintptr_t))p->hook)(
               p->tcx, p->v0, p->v1);
+          EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
           pPlData->lastFireWeaponIgnored = 0;
+          LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
+
         }
         p->state = 1;
         if (bUnarmed || (ammoInClip != pWeapon->m_nAmmoInClip)) {
           ammoInClip = pWeapon->m_nAmmoInClip;
           if (pPlData->lastFireWeapon != pWeapon) {
+            EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             pPlData->lastFireWeaponClipAmmo = 0;
             pPlData->lastFireWeaponTimestamp = 0;
             pPlData->lastFireWeaponReload = 0;
             pPlData->lastFireWeaponAccuracyFailCnt = 0;
             pPlData->lastFireWeaponAccuracyFail = 0;
             pPlData->lastFireWeapon = pWeapon;
+            LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             unsigned dwAni = 8; // RELOAD
             // pSdk->g_pModelLT->GetAnimIndex(pWeapon->m_hModelObject,"Reload",dwAni);
             // pSdk->g_pModelLT->GetAnimLength(pWeapon->m_hModelObject, dwAni,
@@ -1224,12 +1274,14 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             //  fireServTimestampCheck = fireServTimestamp - delay;
 
             if(fireTimestamp > (fireServTimestamp+0xFFFF)){
+                EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
                 ((unsigned(__thiscall *)(CArsenal *, HAMMO))
                      sdk.CArsenal_DecrementAmmo)(pArsenal, hAmmo);
                 pPlData->lastFireWeaponClipAmmo = 0;
                 pPlData->lastFireWeaponTimestamp = 0;
                 pPlData->lastFireWeaponIgnored = fireServTimestamp;
                 // pPlData->invalidSpeed=true;
+                LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
                 p->state = 0;
                 break;
               }
@@ -1260,17 +1312,22 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                                   // so we add extra check
                 DBGLOG("detected UNARM RAPID?")
               p->state = 0;
+              EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
               pPlData->lastFireWeaponClipAmmo = 0;
               pPlData->lastFireWeaponTimestamp = 0;
               pPlData->lastFireWeaponIgnored = fireServTimestamp;
+              LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
               // pPlData->invalidSpeed=true;
               break;
             }
           }
+          EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
           pPlData->lastFireWeaponClipAmmo = ammoInClip;
           pPlData->lastFireWeaponTimestamp = fireTimestamp;
+          LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         }
       }
+
       if(inst.m_bRandWep && spawnLog){
 
           void * SpawnObject = inst.m_ServerModule+0x16B650;
@@ -1308,7 +1365,6 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       HGEAR hGear =
           pMsgRead->ReadDatabaseRecord(sdk.g_pLTDatabase, sdk.m_hCatGear);
       if (hGear && StringUtil::hash_rt((char *)*(uintptr_t *)(hGear)) != StringUtil::hash_ct("MedKit")) {
-        pPlData->invalidSpeed=true;
         p->state = 1;
         }
       break;
@@ -1390,7 +1446,9 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     break;*/
     case MID_PLAYER_UPDATE: {
   //    unsigned timeMS = pSdk->getRealTimeMS();
+      EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
+      LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
   //    if (pPlData->thisMoveTimeMS >
   //        timeMS) // ignore messages that claim they from future
   //      p->state = 1;
@@ -1439,8 +1497,10 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                 (hAnim >= (65 - sdk.isXP2) && hAnim <= (83 - sdk.isXP2)) || (hAnim >= (99 - sdk.isXP2) && hAnim <= (107 - sdk.isXP2)))
               p->state = 1;
             //DBGLOG("anim: %p\n",hAnim);
+            EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             pPlData->hAnimPenult = pPlData->hAnim;
             pPlData->hAnim = hAnim;
+            LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             /*if(!hAnim){
               DBGLOG("hAnim is ZERO")
                 pSdk->g_pLTServer->KickClient((HCLIENT)p->v0);
@@ -1486,6 +1546,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                  sdk.CPlayerObj_m_fMoveMultiplier);
                   auto f = fMovementMultiplier * fMoveMultiplier;
                   // DBGLOG("whatever speed? %llf", f);
+                  EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
                   if (pPlData->speedPrev <= 0) {
                     pPlData->speedPrev = f;
                   }
@@ -1494,6 +1555,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                         DBGLOG("invalid speed detected! f=%llf frate=%llf", f, fRate);
                         pPlData->invalidSpeed = true;
                   } else {pPlData->invalidSpeedCnt = 0;}
+                  LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
                 }
               }
             }
@@ -1502,6 +1564,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       }
       if(pPlData->invalidSpeed)
         p->state = 1;
+      
     } break;
     case MID_CLIENTCONNECTION:
       switch (pMsgRead->ReadBits(8)) {
@@ -1637,6 +1700,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       unsigned voteTime = sdk.getRealTimeMS();
 
       if (pMsgRead->ReadBits(3) == eVote_Start) {
+        EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         p->state = sdk.checkPlayerStatus(pGameClientData);
         if (pPlData->lastVoteTime) {
           // ServerSettings * pServSettings = (ServerSettings *)((unsigned char
@@ -1663,6 +1727,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                            sizeof(uintptr_t);
           if (nMapIndex >= nMaps)
             p->state = 1;
+        LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         } else if (type == eVote_TeamKick) {
           unsigned nTargetId = pMsgRead->ReadBits(0x20);
           HCLIENT hTargetClient = sdk.g_pLTServer->GetClientHandle(nTargetId);
@@ -1677,6 +1742,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             p->state = 1;
         }
       }
+      
     } break;
     case MID_PLAYER_EVENT: {
       unsigned char type = pMsgRead->ReadBits(8);
@@ -1953,7 +2019,7 @@ void AppHandler::configHandle()
                 memcpy(tmp, moveax0, 5);
             }
         }
-        if (m_bCoop == 1) {
+        if (m_bCoop == 1 && m_bAdditionalContent == 0) {
             {
                 static auto pat = BSF("6A00????FF??????????8B??85??74??E8????????84??74");
                 hsplice.spliceUp(
@@ -1974,7 +2040,7 @@ void AppHandler::configHandle()
         spliceUp(tmp, (void *)fearData::hookUseSkin1);
       }
     }*/
-        } else if (m_bCoop == 2) {
+        } else if (m_bAdditionalContent == 1) {
             static auto pat = BSF("88861C0200008B44243C888E1D020000");
             hsplice.spliceUp(
                 scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
@@ -2520,6 +2586,21 @@ void AppHandler::loadConfig()
     }
 }
 
+void AppHandler::hookMaxPlayersHUD(SpliceHandler::reg *p) {
+    if(p->tax==15)
+        p->tbx=0;
+}
+
+void AppHandler::hookMaxPlayers(SpliceHandler::reg *p) {
+  if (p->tax) {
+    auto dbStr = reinterpret_cast<char **>(p->tax);
+    if (strcmp(*dbStr, "MaxPlayers.0.Range") == 0) {
+        auto ptr = **reinterpret_cast<uintptr_t **>((reinterpret_cast<uint8_t *>(p->tax)+0xC));
+        *reinterpret_cast<float *>(ptr+4) = MAX_PLAYERSF;
+    }
+  }
+}
+
 void AppHandler::init()
 {
     srand(time(0));
@@ -2533,6 +2614,13 @@ void AppHandler::init()
         // hsplice.spliceUp(
         //     scanBytes((unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
         //     (void *)hookLoadGameServer);
+    }
+    {
+      static auto pat = BSF("8B0D????????83C40C5056FF97");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookMaxPlayers);
     }
     {
       static auto pat = BSF("8D????????????8B??E8????????8B????85C075??E8????????8B");
@@ -2581,8 +2669,8 @@ void AppHandler::serverPreinitPatches() {
 }
 
 void AppHandler::clientPreinitPatches() {
-  // NoAvailableGameSpy
-  if (static auto pat = BSF("75??33D2895424??895424??89");
+  // FixLagSetWindowsHookExA
+  if (static auto pat = BSF("74??A1????????85C075??6A006A00FF15");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
     unprotectCode(adr, 1);
@@ -2602,7 +2690,7 @@ void AppHandler::clientPreinitPatches() {
     unprotectCode(adr, 1);
     *static_cast<uint8_t *>(adr) = 0xEB;
   }
-  // NoPBCLDLL
+  // `
   if (static auto pat = BSF("A1????????85C00F85????????C7");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
@@ -2742,6 +2830,20 @@ void AppHandler::initClient() {
       m_Client = reinterpret_cast<uint8_t *>(m_ClientModule +
                                            exec_section->VirtualAddress);
       m_ClientSz = exec_section->SizeOfRawData;
+    }
+    {
+      static auto pat = BSF("8B0D????????83C40C5056FF97");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookMaxPlayers);
+    }
+    {
+      static auto pat = BSF("8B9BF40000004085DB8901");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat))+6,
+          (void *)hookMaxPlayersHUD);
     }
     // m_ClientSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Client));
 //    {

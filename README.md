@@ -9,7 +9,7 @@ Client side fixes (random fps drops, flickering)<br>
 Server side fixes (anti-cheat and server crash hacks)<br>
 Allows coop mode based on "F.E.A.R. Platinum"<br>
 Allows to play all singleplayer maps "F.E.A.R. Platinum" in "F.E.A.R. Perseus Mandate"<br>
-Allows connect to servers created on retail version to combat version and vice versa
+Allows connect to servers created on retail version to combat version and vice versa<br>
 Allows to create 64 players servers
 
 # How to play F.E.A.R. Combat v1.08:
@@ -123,6 +123,7 @@ Fix SetWindowsHookExA input lag<br>
 Fix explosion flickering on high refresh rate monitors, like 144hz+<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Fix crash on pressing ESC while downloading content<br>
+Fix crash on pressing TAB when server have more than 16+ players<br>
 Allow run of multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
 Without weapon (fast switch bug)<br>

@@ -298,7 +298,6 @@ class SdkHandler {
     uint8_t *g_pScreenMulti = 0;
     bool m_isDoGameSpy = 0;
     bool m_isMasterServerRequestWorking = false;
-
     void *CPlayerObj_m_PlayerRigidBody_Update;
     void *CPlayerObj_TeleportClientToServerPos;
     void *g_pWeaponDB_GetWeaponData;
@@ -346,6 +345,7 @@ class SdkHandler {
     void *CArsenal_GetAmmoCount;
     void *g_pWeaponDB_GetBool;
     void *CArsenal_GetCurWeapon;
+    void *m_spawnLogOffset;
     CWeaponDB *g_pWeaponDB;
     uint32_t CArsenal_m_hCurWeapon;
     uint32_t CCharacter_m_bOnGround;

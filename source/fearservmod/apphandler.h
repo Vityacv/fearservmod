@@ -106,6 +106,8 @@ class AppHandler {
     static void regcall hookConfigLoad2(SpliceHandler::reg *p);
     static void regcall hookMaxPlayers(SpliceHandler::reg *p);
     static void regcall hookMaxPlayersHUD(SpliceHandler::reg *p);
+    static void regcall hookZeroConfigFix(SpliceHandler::reg *p);
+    static void regcall hookZeroConfigFix2(SpliceHandler::reg *p);
     static void regcall hookLoadGameServer(SpliceHandler::reg *p);
     static void regcall hookSetObjFlags(SpliceHandler::reg *p);
     static void regcall hookStoryModeView(SpliceHandler::reg *p);

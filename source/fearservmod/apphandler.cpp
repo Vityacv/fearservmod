@@ -31,9 +31,8 @@ AppHandler::AppHandler() {
     m_ExecModule = reinterpret_cast<uint8_t *>(GetModuleHandle(0));
     auto exec_section =
         GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_ExecModule));
-    m_Exec = reinterpret_cast<uint8_t *>(m_ExecModule +
-                                         exec_section->VirtualAddress);
-    m_ExecSz = exec_section->SizeOfRawData;
+    m_Exec = reinterpret_cast<uint8_t *>(m_ExecModule); //+ exec_section->VirtualAddress);
+    m_ExecSz =  GetModuleSize((HMODULE)m_ExecModule);//exec_section->SizeOfRawData;
   }
 }
 
@@ -994,8 +993,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           if (!inst.bCustomSkins) {
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
             case StringUtil::hash_ct("Melee_JabRight"):
-            case StringUtil::hash_ct("Melee_JabLeft"):
                 spawnLog = true;
+            case StringUtil::hash_ct("Melee_JabLeft"):
               // unarmFireDelay = 0x100;
               if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
                 break;
@@ -1330,7 +1329,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
 
       if(inst.m_bRandWep && spawnLog){
 
-          void * SpawnObject = inst.m_ServerModule+0x16B650;
+          void * SpawnObject = sdk.m_spawnLogOffset;//inst.m_ServerModule+0x16B650;
           auto rot = LTRotation();
           rot.m_Quat[0] = 0.0;
           rot.m_Quat[1] = 0.0;
@@ -1796,6 +1795,10 @@ void AppHandler::configHandle()
     hsdk.initServer();
     patchClientServer(m_eServer, m_eServerSz);
     {
+        static auto pat = BSF("B8????????E8????????A1????????85C0");
+        hsdk.m_spawnLogOffset = scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+    }
+    {
         static auto pat = BSF("8D4C24??51505756FF15????????83C410C6????????5F");
         unsigned char *tmp =
             scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
@@ -1813,12 +1816,12 @@ void AppHandler::configHandle()
         }
     }
     {
-        static auto pat = BSF("508D442430508B430850FF524084C0");
+        static auto pat = BSF("75??8B4E086A006A0351E8");
         unsigned char *tmp =
             scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            hpatch.addCode(tmp + 15, 1); // allow connect with invalid assets
-            *(tmp + 15) = 0xEB;
+            hpatch.addCode(tmp, 1); // allow connect with invalid assets
+            *(tmp) = 0xEB;
         }
     }
     // {
@@ -2591,6 +2594,28 @@ void AppHandler::hookMaxPlayersHUD(SpliceHandler::reg *p) {
         p->tbx=0;
 }
 
+void AppHandler::hookZeroConfigFix(SpliceHandler::reg *p) {
+    auto s = reinterpret_cast<char *>(p->tsi);
+    bool ascii = true;
+    while(auto c = *s) {
+        if((c & 0x80) != 0) {ascii = false; break;};
+        ++s;
+    }
+    if(!ascii || (s == reinterpret_cast<char *>(p->tsi)))
+        p->tsi = reinterpret_cast<uintptr_t>("ServerOptions0000");
+}
+
+void AppHandler::hookZeroConfigFix2(SpliceHandler::reg *p) {
+    if(auto newpoint = reinterpret_cast<uintptr_t>(strstr(reinterpret_cast<char *>(p->tcx),"ServerOptions"))) {
+        p->tcx = newpoint++;
+    }
+    // if(strstr(reinterpret_cast<char *>(p->tcx), ":") == 0) {
+    //     if(auto newpoint = reinterpret_cast<uintptr_t>(strstr(reinterpret_cast<char *>(p->tcx),"\\"))) {
+    //         p->tcx = newpoint++;
+    //     }
+    // }
+}
+
 void AppHandler::hookMaxPlayers(SpliceHandler::reg *p) {
   if (p->tax) {
     auto dbStr = reinterpret_cast<char **>(p->tax);
@@ -2646,6 +2671,39 @@ void AppHandler::init()
 }
 
 void AppHandler::serverPreinitPatches() {
+    PatchHandler &hpatch = *patchHandler();
+    SpliceHandler &hsplice = *spliceHandler();
+  // FixLagSetWindowsHookExA
+  if (static auto pat = BSF("8D8424????????50568BD9E8????????84C0");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookZeroConfigFix);
+    {
+      uint8_t d[] = {0x6a,0x01};
+      hpatch.addCode(adr+40, sizeof(d));
+      memcpy(adr+40, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    }
+    hsplice.spliceUp(adr+81,(void *)hookZeroConfigFix2);
+    // {
+    //   uint8_t d[] = {0x90, 0x90, 0x90, 0x90, 0x90};
+    //   hpatch.addCode(adr+77, sizeof(d));
+    //   memcpy(adr+77, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+    // {
+    //   uint8_t d[] = {0x8D, 0x8C, 0x24, 0x18, 0x02,
+    //                  0x00, 0x00, 0x51, 0xEB, 0x0E};
+    //   hpatch.addCode(adr+40, sizeof(d));
+    //   memcpy(adr+40, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+    // {
+    //   uint8_t d[] = {0x90, 0x90, 0x90, 0x90, 0x90};
+    //   hpatch.addCode(adr+77, sizeof(d));
+    //   memcpy(adr+77, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+  }
   if(m_eServerModule =
         reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")))){
     auto exec_section =
@@ -2787,15 +2845,15 @@ void AppHandler::initClient() {
 //                             reinterpret_cast<void *>(hookPlayWave));
 //        }
 //    }
-    {
-        static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hsplice.spliceUp(tmp,
-                             reinterpret_cast<void *>(hookClientSettingsLoad));
-        }
-    }
+    // {
+    //     static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
+    //     uint8_t *tmp =
+    //         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hsplice.spliceUp(tmp,
+    //                          reinterpret_cast<void *>(hookClientSettingsLoad));
+    //     }
+    // }
 
     {
         static auto pat = BSF("A1????????8B??????????8B????FF????33");
@@ -2864,23 +2922,23 @@ void AppHandler::initClient() {
             *(uint16_t *)(tmp) = 0x53EB;  // kick GameSpy key
         }
     }
-    {
-        static auto pat = BSF("837C24??0175??33D2");
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hpatch.addCode(tmp+5,1);
-            *(tmp+5) = 0xEB;  //%s.available.gamespy.com
-        }
-    }
-    {
-        static auto pat = BSF("8B??74??E8????????68????????FF??????????85??89");
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hpatch.addCode(tmp+2,1);
-            *(tmp+2) = 0xEB;  // ICMP disable
-        }
-    }
+    // {
+    //     static auto pat = BSF("837C24??0175??33D2");
+    //     uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode(tmp+5,1);
+    //         *(tmp+5) = 0xEB;  //%s.available.gamespy.com
+    //     }
+    // }
+    // {
+    //     static auto pat = BSF("8B??74??E8????????68????????FF??????????85??89");
+    //     uint8_t *tmp =
+    //         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode(tmp+2,1);
+    //         *(tmp+2) = 0xEB;  // ICMP disable
+    //     }
+    // }
     {
         static auto pat = BSF("B9????????E8????????B9????????E8????????B9????????C7");
         uint8_t *tmp =
@@ -2911,15 +2969,18 @@ void AppHandler::initClient() {
         }
     }
     {
-        static auto pat = BSF("6A1BFF??????????0FBFC085C079??E8????????");
+        static auto pat = BSF("FF52??6A1BFF15");
         uint8_t *tmp = scanBytes(
             m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // No escape key
         // handling on
         // downloading
         // content (causes crash)
+        // only for 1.08 exe
         if (tmp) {
-            hpatch.addCode(tmp, 2);
-            *(unsigned short *)(tmp) = 0x3BEB; // or perhaps fix crash when download connect processed
+            uint8_t d[] = {0xB8,0x00,0x00,0x00,0x00,0x90,0x90,0x90};
+            hpatch.addCode(tmp+3, sizeof(d));
+            memcpy(tmp+3, reinterpret_cast<uint8_t*>(&d), sizeof(d));
+            // *(unsigned short *)(tmp) = 0x3BEB; // or perhaps fix crash when download connect processed
         }
     }
     if (!m_bShowIntro) {
@@ -2974,16 +3035,16 @@ void AppHandler::initClient() {
         }
     }
     {
-        static auto pat = BSF("0F94C16A01518B8E??00000052");
+        static auto pat = BSF("0F94C16A01518B8E????????52");
         uint8_t *tmp =
             scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            hpatch.addCode((uint8_t *)tmp, 4);
+            hpatch.addCode((uint8_t *)tmp, 4); // ping in server list not working somehow
             *(unsigned *)tmp = 0x6a90c931;
         }
     }
     {
-      static auto pat = BSF("8BCF89B71C060000E8????????8B871C060000");
+      static auto pat = BSF("8BCF89B71C060000E8????????8B871C060000"); // only fear 1.08 exe
       g_doConnectIpAdrTramp = scanBytes(
           m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
     }

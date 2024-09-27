@@ -123,7 +123,7 @@ Fix SetWindowsHookExA input lag<br>
 Fix explosion flickering on high refresh rate monitors, like 144hz+<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Fix crash on pressing ESC while downloading content<br>
-Fix crash on pressing TAB when server have more than 16+ players<br>
+Fix crash on pressing TAB when server have more than 16 players<br>
 Allow run of multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
 Without weapon (fast switch bug)<br>
@@ -145,6 +145,7 @@ Negative fRate crash<br>
 Force load on new map crash<br>
 Login x3 players with nickname 0xFFFF client crash<br>
 FindObjectsCb log spam<br>
+Fix nameless config on first server startup<br>
 Player respawn bug (force default mp rules)<br>
 Chat string size limit<br>
 Host options hack<br>

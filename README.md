@@ -3,13 +3,13 @@ F.E.A.R. v1.08<br>
 F.E.A.R. Combat v1.08<br>
 F.E.A.R. Perseus Mandate v1.0
 
-# Feature list:
+# Features list:
 Multiplayer works again thanks to openspy.net<br>
 Client side fixes (random fps drops, flickering)<br>
 Server side fixes (anti-cheat and server crash hacks)<br>
 Allows coop mode based on "F.E.A.R. Platinum"<br>
 Allows to play all singleplayer maps "F.E.A.R. Platinum" in "F.E.A.R. Perseus Mandate"<br>
-Allows connect to servers created on retail version to combat version and vice versa<br>
+Allows connect to servers created on retail version to free version and vice versa<br>
 Allows to create 64 players servers
 
 # How to play F.E.A.R. Combat v1.08:
@@ -78,7 +78,7 @@ F.E.A.R. Extraction Point<br>
 F.E.A.R. Perseus Mandate
 
 All 55 SinglePlayer maps will be avaliable in server list. Players can use "Call vote" -> "Next map" or "New map" to select specific map (for scroll list use PageUp/PageDown).<br>
-Use "FEARXP2.exe" for play and "FEARServerXP.exe" to start local or public server.
+Use "FEARXP2.exe" to play and "FEARServerXP.exe" to start local or public server.
 
 
 Additional options in ServerOptionsXXXX.txt for all game servers:
@@ -93,7 +93,7 @@ BotsMP=1
 SyncObjects=1
 ```
 
-OpenSpy is default master server, but if you want connect to alternative server, add lines to gamecfg.txt:
+OpenSpy is default master server, but if you want connect to alternative server, add following lines to gamecfg.txt:
 
 ```
 [Client]
@@ -123,7 +123,7 @@ Fix SetWindowsHookExA input lag<br>
 Fix explosion flickering on high refresh rate monitors, like 144hz+<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Fix crash on pressing ESC while downloading content<br>
-Fix crash on pressing TAB when server have more than 16+ players<br>
+Fix crash on pressing TAB when server have more than 16 players<br>
 Allow run of multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
 Without weapon (fast switch bug)<br>
@@ -144,7 +144,8 @@ Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
 Login x3 players with nickname 0xFFFF client crash<br>
-FindObjectsCb log spam<br>
+Server FindObjectsCb log spam<br>
+Fix nameless config on first server startup<br>
 Player respawn bug (force default mp rules)<br>
 Chat string size limit<br>
 Host options hack<br>
@@ -175,10 +176,13 @@ Rapid fire unarmed hack<br>
 Ladder animation glitch<br>
 Remote flashlight hack<br>
 Melee ammo mod hack<br>
-Drop ammo weapon fire hack<br>
-Drop ammo weapon switch hack<br>
+Weapon fire drop ammo hack<br>
+Weapon switch drop ammo hack<br>
+Weapon reload drop ammo hack<br>
 Pickup enemy or team pickups hack<br>
 Enhanced server log<br>
+Fix missing AdditionalContent on zero config<br>
+Fix bulletproof v1 and v2
 
 # How to compile:
 Requirements: linux distribution (I use archlinux), mingw-w64, nasm.

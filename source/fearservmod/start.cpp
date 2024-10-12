@@ -62,7 +62,7 @@ bool stdcall DllMain(HINSTANCE hDllHandle, uint32_t nReason,
 
         case DLL_PROCESS_DETACH:
             //ondetach();
-            delete ExecutionHandler::instance();
+            // delete ExecutionHandler::instance();
             break;
     }
     return bSuccess;

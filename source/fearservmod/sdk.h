@@ -82,6 +82,7 @@
 #define MID_PLAYER_GHOSTMESSAGE     125
 #define MID_PUNKBUSTER_MSG            201
 #define MID_DYNANIMPROP 162
+#define MID_PLAYER_ANIMTRACKERS 122
 #define USRFLG_CAN_ACTIVATE (1 << 8)
 #define USRFLG_MOVEABLE (1 << 5)
 #define FLAG_GOTHRUWORLD (1 << 18)
@@ -106,6 +107,12 @@
 #define FLAG_GRAVITY            (1<<17)
 
 #define LTARRAYSIZE(a) (sizeof(a) / (sizeof((a)[0])))
+
+typedef uint32_t HMODELWEIGHTSET;
+#define INVALID_MODEL_WEIGHTSET ((HMODELWEIGHTSET)-1)
+
+#define MID_ANIMTRACKERS_REMOVE     0
+#define MID_ANIMTRACKERS_ADD        1
 
 namespace stl {
 struct wstring {
@@ -653,7 +660,7 @@ public:
     virtual void v31();
     virtual __int32 GetInt32(HATTRIBUTE, unsigned nValueIndex = 0, int nDef = 0);
     virtual float     GetFloat(HATTRIBUTE hAttribute, uint32_t nValueIndex, float fDefault);
-    virtual void v34();
+    virtual const char*     GetString(HATTRIBUTE hAttribute, uint32_t nValueIndex, const char* pszDefault);
     virtual void v35();
     virtual void v36();
     virtual void v37();
@@ -760,6 +767,21 @@ public:
     virtual void* v34();
     virtual void* v35();
     virtual LTRESULT GetAnimIndex( HOBJECT hModel, const char *pAnimName, uint32_t & anim_index );
+    virtual void* v36();
+    virtual void* v37();
+    virtual void* v38();
+    virtual void* v39();
+    virtual void* v40();
+    virtual void* v41();
+    virtual void* v42();
+    virtual void* v43();
+    virtual void* v44();
+    virtual void* v45();
+    virtual void* v46();
+    virtual void* v47();
+    virtual void* v48();
+    virtual void* v49();
+    virtual LTRESULT FindWeightSet( HOBJECT hObj, const char *pSetName, uint32_t & hSet);
 };
 
 class ILTClient {

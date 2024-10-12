@@ -56,6 +56,7 @@ class AppHandler {
     uint8_t *m_isMultiplayerGameClient;
     uint8_t *m_RunGameModeXP;
     uint8_t *m_gameClientStruct;
+    uint8_t *m_internalFuncPathCreateFolders;
     uint8_t *m_databaseModule;
     uint8_t *m_database;
     uintptr_t m_databaseSz;
@@ -104,8 +105,12 @@ class AppHandler {
     void regcall configParse(char * pathCfg);
     static void regcall hookConfigLoad(SpliceHandler::reg *p);
     static void regcall hookConfigLoad2(SpliceHandler::reg *p);
+    static void regcall hookLoadArchives(SpliceHandler::reg *p);
     static void regcall hookMaxPlayers(SpliceHandler::reg *p);
     static void regcall hookMaxPlayersHUD(SpliceHandler::reg *p);
+    static void regcall hookZeroConfigFix(SpliceHandler::reg *p);
+    static void regcall hookZeroConfigFix2(SpliceHandler::reg *p);
+    static void regcall hookAdditionalDirectoryCreate(SpliceHandler::reg *p);
     static void regcall hookLoadGameServer(SpliceHandler::reg *p);
     static void regcall hookSetObjFlags(SpliceHandler::reg *p);
     static void regcall hookStoryModeView(SpliceHandler::reg *p);

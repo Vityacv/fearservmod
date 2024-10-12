@@ -242,7 +242,7 @@ void shuffle(T *array, size_t n) {
 //    }
 //};
 
-#define MAX_PLAYERS 256
+#define MAX_PLAYERS 64
 #define MAX_PLAYERSF MAX_PLAYERS
 class SdkHandler {
     AppHandler *m_appHandler;
@@ -250,7 +250,6 @@ class SdkHandler {
     ILTClient *g_pLTClient;
 
     ILTPhysics *g_pPhysicsLT;
-    ILTModel *g_pModelLT;
     IGameSpyBrowser *g_pGameSpyBrowser;
     CServerDB *g_pServerDB;
     CInterfaceMgr *g_pInterfaceMgr;
@@ -298,7 +297,6 @@ class SdkHandler {
     uint8_t *g_pScreenMulti = 0;
     bool m_isDoGameSpy = 0;
     bool m_isMasterServerRequestWorking = false;
-
     void *CPlayerObj_m_PlayerRigidBody_Update;
     void *CPlayerObj_TeleportClientToServerPos;
     void *g_pWeaponDB_GetWeaponData;
@@ -325,6 +323,7 @@ class SdkHandler {
                                               45, 46, 47, 23, 24, 25,
                                               22};  //,26,27,28,29,30,52,53};;
    public:
+    ILTModel *g_pModelLT;
     uint32_t CPlayerObj_m_fMoveMultiplier;
     HRECORD m_hPlayer;
     uint32_t GameModeMgr_ServerSettings;
@@ -346,6 +345,7 @@ class SdkHandler {
     void *CArsenal_GetAmmoCount;
     void *g_pWeaponDB_GetBool;
     void *CArsenal_GetCurWeapon;
+    void *m_spawnLogOffset;
     CWeaponDB *g_pWeaponDB;
     uint32_t CArsenal_m_hCurWeapon;
     uint32_t CCharacter_m_bOnGround;

@@ -31,9 +31,8 @@ AppHandler::AppHandler() {
     m_ExecModule = reinterpret_cast<uint8_t *>(GetModuleHandle(0));
     auto exec_section =
         GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_ExecModule));
-    m_Exec = reinterpret_cast<uint8_t *>(m_ExecModule +
-                                         exec_section->VirtualAddress);
-    m_ExecSz = exec_section->SizeOfRawData;
+    m_Exec = reinterpret_cast<uint8_t *>(m_ExecModule); //+ exec_section->VirtualAddress);
+    m_ExecSz =  GetModuleSize((HMODULE)m_ExecModule);//exec_section->SizeOfRawData;
   }
 }
 
@@ -420,6 +419,56 @@ void AppHandler::hookConfigLoad2(SpliceHandler::reg *p)
     }
 }
 
+void AppHandler::hookAdditionalDirectoryCreate(SpliceHandler::reg *hook)
+{
+    auto &inst = *ExecutionHandler::instance()->appHandler();
+    auto tempPath = reinterpret_cast<char*>(hook->tax);
+    ((void(__cdecl *)(char *))inst.m_internalFuncPathCreateFolders)(tempPath);
+    /*
+    auto tempPath = reinterpret_cast<char*>(hook->tax);
+    // char fullPath[MAX_PATH];
+    if (GetFileAttributesA(tempPath) != INVALID_FILE_ATTRIBUTES)
+        return;
+    // char tempPath[MAX_PATH];
+    // strcpy(tempPath, relPath);
+
+    char* p = tempPath;
+
+    while (*p) {
+        // Move forward in the string until we find a directory separator or end
+        while (*p && *p != '\\' && *p != '/') {
+            ++p;
+        }
+
+        // Temporarily end the string here to create intermediate directory
+        char oldChar = *p;
+        *p = '\0';
+
+        // if (!CreateDirectoryA(tempPath, NULL)) return;
+        CreateDirectoryA(tempPath, NULL);
+        // {
+            // DWORD error = GetLastError();
+            // if (error != ERROR_ALREADY_EXISTS) {
+            //     printf("Failed to create directory '%s'. Error code: %lu\n", tempPath, error);
+            //     return; // Exit on error
+            // }
+        // }
+
+        // Restore the character (either '\' or '/') and continue
+        *p = oldChar;
+
+        // Move past the separator if we are not at the end
+        if (*p) {
+            ++p;
+        }
+    }
+    // if(GetFullPathNameA(relPath, MAX_PATH, fullPath, nullptr)){
+    //     MessageBoxA(nullptr, fullPath, relPath, 0);
+    //     //SHCreateDirectoryExA(NULL, fullPath, NULL);
+    // }
+    */
+}
+
 void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
 {
     auto &inst = *ExecutionHandler::instance()->appHandler();
@@ -728,6 +777,43 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     case MID_DYNANIMPROP:
       p->state = 1;
       break;
+    case MID_PLAYER_ANIMTRACKERS: {
+      if (!pPlayerObj) {
+        p->state = 1;
+        break;
+      }
+      unsigned nAnimTrackerMsgId = pMsgRead->ReadBits(8);
+      if (nAnimTrackerMsgId == MID_ANIMTRACKERS_ADD &&
+          nAnimTrackerMsgId == MID_ANIMTRACKERS_REMOVE) {
+        p->state = 1;
+        break;
+      }
+      unsigned nNumTrackers = pMsgRead->ReadBits(8);
+      uint32_t nValueIndex = 0;
+      const char *const pszNullWeightSetName = sdk.g_pLTDatabase->GetString(
+          sdk.g_pLTDatabase->GetAttribute(sdk.m_hGlobalRecord,
+                                          "NullWeightSetName"),
+          nValueIndex, "");
+      HMODELWEIGHTSET hWS = INVALID_MODEL_WEIGHTSET;
+      sdk.g_pModelLT->FindWeightSet(pPlayerObj->m_hObject, pszNullWeightSetName,
+                                    hWS);
+      for (uint8_t nTracker = 0; nTracker < nNumTrackers; ++nTracker) {
+        unsigned trkID = pMsgRead->ReadBits(8);
+        if (trkID != 0xFF) {  // MAIN_TRACKER
+          unsigned hWeightSet = pMsgRead->ReadBits(0x20);
+          if (hWeightSet != hWS) {
+            p->state = 1;
+            break;
+          }
+        }
+      }
+      // if(nAnimTrackerMsgId == MID_ANIMTRACKERS_ADD) {
+      //   unsigned m_nFootstepTrackerId = pMsgRead->ReadBits(8);
+      //   DBGLOG("footsteps %p", m_nFootstepTrackerId)
+      // }
+
+      break;
+    }
     case MID_PLAYER_ACTIVATE: {
       if (!pPlayerObj) {
         p->state = 1;
@@ -944,9 +1030,34 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     } break;
     case MID_WEAPON_RELOAD: {
       // pPlData->lastFireWeaponReload=1;
+      if (!pPlayerObj || playerState != ePlayerState_Alive) {
+        p->state = 1;
+        break;
+      }
+      HWEAPON hWeapon = 0;
+      HWEAPONDATA hWpnData = 0;
+      CArsenal *pArsenal =
+          (CArsenal *)((unsigned char *)pPlayerObj + sdk.CPlayerObj_m_Arsenal);
+      if (!pArsenal) {
+        p->state = 1;
+        break;
+      }
+      hWeapon =
+          pMsgRead->ReadDatabaseRecord(sdk.g_pLTDatabase, sdk.m_hCatWeapons);
+      // bIsNul++;
+      HAMMO hAmmo = 0;
+      hAmmo = pMsgRead->ReadDatabaseRecord(sdk.g_pLTDatabase, sdk.m_hCatAmmo);
+      // bIsNul++;
+      if (!hWeapon && hAmmo) p->state = 1;
+      if (hWeapon) {
+        hWpnData = sdk.GetWeaponData(hWeapon);
+        HAMMO hAmmoServ = sdk.g_pLTDatabase->GetRecordLink(
+            sdk.g_pLTDatabase->GetAttribute(hWpnData, "AmmoName"), 0, 0);
+        if (hAmmo && hAmmoServ != hAmmo) p->state = 1;
+      }
     } break;
     case MID_WEAPON_FIRE: {
-      if (playerState != ePlayerState_Alive) {
+      if (!pPlayerObj || playerState != ePlayerState_Alive) {
         p->state = 1;
         break;
       }
@@ -994,8 +1105,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           if (!inst.bCustomSkins) {
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
             case StringUtil::hash_ct("Melee_JabRight"):
-            case StringUtil::hash_ct("Melee_JabLeft"):
                 spawnLog = true;
+            case StringUtil::hash_ct("Melee_JabLeft"):
               // unarmFireDelay = 0x100;
               if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
                 break;
@@ -1330,7 +1441,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
 
       if(inst.m_bRandWep && spawnLog){
 
-          void * SpawnObject = inst.m_ServerModule+0x16B650;
+          void * SpawnObject = sdk.m_spawnLogOffset;//inst.m_ServerModule+0x16B650;
           auto rot = LTRotation();
           rot.m_Quat[0] = 0.0;
           rot.m_Quat[1] = 0.0;
@@ -1445,6 +1556,10 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     }
     break;*/
     case MID_PLAYER_UPDATE: {
+      if (!pPlayerObj) {
+        p->state = 1;
+        break;
+      }
   //    unsigned timeMS = pSdk->getRealTimeMS();
       EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       pPlData->thisMoveTimeMS = pMsgRead->ReadBits(0x20);
@@ -1796,6 +1911,10 @@ void AppHandler::configHandle()
     hsdk.initServer();
     patchClientServer(m_eServer, m_eServerSz);
     {
+        static auto pat = BSF("B8????????E8????????A1????????85C0");
+        hsdk.m_spawnLogOffset = scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+    }
+    {
         static auto pat = BSF("8D4C24??51505756FF15????????83C410C6????????5F");
         unsigned char *tmp =
             scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
@@ -1813,12 +1932,12 @@ void AppHandler::configHandle()
         }
     }
     {
-        static auto pat = BSF("508D442430508B430850FF524084C0");
+        static auto pat = BSF("75??8B4E086A006A0351E8");
         unsigned char *tmp =
             scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            hpatch.addCode(tmp + 15, 1); // allow connect with invalid assets
-            *(tmp + 15) = 0xEB;
+            hpatch.addCode(tmp, 1); // allow connect with invalid assets
+            *(tmp) = 0xEB;
         }
     }
     // {
@@ -1916,15 +2035,25 @@ void AppHandler::configHandle()
         }
     }
     {
-        static auto pat = BSF("3B7C2410741F8B4E086A006A0351");
+        static auto pat = BSF("74??8B0D????????8D5424??C74424??00000000");
         unsigned char *tmp =
             scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            hpatch.addCode((unsigned char *)tmp + 4,
+            hpatch.addCode((unsigned char *)tmp,
                                1); // ignore invalid world crc
-            *(tmp + 4) = 0xEB;
+            *(tmp) = 0xEB;
         }
     }
+    // {
+    //     static auto pat = BSF("3B7C2410741F8B4E086A006A0351");
+    //     unsigned char *tmp =
+    //         scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode((unsigned char *)tmp + 4,
+    //                            1); // ignore invalid world crc
+    //         *(tmp + 4) = 0xEB;
+    //     }
+    // }
     if (m_bRandWep) {
 //        hsplice.spliceUp(
 //            scanBytes((unsigned char *)m_eServer, m_eServerSz,
@@ -2586,9 +2715,41 @@ void AppHandler::loadConfig()
     }
 }
 
+void AppHandler::hookLoadArchives(SpliceHandler::reg *p) {
+    // if(*reinterpret_cast<uintptr_t*>(p->tbx+0x184) == 0)
+    //     return;
+    auto s =  reinterpret_cast<char**>(*(reinterpret_cast<uintptr_t*>(p->tdi) + 1)+0xAC);
+    if(s && *(s) && **(s)!=0 && strstr(*s, "\\AdditionalContent\\") == 0) {
+        p->state = 0;
+        p->origFunc = reinterpret_cast<uintptr_t>(p->pt->hookPoint + 43);
+    }
+}
+
 void AppHandler::hookMaxPlayersHUD(SpliceHandler::reg *p) {
     if(p->tax==15)
         p->tbx=0;
+}
+
+void AppHandler::hookZeroConfigFix(SpliceHandler::reg *p) {
+    auto s = reinterpret_cast<char *>(p->tsi);
+    bool ascii = true;
+    while(auto c = *s) {
+        if((c & 0x80) != 0) {ascii = false; break;};
+        ++s;
+    }
+    if(!ascii || (s == reinterpret_cast<char *>(p->tsi)))
+        p->tsi = reinterpret_cast<uintptr_t>("ServerOptions0000");
+}
+
+void AppHandler::hookZeroConfigFix2(SpliceHandler::reg *p) {
+    if(auto newpoint = reinterpret_cast<uintptr_t>(strstr(reinterpret_cast<char *>(p->tcx),"ServerOptions"))) {
+        p->tcx = newpoint++;
+    }
+    // if(strstr(reinterpret_cast<char *>(p->tcx), ":") == 0) {
+    //     if(auto newpoint = reinterpret_cast<uintptr_t>(strstr(reinterpret_cast<char *>(p->tcx),"\\"))) {
+    //         p->tcx = newpoint++;
+    //     }
+    // }
 }
 
 void AppHandler::hookMaxPlayers(SpliceHandler::reg *p) {
@@ -2606,6 +2767,21 @@ void AppHandler::init()
     srand(time(0));
     loadConfig();
     SpliceHandler &hsplice = *spliceHandler();
+    {
+        static auto pat = BSF("E8????????83C4108D4424");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            m_internalFuncPathCreateFolders = getVal4FromRel(tmp + 1);
+        }
+    }
+    {
+      static auto pat = BSF("68????????8D8C24????????680401000051E8????????8D9424????????52");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookAdditionalDirectoryCreate);
+    }
     {
         static auto pat = BSF("84??75????68??????????E8????????8B??83C40885??74");
         hsplice.spliceUp(
@@ -2629,7 +2805,13 @@ void AppHandler::init()
               (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
           (void *)hookConfigLoad);
     }
-
+    {
+      static auto pat = BSF("8B7704558BCEE8????????8BCE");
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookLoadArchives);
+    }
     {
       static auto pat = BSF("A1????????508B??E8????????83");
       unsigned char *tmp = (unsigned char *)(unsigned *)(scanBytes(
@@ -2646,6 +2828,39 @@ void AppHandler::init()
 }
 
 void AppHandler::serverPreinitPatches() {
+    PatchHandler &hpatch = *patchHandler();
+    SpliceHandler &hsplice = *spliceHandler();
+  // FixLagSetWindowsHookExA
+  if (static auto pat = BSF("8D8424????????50568BD9E8????????84C0");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+      hsplice.spliceUp(
+          scanBytes(
+              (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
+          (void *)hookZeroConfigFix);
+    {
+      uint8_t d[] = {0x6a,0x01};
+      hpatch.addCode(adr+40, sizeof(d));
+      memcpy(adr+40, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    }
+    hsplice.spliceUp(adr+81,(void *)hookZeroConfigFix2);
+    // {
+    //   uint8_t d[] = {0x90, 0x90, 0x90, 0x90, 0x90};
+    //   hpatch.addCode(adr+77, sizeof(d));
+    //   memcpy(adr+77, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+    // {
+    //   uint8_t d[] = {0x8D, 0x8C, 0x24, 0x18, 0x02,
+    //                  0x00, 0x00, 0x51, 0xEB, 0x0E};
+    //   hpatch.addCode(adr+40, sizeof(d));
+    //   memcpy(adr+40, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+    // {
+    //   uint8_t d[] = {0x90, 0x90, 0x90, 0x90, 0x90};
+    //   hpatch.addCode(adr+77, sizeof(d));
+    //   memcpy(adr+77, reinterpret_cast<uint8_t *>(&d), sizeof(d));
+    // }
+  }
   if(m_eServerModule =
         reinterpret_cast<uint8_t *>(GetModuleHandle(_T("engineserver.dll")))){
     auto exec_section =
@@ -2787,15 +3002,15 @@ void AppHandler::initClient() {
 //                             reinterpret_cast<void *>(hookPlayWave));
 //        }
 //    }
-    {
-        static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hsplice.spliceUp(tmp,
-                             reinterpret_cast<void *>(hookClientSettingsLoad));
-        }
-    }
+    // {
+    //     static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
+    //     uint8_t *tmp =
+    //         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hsplice.spliceUp(tmp,
+    //                          reinterpret_cast<void *>(hookClientSettingsLoad));
+    //     }
+    // }
 
     {
         static auto pat = BSF("A1????????8B??????????8B????FF????33");
@@ -2845,6 +3060,18 @@ void AppHandler::initClient() {
               (unsigned char *)m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat))+6,
           (void *)hookMaxPlayersHUD);
     }
+    
+    // {
+    //     static auto pat = BSF("E8????????84C00F84????????8B750C");
+    //     uint8_t *tmp = scanBytes(
+    //         m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         uint8_t d[] = {0xb8, 0, 0, 0, 0};
+    //         hpatch.addCode(tmp, sizeof(d));
+    //         memcpy(tmp, reinterpret_cast<uint8_t*>(&d), sizeof(d)); // no logos
+    //     }
+    // }
+    
     // m_ClientSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Client));
 //    {
 //        uint8_t *tmp =
@@ -2864,23 +3091,23 @@ void AppHandler::initClient() {
             *(uint16_t *)(tmp) = 0x53EB;  // kick GameSpy key
         }
     }
-    {
-        static auto pat = BSF("837C24??0175??33D2");
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hpatch.addCode(tmp+5,1);
-            *(tmp+5) = 0xEB;  //%s.available.gamespy.com
-        }
-    }
-    {
-        static auto pat = BSF("8B??74??E8????????68????????FF??????????85??89");
-        uint8_t *tmp =
-            scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hpatch.addCode(tmp+2,1);
-            *(tmp+2) = 0xEB;  // ICMP disable
-        }
-    }
+    // {
+    //     static auto pat = BSF("837C24??0175??33D2");
+    //     uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode(tmp+5,1);
+    //         *(tmp+5) = 0xEB;  //%s.available.gamespy.com
+    //     }
+    // }
+    // {
+    //     static auto pat = BSF("8B??74??E8????????68????????FF??????????85??89");
+    //     uint8_t *tmp =
+    //         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode(tmp+2,1);
+    //         *(tmp+2) = 0xEB;  // ICMP disable
+    //     }
+    // }
     {
         static auto pat = BSF("B9????????E8????????B9????????E8????????B9????????C7");
         uint8_t *tmp =
@@ -2911,15 +3138,18 @@ void AppHandler::initClient() {
         }
     }
     {
-        static auto pat = BSF("6A1BFF??????????0FBFC085C079??E8????????");
+        static auto pat = BSF("FF52??6A1BFF15");
         uint8_t *tmp = scanBytes(
             m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));  // No escape key
         // handling on
         // downloading
         // content (causes crash)
+        // only for 1.08 exe
         if (tmp) {
-            hpatch.addCode(tmp, 2);
-            *(unsigned short *)(tmp) = 0x3BEB; // or perhaps fix crash when download connect processed
+            uint8_t d[] = {0xB8,0x00,0x00,0x00,0x00,0x90,0x90,0x90};
+            hpatch.addCode(tmp+3, sizeof(d));
+            memcpy(tmp+3, reinterpret_cast<uint8_t*>(&d), sizeof(d));
+            // *(unsigned short *)(tmp) = 0x3BEB; // or perhaps fix crash when download connect processed
         }
     }
     if (!m_bShowIntro) {
@@ -2974,16 +3204,16 @@ void AppHandler::initClient() {
         }
     }
     {
-        static auto pat = BSF("0F94C16A01518B8E??00000052");
+        static auto pat = BSF("0F94C16A01518B8E????????52");
         uint8_t *tmp =
             scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            hpatch.addCode((uint8_t *)tmp, 4);
+            hpatch.addCode((uint8_t *)tmp, 4); // ping in server list not working somehow
             *(unsigned *)tmp = 0x6a90c931;
         }
     }
     {
-      static auto pat = BSF("8BCF89B71C060000E8????????8B871C060000");
+      static auto pat = BSF("8BCF89B71C060000E8????????8B871C060000"); // only fear 1.08 exe
       g_doConnectIpAdrTramp = scanBytes(
           m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
     }

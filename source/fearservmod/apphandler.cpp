@@ -1,4 +1,5 @@
 #include "pch.h"
+// #include "sdk.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -569,10 +570,10 @@ void AppHandler::hookSetObjFlags(SpliceHandler::reg *p){
           (char *)((unsigned char *)pObj + sdk.ObjectCreateStruct_m_Name);
       // if((pObj[1] & FLAG2_RIGIDBODY) || (pObj[1] & FLAG2_CLIENTRIGIDBODY)){
       bool isMatch = 0;
-      if (starCmp(objName, (char *)"VendingMachine*.Base"))
-        isMatch = 1;
-      if (starCmp(objName, (char *)"VendingMachine*.glow"))
-        isMatch = 1;
+      // if (starCmp(objName, (char *)"VendingMachine*.Base"))
+      //   isMatch = 1;
+      // if (starCmp(objName, (char *)"VendingMachine*.glow"))
+      //   isMatch = 1;
       if (starCmp(objName, (char *)"Table_Utililty_*.Base"))
         isMatch = 1;
       if (starCmp(objName, (char *)"Table_Utililty_*.glow"))
@@ -1813,15 +1814,11 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     } break;
     case MID_VOTE: {
       unsigned voteTime = sdk.getRealTimeMS();
-
       if (pMsgRead->ReadBits(3) == eVote_Start) {
         EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         p->state = sdk.checkPlayerStatus(pGameClientData);
         if (pPlData->lastVoteTime) {
-          // ServerSettings * pServSettings = (ServerSettings *)((unsigned char
-          // *)(((GameModeMgr * (*)()) sdk.g_pGameModeMgr_instance)() +
-          // sdk.GameModeMgr_ServerSettings));
-          // auto value_test = (*(uint8_t*)(pServSettings+0x100)*1000);
+
           // printf("value_test %d", value_test);
           unsigned voteDelay = 3000;
           // if(voteDelay)
@@ -1829,12 +1826,27 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           unsigned delta = voteTime - pPlData->lastVoteTime;
           if (delta < voteDelay) {
             p->state = 1;
+            LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             break;
           }
         }
         pPlData->lastVoteTime = voteTime;
+        LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         unsigned char type = pMsgRead->ReadBits(3);
-        if (type == eVote_SelectMap) {
+        if (type >= kNumVoteTypes) { 
+            p->state = 1;
+            break;
+        } else {
+            ServerSettings *pServSettings = (ServerSettings *)((
+                unsigned char *)(((GameModeMgr * (*)())
+                                      sdk.g_pGameModeMgr_instance)() +
+                                 sdk.GameModeMgr_ServerSettings));
+            if (pServSettings->m_bAllowVote[type] != 1) {
+                p->state = 1;
+                break;
+            }
+        }
+        if (type < kNumVoteTypes && type == eVote_SelectMap) {
           unsigned nMapIndex = pMsgRead->ReadBits(0x20);
           CServerMissionMgr *g_pServerMissionMgr = *sdk.g_pServerMissionMgrAdr;
           unsigned nMaps = ((uintptr_t)g_pServerMissionMgr->m_CampaignEnd -
@@ -1842,7 +1854,6 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                            sizeof(uintptr_t);
           if (nMapIndex >= nMaps)
             p->state = 1;
-        LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         } else if (type == eVote_TeamKick) {
           unsigned nTargetId = pMsgRead->ReadBits(0x20);
           HCLIENT hTargetClient = sdk.g_pLTServer->GetClientHandle(nTargetId);

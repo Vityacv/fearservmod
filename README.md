@@ -144,12 +144,13 @@ Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
 Login x3 players with nickname 0xFFFF client crash<br>
-Server FindObjectsCb log spam<br>
+FindObjectsCb server log spam<br>
 Fix nameless config on first server startup<br>
-Player respawn bug (force default mp rules)<br>
+Fix missing AdditionalContent folder<br>
+Player respawn bug<br>
 Chat string size limit<br>
 Host options hack<br>
-Server pause hack<br>
+Pause server hack<br>
 Render stimulus crash hack<br>
 Object alpha crash hack<br>
 Frag self hack<br>
@@ -160,16 +161,17 @@ Get gear hack<br>
 Unlimited drop grenade hack<br>
 Fake fire position hack<br>
 Invalid skin hack<br>
+Bulletproof hack v1 and v2<br>
 Immortal player hack<br>
 Send damage hack<br>
 Send sounds hack<br>
 Pickup distance hack (2m limit)<br>
 Invalid team hack<br>
-Activate slowmo without recharger or not charged hack<br>
+Slowmo without recharger or not charged hack<br>
 Teleport to players hack<br>
 Teleport to respawn checkpoints hack<br>
 Teleport using SetObjectPos hack<br>
-Stealth join hack<br>
+Stealth join server hack<br>
 Rapid fire timer in future hack<br>
 Rapid fire invalid msg hack<br>
 Rapid fire unarmed hack<br>
@@ -179,10 +181,8 @@ Melee ammo mod hack<br>
 Weapon fire drop ammo hack<br>
 Weapon switch drop ammo hack<br>
 Weapon reload drop ammo hack<br>
-Pickup enemy or team pickups hack<br>
+Pickup enemy objects or team hack<br>
 Enhanced server log<br>
-Fix missing AdditionalContent on zero config<br>
-Fix bulletproof v1 and v2
 
 # How to compile:
 Requirements: linux distribution (I use archlinux), mingw-w64, nasm.

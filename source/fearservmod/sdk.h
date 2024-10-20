@@ -115,19 +115,30 @@ typedef uint32_t HMODELWEIGHTSET;
 #define MID_ANIMTRACKERS_ADD        1
 
 namespace stl {
-struct wstring {
-    wchar_t *data;
+struct string_prop {
     int length;
     int capacity;
-    wchar_t str[16];
+};
+
+struct wstring {
+    wchar_t *data;
+    union {
+        string_prop prop;
+        char str[24];
+    };
 };
 
 struct string {
     char *data;
-    int length;
-    int capacity;
-    char str[16];
+    union {
+        string_prop prop;
+        wchar_t str[12];
+    };
 };
+struct StringArray {
+    uint32_t data[4]; // typedef std::vector<std::string,LTAllocator<std::string, LT_MEM_TYPE_GAMECODE> > StringArray;
+};
+
 }  // namespace stl
 
 
@@ -1184,7 +1195,7 @@ public:
     uint32_t      m_nMaxDownloadRateAllClients;
     uint8_t     m_nMaxSimultaneousDownloads;
     uint32_t      m_nMaxDownloadSize;
-    void*   m_sRedirectURLs;
+    stl::StringArray   m_sRedirectURLs;
     stl::wstring  m_sContentDownloadMessage;
     bool      m_bEnableScoringLog;
     uint8_t     m_nMaxScoringLogFileAge;

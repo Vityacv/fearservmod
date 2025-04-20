@@ -5,34 +5,38 @@ F.E.A.R. Perseus Mandate v1.0
 
 # Features list:
 Multiplayer works again thanks to openspy.net<br>
-Client side fixes (random fps drops, flickering)<br>
+Client side fixes (fps drops, flickering)<br>
 Server side fixes (anti-cheat and server crash hacks)<br>
-Allows coop mode based on "F.E.A.R. Platinum"<br>
-Allows to play all singleplayer maps "F.E.A.R. Platinum" in "F.E.A.R. Perseus Mandate"<br>
+Allows coop mode based on F.E.A.R. Platinum<br>
+Allows to play all singleplayer maps F.E.A.R. Platinum in F.E.A.R. Perseus Mandate<br>
 Allows connect to servers created on retail version to free version and vice versa<br>
-Allows to create 64 players servers
-
-# How to play F.E.A.R. Combat v1.08:
-1. Find game on https://github.com/anzz1/openspy-client
-2. Install game and apply v1.08 update
-3. Replace FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-4. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) game mod to game folder
-5. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+Allows to create 64 players servers<br>
+Allows to run small servers by edited game archives (about 600 mb)<br>
 
 # How to play F.E.A.R. v1.08:
-1. Use "F.E.A.R. Platinum" version
-2. Install game
-3. Replace FEAR.exe and FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-4. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) game mod to game folder
+1. Install game
+2. Replace FEAR.exe and FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
+3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+
+# How to play F.E.A.R. Combat v1.08:
+1. Find free game on https://github.com/anzz1/openspy-client
+2. Install game and apply v1.08 update
+3. Replace FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
+4. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
 5. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
 # How to play F.E.A.R. Perseus Mandate v1.0:
-1. Use "F.E.A.R. Platinum" version
-2. Install game
-3. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-4. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) game mod to game folder
-5. Open Default.archcfg in notepad and replace content with:
+1. Install game
+2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
+3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
+# How to play Coop Mode based on F.E.A.R. Platinum:
+1. Install game
+2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
+3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+4. Open Default.archcfg in notepad and replace content with:
 ```
 ; FEAR ARCHIVES
 ../FEAR.Arch00
@@ -59,30 +63,23 @@ FEARA_XP.Arch00
 FEARL_XP.Arch00
 FEARE_XP.Arch00
 ```
-
-6. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
-
-Now you can connect to avaliable servers or configure new server and start it.
-
-# How to use coop mode in "F.E.A.R. Platinum" based on F.E.A.R. Perseus Mandate v1.0:
-1. Open ServerOptionsXXXX.txt and add:
+5. Run server and close, open ServerOptionsXXXX.txt and add on top of it:
 ```
 [Extra]
 CoopMode=1
 ```
-2. Start server<br>
+6. Use FEARXP2.exe to play and FEARServerXP.exe to start local or public server<br>
+7. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
-# CoopMode supports:<br>
+Coop mode includes all 55 maps from:<br>
 F.E.A.R.<br>
 F.E.A.R. Extraction Point<br>
 F.E.A.R. Perseus Mandate
 
-All 55 SinglePlayer maps will be avaliable in server list. Players can use "Call vote" -> "Next map" or "New map" to select specific map (for scroll list use PageUp/PageDown).<br>
-Use "FEARXP2.exe" to play and "FEARServerXP.exe" to start local or public server.
+Players can use "Call vote" -> "Next map" or "New map" to select specific map (for scroll list use PageUp/PageDown)<br>
 
-
-Additional options in ServerOptionsXXXX.txt for all game servers:
-1. AI fix for custom user maps
+#### Additional options in ServerOptionsXXXX.txt for all type of game servers:
+1. Fix AI for custom user maps
 ```
 [Extra]
 BotsMP=1
@@ -93,13 +90,13 @@ BotsMP=1
 SyncObjects=1
 ```
 
-OpenSpy is default master server, but if you want connect to alternative server, add following lines to gamecfg.txt:
+#### OpenSpy is default master server, but if you want connect to alternative server, add following lines to gamecfg.txt:
 
 ```
 [Client]
-Master=http://cpp.mx/api/serverlist-ingame.php
-; ShowIntro=1
-; MOTD=http://motd.gamespy.com/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
+;ShowIntro=1
+Master=http://master.fear-combat.org/api/serverlist-ingame.php
+;MOTD=http://motd.gamespy.com/motd/vercheck.asp?userid=%d&productid=%d&versionuniqueid=%s&distid=%d&uniqueid=%s&gamename=%s
 [Server]
 NS1=n1.fear-combat.org
 NS2=n2.fear-combat.org
@@ -107,24 +104,23 @@ Available=fear.avail.fear-combat.org
 Master=fear.m.fear-combat.org
 ```
 
-# Portable mode and Window mode:
-If you want enable portable mode, create cmd file:<br>
-start /b FEARMP.exe -userdirectory Config<br>
-start /b FEARServer.exe -userdirectory Config
+#### Portable mode and Window mode:
+If you want to run a game in portable mode, create cmd file:<br>
+Start /b FEARMP.exe -UserDirectory Config<br>
+Start /b FEARServer.exe -UserDirectory Config<br>
 
-If you want run game in window mode, set in settings.cfg;<br>
-"Windowed" "1"<br>
-and make it read only to avoid reset
+If you want run game in window mode:<br>
+Start /b FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
 
 # List of fixes:
-Allow use of FEAR.exe as FEARMP.exe to bypass DRM crash<br>
+Allow use FEAR.exe as FEARMP.exe to bypass securom DEP crash<br>
 Fix dinput random high drop fps<br>
 Fix SetWindowsHookExA input lag<br>
-Fix explosion flickering on high refresh rate monitors, like 144hz+<br>
+Fix explosion flickering on high refresh rate monitors, like 144hz etc<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Fix crash on pressing ESC while downloading content<br>
 Fix crash on pressing TAB when server have more than 16 players<br>
-Allow run of multiple instances and no render pause when unfocused<br>
+Run multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
 Without weapon (fast switch bug)<br>
 Grenade throw (+5 when move +drop +C)<br>
@@ -133,8 +129,8 @@ Retail version can connect to Combat servers<br>
 Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
 DoS fake players spam hack<br>
-Vote new map crash clients hack (out of index)<br>
 Vote hack<br>
+Vote new map crash clients with out of index hack<br>
 Multiple kills of same target bug<br>
 Clear vote process after map loaded<br>
 Early respawn crash<br>
@@ -147,7 +143,7 @@ Login x3 players with nickname 0xFFFF client crash<br>
 FindObjectsCb server log spam<br>
 Fix nameless config on first server startup<br>
 Fix missing AdditionalContent folder<br>
-Player respawn bug<br>
+Player early respawn bug<br>
 Chat string size limit<br>
 Host options hack<br>
 Pause server hack<br>
@@ -181,7 +177,7 @@ Melee ammo mod hack<br>
 Weapon fire drop ammo hack<br>
 Weapon switch drop ammo hack<br>
 Weapon reload drop ammo hack<br>
-Pickup enemy objects or team hack<br>
+Pickup objects of enemy or team hack<br>
 Enhanced server log<br>
 
 # How to compile:

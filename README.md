@@ -16,26 +16,26 @@ Allows to run small servers by edited game archives (about 600 mb)<br>
 # How to play F.E.A.R. v1.08:
 1. Install game
 2. Replace FEAR.exe and FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
 # How to play F.E.A.R. Combat v1.08:
 1. Find free game on https://github.com/anzz1/openspy-client
 2. Install game and apply v1.08 update
 3. Replace FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-4. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+4. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 5. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
 # How to play F.E.A.R. Perseus Mandate v1.0:
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
 # How to play Coop Mode based on F.E.A.R. Platinum:
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll (https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll) to game folder
+3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Open Default.archcfg in notepad and replace content with:
 ```
 ; FEAR ARCHIVES
@@ -145,6 +145,7 @@ Fix nameless config on first server startup<br>
 Fix missing AdditionalContent folder<br>
 Player early respawn bug<br>
 Chat string size limit<br>
+Fix window mode<br>
 Host options hack<br>
 Pause server hack<br>
 Render stimulus crash hack<br>

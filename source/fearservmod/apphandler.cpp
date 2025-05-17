@@ -574,14 +574,14 @@ void AppHandler::hookSetObjFlags(SpliceHandler::reg *p){
       //   isMatch = 1;
       // if (starCmp(objName, (char *)"VendingMachine*.glow"))
       //   isMatch = 1;
-      if (starCmp(objName, (char *)"Table_Utililty_*.Base"))
-        isMatch = 1;
-      if (starCmp(objName, (char *)"Table_Utililty_*.glow"))
-        isMatch = 1;
-      if (starCmp(objName, (char *)"industrial_fridge*.Base"))
-        isMatch = 1;
-      if (starCmp(objName, (char *)"industrial_fridge*.glow"))
-        isMatch = 1;
+      // if (starCmp(objName, (char *)"Table_Utililty_*.Base"))
+      //   isMatch = 1;
+      // if (starCmp(objName, (char *)"Table_Utililty_*.glow"))
+      //   isMatch = 1;
+      // if (starCmp(objName, (char *)"industrial_fridge*.Base"))
+      //   isMatch = 1;
+      // if (starCmp(objName, (char *)"industrial_fridge*.glow"))
+      //   isMatch = 1;
       if (starCmp(objName, (char *)"Sofa-2Seat*_Flip*.Sofa2"))
         isMatch = 1;
 
@@ -713,7 +713,6 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     uintptr_t v1 = pMsg->f12, v2 = (uintptr_t)pMsg->f16, v3 = pMsg->f20,
               v4 = pMsg->f24;
     CAutoMessageBase_Read *pMsgRead = (CAutoMessageBase_Read *)p->v1;
-    HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
     // if (!hClientObj) return;
     GameClientData *pGameClientData = sdk.getGameClientData((HCLIENT)p->v0);
     if (!pGameClientData) {
@@ -731,6 +730,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     if (pPlayerObj) {
       playerState = *(unsigned *)((unsigned char *)pPlayerObj +
                                   sdk.CPlayerObj_m_ePlayerState);
+      HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
       if (inst.m_bCoop && !pPlData->bIsDead &&
           playerState == ePlayerState_Dying_Stage2 /*&& pSdk->checkPointState*/) {
         EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
@@ -834,6 +834,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       unsigned curTime = sdk.getRealTimeMS();
       HOBJECT hObject = pMsgRead->ReadObject();
       bool bPosInvalid = 0;
+      HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
       sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
       sdk.g_pLTServer->GetObjectPos(hObject, &objPos);
       if (!curPos.NearlyEquals(objPos, 256.0f)) {
@@ -943,11 +944,26 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           p->state = 1;
       }
     } break;
+    case MID_PLAYER_BROADCAST: {
+      unsigned fireServTimestamp = sdk.getRealTimeMS();
+      unsigned delta = fireServTimestamp - pPlData->lastUserMessageReceived;
+      if (delta <= 250) // message timer
+        p->state = 1;
+      pPlData->lastUserMessageReceived = fireServTimestamp;
+    } break;
     case MID_PLAYER_GHOSTMESSAGE:
     case MID_PLAYER_MESSAGE: {
       wchar_t text[64];
-      unsigned len = pMsgRead->ReadWString(text, sizeof(text) / sizeof(wchar_t)) *
-                     sizeof(wchar_t);
+      unsigned fireServTimestamp = sdk.getRealTimeMS();
+      unsigned delta = fireServTimestamp - pPlData->lastUserMessageReceived;
+      if (delta <= 250){ // message timer
+        p->state = 1;
+        break;
+      }
+      pPlData->lastUserMessageReceived = fireServTimestamp;
+      unsigned len =
+          pMsgRead->ReadWString(text, sizeof(text) / sizeof(wchar_t)) *
+          sizeof(wchar_t);
       if (len > (63 * sizeof(wchar_t)))
         p->state = 1;
     } break;
@@ -968,7 +984,9 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       // TODO: nullify on malloc
       // auto prevSpawn = sdk.pPlayerData[clientId].spawnTime;
       EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
-      memset(&sdk.pPlayerData[clientId], 0, sizeof(playerData));
+      auto plData = &sdk.pPlayerData[clientId];
+      memset(plData, 0, sizeof(playerData));
+      plData->lastUserMessageReceived = -1;
       LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
       // auto currentSpawnTime = sdk.getRealTimeMS();
       // sdk.pPlayerData[clientId].spawnTime = currentSpawnTime;
@@ -995,6 +1013,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
     case MID_PICKUPITEM_ACTIVATE_EX: {
       HOBJECT hTarget = pMsgRead->ReadObject();
       LTVector targetPos, curPos;
+      HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
       sdk.g_pLTServer->GetObjectPos(hTarget, &targetPos);
       sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
       HOBJECT hFiredFrom = sdk.HandleToObject(hTarget);
@@ -1093,6 +1112,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       bool bUnarmed = 0;
       unsigned unarmFireDelay = 0;
       bool spawnLog = false;
+      HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
       sdk.g_pLTServer->GetObjectPos(hClientObj, &curPos);
       if (hWeapon &&
           StringUtil::hash_rt((char *)*(uintptr_t *)(hWeapon)) == StringUtil::hash_ct("Unarmed")) {
@@ -1503,6 +1523,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             break;
           }
           {
+            HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
             LTVector firePos, curPos;
             pMsgRead->ReadData((void *)&firePos, 0x60); // flash pos
             pMsgRead->ReadData((void *)&firePos, 0x60); // fire pos
@@ -1888,8 +1909,12 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         if (pMsgRead->ReadBits(8)) { // is use timer
           pMsgRead->ReadBits(0x20);  // fDuration
         }
-        if (CP == CP_DAMAGE && hClientObj != pMsgRead->ReadObject() /*hObject*/)
-          p->state = 1;
+        {
+          HOBJECT hClientObj = sdk.GetClientObject((HCLIENT)p->v0);
+          if (CP == CP_DAMAGE &&
+              hClientObj != pMsgRead->ReadObject() /*hObject*/)
+            p->state = 1;
+        }
         break;
       case CP_FLASHLIGHT:
         if (!inst.m_bCoop)

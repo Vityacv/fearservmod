@@ -21,6 +21,7 @@ struct playerData {
     bool lastFireWeaponDidReload;
     unsigned char lastFireWeaponReload;
     unsigned lastFireWeaponIgnored;
+    unsigned lastUserMessageReceived;
     unsigned lastFireWeaponReloadLength;
     unsigned lastFireWeaponClipMax;
     unsigned lastFireWeaponClipAmmo;

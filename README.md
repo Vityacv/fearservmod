@@ -3,7 +3,7 @@ F.E.A.R. v1.08<br>
 F.E.A.R. Combat v1.08<br>
 F.E.A.R. Perseus Mandate v1.0
 
-# Features list:
+# Features list
 Multiplayer works again thanks to openspy.net<br>
 Client side fixes (fps drops, flickering)<br>
 Server side fixes (anti-cheat and server crash hacks)<br>
@@ -13,26 +13,26 @@ Allows connect to servers created on retail version to free version and vice ver
 Allows to create 64 players servers<br>
 Allows to run small servers by edited game archives (about 600 mb)<br>
 
-# How to play F.E.A.R. v1.08:
+# How to play F.E.A.R. v1.08
 1. Install game
 2. Replace FEAR.exe and FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
 3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
-# How to play F.E.A.R. Combat v1.08:
+# How to play F.E.A.R. Combat v1.08
 1. Find free game on https://github.com/anzz1/openspy-client
 2. Install game and apply v1.08 update
 3. Replace FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
 4. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 5. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
-# How to play F.E.A.R. Perseus Mandate v1.0:
+# How to play F.E.A.R. Perseus Mandate v1.0
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
 3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
 
-# How to play Coop Mode based on F.E.A.R. Platinum:
+# How to play Coop Mode based on F.E.A.R. Platinum
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
 3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
@@ -112,23 +112,24 @@ Start /b FEARServer.exe -UserDirectory Config<br>
 If you want run game in window mode:<br>
 Start /b FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
 
-# List of fixes:
-Allow use FEAR.exe as FEARMP.exe to bypass securom DEP crash<br>
-Fix dinput random high drop fps<br>
-Fix SetWindowsHookExA input lag<br>
-Fix explosion flickering on high refresh rate monitors, like 144hz etc<br>
+# List of fixes
+Use FEAR.exe as FEARMP.exe to bypass securom DEP crash<br>
+Random high drop fps from dinput<br>
+Input lag from SetWindowsHookExA<br>
+Explosion flickering on high refresh rate monitors, like 144hz etc<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
-Fix crash on pressing ESC while downloading content<br>
-Fix crash on pressing TAB when server have more than 16 players<br>
+Crash on pressing ESC while downloading content<br>
+Crash on pressing TAB when server have more than 16 players<br>
 Run multiple instances and no render pause when unfocused<br>
 Disable intro on start game<br>
-Without weapon (fast switch bug)<br>
-Grenade throw (+5 when move +drop +C)<br>
-Keyboard reset if non english on close game<br>
+Fast switch weapon bug<br>
+Grenade throw +5 fake when move +drop +C<br>
+Controls reset if select non english keyboard and close game<br>
 Retail version can connect to Combat servers<br>
 Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
-DoS fake players spam hack<br>
+Server DoS fake players spam<br>
+Client DoS chat and team broadcast spam<br>
 Vote hack<br>
 Vote new map crash clients with out of index hack<br>
 Multiple kills of same target bug<br>
@@ -141,11 +142,11 @@ Negative fRate crash<br>
 Force load on new map crash<br>
 Login x3 players with nickname 0xFFFF client crash<br>
 FindObjectsCb server log spam<br>
-Fix nameless config on first server startup<br>
-Fix missing AdditionalContent folder<br>
+Empty server config file name on first startup<br>
+Missing creation of AdditionalContent folder<br>
 Player early respawn bug<br>
 Chat string size limit<br>
-Fix window mode<br>
+Style window mode<br>
 Host options hack<br>
 Pause server hack<br>
 Render stimulus crash hack<br>
@@ -181,7 +182,7 @@ Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
 Enhanced server log<br>
 
-# How to compile:
+# How to compile
 Requirements: linux distribution (I use archlinux), mingw-w64, nasm.
 
 Build steps:
@@ -193,4 +194,8 @@ mkdir build
 cd build
 i686-w64-mingw32-cmake -DCMAKE_BUILD_TYPE=Release ..
 make
+```
+for clang builds could use
+```
+PATH=/opt/llvm-mingw/llvm-mingw-msvcrt/bin/:$PATH i686-w64-mingw32-cmake -DCMAKE_BUILD_TYPE=Release ..
 ```

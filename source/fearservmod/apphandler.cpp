@@ -3112,6 +3112,16 @@ void AppHandler::initClient() {
                                            exec_section->VirtualAddress);
       m_ClientSz = exec_section->SizeOfRawData;
     }
+    {  // Message of the day
+        static auto pat = BSF("68????????894C2418FF15????????8D");
+        uint8_t *tmp =
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
+        if(tmp) {
+            unprotectCode(tmp, 24);
+            *reinterpret_cast<uintptr_t *>(tmp + 1) = reinterpret_cast<uintptr_t>(L"https://github.com/Vityacv/fearservmod");
+            *reinterpret_cast<uintptr_t *>(tmp + 19) = reinterpret_cast<uintptr_t>(L"FearServMod, build date: " __DATE__ ". Check github for updates!");
+        }
+    }
     patchZeroConfig(hpatch, hsplice, m_Client, m_ClientSz);
     {
       static auto pat = BSF("8B0D????????83C40C5056FF97");

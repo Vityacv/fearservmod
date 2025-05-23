@@ -113,7 +113,7 @@ If you want run game in window mode:<br>
 Start /b FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
 
 # List of fixes
-Use FEAR.exe as FEARMP.exe to bypass securom DEP crash<br>
+Use DRM-free FEAR.exe as FEARMP.exe for better performance<br>
 Random high drop fps from dinput<br>
 Input lag from SetWindowsHookExA<br>
 Explosion flickering on high refresh rate monitors, like 144hz etc<br>
@@ -140,7 +140,7 @@ RunSpeed hack v1<br>
 Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
-Login x3 players with nickname 0xFFFF client crash<br>
+Prevent client crash when 3 players with name 0xFFFF joined<br>
 FindObjectsCb server log spam<br>
 Empty server config file name on first startup<br>
 Missing creation of AdditionalContent folder<br>
@@ -181,6 +181,16 @@ Weapon switch drop ammo hack<br>
 Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
 Enhanced server log<br>
+
+# How to launch using wine
+To launch FEAR.exe you will need to instruct wine to load winmm from game folder first and then load system winmm:
+```
+WINEDLLOVERRIDES="winmm=n,b"
+```
+Same variable is needed to run FEARServer.exe, but you also can disable load of gecko engine and .net:
+```
+WINEDLLOVERRIDES="winmm=n,b;mscoree;mshtml="
+```
 
 # How to compile
 Requirements: linux distribution (I use archlinux), mingw-w64, nasm.

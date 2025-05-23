@@ -2493,7 +2493,8 @@ void AppHandler::configHandle()
     }
     if (m_preventNoclip) {
         {
-            if (!m_bCoop && hsdk.CPlayerObj_UpdateMovement) {
+            //if (!m_bCoop && hsdk.CPlayerObj_UpdateMovement) {
+            if (hsdk.CPlayerObj_UpdateMovement) {
                 unsigned char *tmp = (unsigned char *)hsdk.CPlayerObj_UpdateMovement;
                 // unprotectCode(tmp);
                 hpatch.addCode(tmp, 5);

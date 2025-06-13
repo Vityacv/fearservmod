@@ -423,6 +423,7 @@ class SdkHandler {
     static void regcall hookCheckpointEvent(SpliceHandler::reg *p);
     static void regcall hookPatchHoleKillHives(SpliceHandler::reg *p);
     static void regcall hookOnMapLoaded(SpliceHandler::reg *p);
+    static void regcall hookCheckConnectedNickname(SpliceHandler::reg *p);
     static void regcall hookUDPRecvfrom(SpliceHandler::reg *p);
     static void regcall hookUDPConnReq(SpliceHandler::reg *p);
     static void regcall hookCheckUDPDisconnect(SpliceHandler::reg *p);

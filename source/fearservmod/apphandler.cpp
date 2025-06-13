@@ -1717,7 +1717,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         unsigned len = pMsgRead->ReadWString(playerName, sizeof(playerName) /
                                                              sizeof(wchar_t)) *
                        sizeof(wchar_t);
-        int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
+        /*int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
         IsTextUnicode((void *)playerName, len, &isUni);
         if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
           // GameClientData* pGameClientData =
@@ -1727,6 +1727,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
                                (char *)"Invalid player name");
           p->state = 1;
         }
+        */
       } break;
       case eClientConnectionState_KeyChallenge: {
         // GameClientData* pGameClientData =
@@ -1804,15 +1805,17 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       unsigned len = pMsgRead->ReadWString(playerName,
                                            sizeof(playerName) / sizeof(wchar_t)) *
                      sizeof(wchar_t);
+      /*
       int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
       IsTextUnicode((void *)playerName, len, &isUni);
       if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
         // GameClientData* pGameClientData =
         // pSdk->getGameClientData((HCLIENT)p->v0);
-        sdk.BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
-                             (char *)"Invalid player name");
-        p->state = 1;
-      }
+        DBGLOG("INVALID PLAYER NAME")
+        // sdk.BootWithReason(pGameClientData, eClientConnectionError_PunkBuster,
+        //                      (char *)"Invalid player name");
+        // p->state = 1;
+      }*/
       unsigned skinIndex = pMsgRead->ReadBits(8);
       unsigned skinCount = 0;
       if (*(char *)(((GameModeMgr * (*)()) sdk.g_pGameModeMgr_instance)() +
@@ -2068,6 +2071,14 @@ void AppHandler::configHandle()
             scanBytes((unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
             hsplice.spliceUp(tmp, (void *)SdkHandler::hookCheckUDPDisconnect);
+        }
+    }
+    {
+        static auto pat = BSF("E8????????33??83C4043B??7505");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)); // check nickname
+        if (tmp) {
+            hsplice.spliceUp(tmp, (void *)SdkHandler::hookCheckConnectedNickname);
         }
     }
     {
@@ -2535,13 +2546,13 @@ void AppHandler::configHandle()
         hsplice.spliceUp(scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat)),
                          (void *)hookMID);
     }
-    {
-        static auto pat = BSF("508B??E8????????84C074??8D??????50");
-        unsigned char *tmp =
-            scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
-        hsdk.g_pGetNetClientData = getVal4FromRel(tmp + 4);
-        hsplice.spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
-    }
+    // {
+    //     static auto pat = BSF("508B??E8????????84C074??8D??????50");
+    //     unsigned char *tmp =
+    //         scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+    //     hsdk.g_pGetNetClientData = getVal4FromRel(tmp + 4);
+    //     hsplice.spliceUp(tmp, (void *)hookOnAddClient_CheckNickname);
+    // }
 
     if (m_bSyncObjects) {
         /*{

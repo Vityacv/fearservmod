@@ -76,7 +76,7 @@ F.E.A.R.<br>
 F.E.A.R. Extraction Point<br>
 F.E.A.R. Perseus Mandate
 
-Players can use "Call vote" -> "Next map" or "New map" to select specific map (for scroll list use PageUp/PageDown)<br>
+Players can use "Call vote" -> "Next map" or "New map" to select specific map (to scroll list use PageUp/PageDown)<br>
 
 #### Additional options in ServerOptionsXXXX.txt for all type of game servers:
 1. Fix AI for custom user maps
@@ -140,8 +140,8 @@ RunSpeed hack v1<br>
 Invalid skey and guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
-Prevent client crash when 3 players with name 0xFFFF joined<br>
-FindObjectsCb server log spam<br>
+Server crash when joined 2 players with name 0xFFFF<br>
+Server FindObjectsCb log spam<br>
 Empty server config file name on first startup<br>
 Missing creation of AdditionalContent folder<br>
 Player early respawn bug<br>
@@ -182,14 +182,14 @@ Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
 Enhanced server log<br>
 
-# How to launch using wine
-To launch FEAR.exe you will need to instruct wine to load winmm from game folder first and then load system winmm:
+# How to launch using wine (wine is not emulator)
+To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:
 ```
-WINEDLLOVERRIDES="winmm=n,b"
+WINEDLLOVERRIDES="winmm=n,b" wine FEARMP
 ```
 Same variable is needed to run FEARServer.exe, but you also can disable load of gecko engine and .net:
 ```
-WINEDLLOVERRIDES="winmm=n,b;mscoree;mshtml="
+WINEDLLOVERRIDES="winmm=n,b;mscoree;mshtml=" wine FEARServer
 ```
 
 # How to compile

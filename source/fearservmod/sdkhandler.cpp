@@ -1364,6 +1364,22 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
 ////   return 0;
 //// }
 
+
+void SdkHandler::hookCheckConnectedNickname(SpliceHandler::reg *p) {
+    wchar_t *ptr = (wchar_t *)((uintptr_t)(p->retadr));
+    int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
+    ptr[15] = 0;
+    const wchar_t *tptr;
+    tptr = ptr;
+    while (*tptr)
+        tptr++;
+    uintptr_t length = (tptr - ptr) * 2;
+    IsTextUnicode((void *)ptr, length, &isUni);
+    if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
+        memcpy(reinterpret_cast<wchar_t*>(ptr), L"Player", sizeof(L"Player"));
+    }
+}
+
 void SdkHandler::hookUDPRecvfrom(SpliceHandler::reg *p) {
     auto &inst = *ExecutionHandler::instance()->sdkHandler();
     if (p->tsi != -1 && p->tsi) {

@@ -2739,8 +2739,11 @@ void AppHandler::configHandle()
 }
 
 void AppHandler::setCoopDoSpawn(bool state) {
+    PatchHandler &hpatch = *patchHandler();
     if (m_bCoopDoSpawn != state) {
+        hpatch.addCode(m_SPModeSpawn, 5);
         memswap(m_SPModeSpawn,reinterpret_cast<uint8_t*>(&m_coopDoSpawn),5);
+        hpatch.restoreProtection(m_SPModeSpawn);
         m_bCoopDoSpawn = !m_bCoopDoSpawn;
     }
 }
@@ -3513,8 +3516,13 @@ void AppHandler::setMpGame(bool state)
 
 void AppHandler::setFlashlight(bool state) {
     if (m_bFlashlight != state) {
+        PatchHandler& hpatch = *patchHandler();
+        hpatch.addCode(m_flashlightAdr[0]);
+        hpatch.addCode(m_flashlightAdr[1]);
         memswap((uint8_t *)m_flashlightAdr[0], reinterpret_cast<uint8_t*>(&m_flashlight1), 5);
         memswap((uint8_t *)m_flashlightAdr[1], reinterpret_cast<uint8_t*>(&m_flashlight2), 5);
+        hpatch.restoreProtection(m_flashlightAdr[0]);
+        hpatch.restoreProtection(m_flashlightAdr[1]);
         m_bFlashlight = !m_bFlashlight;
     }
 }

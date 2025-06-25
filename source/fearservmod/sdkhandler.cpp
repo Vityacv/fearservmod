@@ -1265,6 +1265,7 @@ void SdkHandler::hookPatchHoleKillHives(SpliceHandler::reg *p) {
 void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
     auto &app = *ExecutionHandler::instance()->appHandler();
     auto &sdk = *ExecutionHandler::instance()->sdkHandler();
+    PatchHandler& hpatch = *app.patchHandler();
         if (app.m_bRandWep) {
             srand(time(0));
             app.m_bDisableLights = rand() % 2;
@@ -1309,7 +1310,9 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                 }
 
                 app.skinState = skinState;
+                hpatch.addCode(reinterpret_cast<uint8_t*>(app.m_skinStr), sizeof(uintptr_t));
                 *app.m_skinStr = (char *)"Player";
+                hpatch.restoreProtection(reinterpret_cast<uint8_t*>(app.m_skinStr));
                 app.m_storyModeCnt = 0;
                 if (app.m_preventNoclip)
                     sdk.m_bfreeMovement = 0;
@@ -1686,6 +1689,8 @@ void SdkHandler::hookOnConnectServer(
 void SdkHandler::hookUseSkin1(SpliceHandler::reg *p) {
     auto &app = *ExecutionHandler::instance()->appHandler();
     auto &sdk = *ExecutionHandler::instance()->sdkHandler();
+    PatchHandler& hpatch = *app.patchHandler();
+    hpatch.addCode(reinterpret_cast<uint8_t*>(app.m_skinStr), sizeof(uintptr_t));
     if (!app.skinState) {
       p->tax = (uintptr_t)sdk.getModelStruct((char *)"Player");
       *app.m_skinStr = (char *)"Player";
@@ -1694,6 +1699,7 @@ void SdkHandler::hookUseSkin1(SpliceHandler::reg *p) {
       p->tax = (uintptr_t)sdk.getModelStruct((char *)"DeltaForce_multi");
       *app.m_skinStr = (char *)"DeltaForce_multi";
     }
+    hpatch.restoreProtection(reinterpret_cast<uint8_t*>(app.m_skinStr));
 }
 
 void SdkHandler::hookLoadMaps1(SpliceHandler::reg *p) {

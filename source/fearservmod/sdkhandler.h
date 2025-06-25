@@ -331,6 +331,7 @@ class SdkHandler {
     std::shared_ptr<CRITICAL_SECTION> g_ipchunkSection;
     std::shared_ptr<CRITICAL_SECTION> g_pldataSection;
     std::unordered_map<uint32_t, std::unordered_map<uint16_t, uint32_t>> m_ipData;
+    std::unordered_map<uint32_t, uint32_t> m_blockedIpToTS;
     uint8_t ukPEPrevSpawnPoint;
     uint8_t ukPENextSpawnPoint;
     HRECORD m_hGlobalRecord;
@@ -424,6 +425,7 @@ class SdkHandler {
     static void regcall hookPatchHoleKillHives(SpliceHandler::reg *p);
     static void regcall hookOnMapLoaded(SpliceHandler::reg *p);
     static void regcall hookCheckConnectedNickname(SpliceHandler::reg *p);
+    static void regcall hookVotePassTempBan(SpliceHandler::reg *p);
     static void regcall hookUDPRecvfrom(SpliceHandler::reg *p);
     static void regcall hookUDPConnReq(SpliceHandler::reg *p);
     static void regcall hookCheckUDPDisconnect(SpliceHandler::reg *p);

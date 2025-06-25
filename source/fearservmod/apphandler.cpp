@@ -470,6 +470,42 @@ void AppHandler::hookAdditionalDirectoryCreate(SpliceHandler::reg *hook)
     */
 }
 
+const char version[5 + 8 + 1] = {
+    // YY year
+    'F', 'S', 'M', ' ', 'v', __DATE__[7], __DATE__[8], __DATE__[9],
+    __DATE__[10],
+
+    // First month letter, Oct Nov Dec = '1' otherwise '0'
+    (__DATE__[0] == 'O' || __DATE__[0] == 'N' || __DATE__[0] == 'D') ? '1'
+                                                                     : '0',
+
+    // Second month letter
+    (__DATE__[0] == 'J')   ? ((__DATE__[1] == 'a') ? '1' : // Jan, Jun or Jul
+                                ((__DATE__[2] == 'n') ? '6' : '7'))
+    : (__DATE__[0] == 'F') ? '2'
+                           : // Feb
+        (__DATE__[0] == 'M') ? (__DATE__[2] == 'r') ? '3' : '5'
+                             : // Mar or May
+        (__DATE__[0] == 'A') ? (__DATE__[1] == 'p') ? '4' : '8'
+                             : // Apr or Aug
+        (__DATE__[0] == 'S') ? '9'
+                             : // Sep
+        (__DATE__[0] == 'O') ? '0'
+                             : // Oct
+        (__DATE__[0] == 'N') ? '1'
+                             : // Nov
+        (__DATE__[0] == 'D') ? '2'
+                             : // Dec
+        0,
+
+    // First day letter, replace space with digit
+    __DATE__[4] == ' ' ? '0' : __DATE__[4],
+
+    // Second day letter
+    __DATE__[5],
+
+    '\0'};
+
 void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
 {
     auto &inst = *ExecutionHandler::instance()->appHandler();
@@ -484,6 +520,15 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
       inst.m_Server = reinterpret_cast<uint8_t *>(inst.m_ServerModule +
                                            exec_section->VirtualAddress);
       inst.m_ServerSz = exec_section->SizeOfRawData;
+    }
+    {
+        static auto pat = BSF("68????????68????????FF50??E8");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)inst.m_Server, inst.m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            hpatch.addCode(tmp+1, 4);
+            *(const char **)(tmp + 1) = version;// + NUM(UNIX_TIMESTAMP);
+        }
     }
     {
         static auto pat = BSF("E8????????8BC8E8????????8D4C????FF15????????8B");
@@ -629,7 +674,7 @@ void AppHandler::hookModelMsg(SpliceHandler::reg *p) {
 
 void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
     auto &inst = *ExecutionHandler::instance()->appHandler();
-
+    PatchHandler &hpatch = *inst.patchHandler();
     if (!inst.m_bSettingsLoaded) {
         inst.m_bSettingsLoaded = true;
         {
@@ -638,32 +683,32 @@ void AppHandler::hookClientSettingsLoad(SpliceHandler::reg *p) {
                 scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat1));
             if (tmp) {
                 if (**reinterpret_cast<uintptr_t **>(tmp + 2)) {
-                    { // set fullscreen
+                    { // // Fix window mode set fullscreen
                         static auto pat = BSF("0F95C385C0885C24??74??B9");
                         uint8_t *tmp =
                             scanBytes(inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
-                            unprotectCode(tmp, 3);
+                            hpatch.addCode(tmp, 3);
                             *reinterpret_cast<uint16_t *>(tmp) = 0xDB30;
                             *reinterpret_cast<uint8_t *>(tmp + 2) = 0x90;
                         }
                     }
-                    { // set resize
+                    { // Fix window mode set resize
                         static auto pat = BSF("0F????????89??????????8B??????????89");
                         uint8_t *tmp = scanBytes(
                             inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
-                            unprotectCode(tmp, 5);
+                            hpatch.addCode(tmp, 5);
                             uint8_t d[] = {0xB9, 0x01, 0x00, 0x00, 0x00};
                             memcpy(tmp, d, 5);
                         }
                     }
-                    { // force fullscreen
+                    { // Fix window mode d3d9 fullscreen
                         static auto pat = BSF("7402B0018B????8B????E8????????E8????????5F");
                         uint8_t *tmp = scanBytes(
                             inst.m_Exec, inst.m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
                         if (tmp) {
-                            unprotectCode(tmp, 2);
+                            hpatch.addCode(tmp, 2);
                             *reinterpret_cast<uint16_t *>(tmp) = 0x9090;
                         }
                     }
@@ -964,8 +1009,14 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       unsigned len =
           pMsgRead->ReadWString(text, sizeof(text) / sizeof(wchar_t)) *
           sizeof(wchar_t);
-      if (len > (63 * sizeof(wchar_t)))
+      if (len > (63 * sizeof(wchar_t))) {
         p->state = 1;
+      } else {
+        int isUni = IS_TEXT_UNICODE_ILLEGAL_CHARS;
+        MyRtlIsTextUnicode((void *)text, len, &isUni);
+        if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS)
+          p->state = 1;
+      }
     } break;
     case MID_PLAYER_SPECTATORMODE: {
       p->state = sdk.checkPlayerStatus(pGameClientData);
@@ -1990,6 +2041,22 @@ void AppHandler::configHandle()
     //     }
     // }
     {
+        static auto pat = BSF("E8????????8BC8E8????????85C075??BD");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            hsplice.spliceUp(tmp, (void *)SdkHandler::hookVotePassTempBan);
+        }
+    }
+    {
+        static auto pat = BSF("52FF503483C4043B??7509??8B????E9");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            hsplice.spliceUp(tmp+11, (void *)SdkHandler::hookVotePassTempBan);
+        }
+    }
+    {
         static auto pat = BSF("745D8B????????????8B????8B??C1????884C2414");
         unsigned char *tmp = scanBytes(
             (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)); // show conn client
@@ -2191,7 +2258,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes((unsigned char *)m_Server,
                                            m_ServerSz, reinterpret_cast<uint8_t *>(&pat));  // use SP MAPS
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2227,7 +2294,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 *(tmp + 9) = 0xEB;
             }
         }
@@ -2236,7 +2303,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 *(unsigned short *)(tmp + 1) = 0x0BC8;
             }
         }
@@ -2247,7 +2314,7 @@ void AppHandler::configHandle()
                 // player
                 // numbers
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 *(unsigned short *)(tmp + 10) = 0x9090;
             }
         }
@@ -2318,7 +2385,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 *(unsigned short *)(tmp) = 0x9090;
                 m_skinStr = (char **)(tmp + 9);
                 *(uintptr_t *)(tmp + 9) = (uintptr_t) "Player";
@@ -2330,7 +2397,7 @@ void AppHandler::configHandle()
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 tmp += 2;
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2340,7 +2407,7 @@ void AppHandler::configHandle()
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 tmp += 2;
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2350,7 +2417,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2359,7 +2426,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 uint8_t d[] = {0xB8, 0x03, 0x00, 0x00,0x00};
                 memcpy(tmp,d,
                        5);
@@ -2388,12 +2455,12 @@ void AppHandler::configHandle()
             tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
                             reinterpret_cast<uint8_t *>(&pat));
             tmp += 9;
-            unprotectCode(tmp);
+            hpatch.addCode(tmp);
             *(unsigned short *)(tmp) = 0x9090;
             tmp = scanBytes((unsigned char *)tmp, (m_ServerSz + m_Server) - tmp,
                             reinterpret_cast<uint8_t *>(&pat));
             tmp += 9;
-            unprotectCode(tmp);
+            hpatch.addCode(tmp);
             *(unsigned short *)(tmp) = 0x9090;
         }
         {
@@ -2401,7 +2468,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 *(uintptr_t *)(tmp) = 0x90c301b0;
             }
         }
@@ -2418,7 +2485,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2427,7 +2494,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2436,7 +2503,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2445,7 +2512,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2454,7 +2521,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 m_SPModeSpawn = tmp;
                 setCoopDoSpawn(1);
                 // memcpy(tmp,moveax0,5);
@@ -2476,7 +2543,7 @@ void AppHandler::configHandle()
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2485,7 +2552,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2591,7 +2658,7 @@ void AppHandler::configHandle()
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
-                unprotectCode(tmp);
+                hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
         }
@@ -2663,7 +2730,11 @@ void AppHandler::configHandle()
         } else {
         }
     }
-
+    if(hsdk.isXP2)
+        reinterpret_cast<ILTServerXP2*>(hsdk.g_pLTServer)->CPrintNoArgs("FearServMod build date: " __DATE__);
+    else
+        hsdk.g_pLTServer->CPrintNoArgs("FearServMod build date: " __DATE__);
+    hpatch.restoreProtection();
 
 }
 
@@ -2814,6 +2885,7 @@ void AppHandler::init()
 {
     srand(time(0));
     loadConfig();
+    PatchHandler &hpatch = *patchHandler();
     SpliceHandler &hsplice = *spliceHandler();
     {
         static auto pat = BSF("E8????????83C4108D4424");
@@ -2866,7 +2938,7 @@ void AppHandler::init()
           (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat)));
       if (tmp) {
         const char **arr = (const char **)*(uintptr_t *)(tmp + 1);
-        unprotectMem((uint8_t *)arr);
+        hpatch.addMem(reinterpret_cast<uint8_t*>(arr));
         arr[0] = m_strNs1;
         arr[1] = m_strNs2;
       }
@@ -2911,7 +2983,7 @@ void patchZeroConfig(PatchHandler &hpatch, SpliceHandler &hsplice, uint8_t * mod
 
 
 void AppHandler::serverPreinitPatches() {
-    PatchHandler &hpatch = *patchHandler();
+    PatchHandler& hpatch = *patchHandler();
     SpliceHandler &hsplice = *spliceHandler();
   // FixLagSetWindowsHookExA
     patchZeroConfig(hpatch, hsplice, m_Exec, m_ExecSz);
@@ -2933,20 +3005,21 @@ void AppHandler::serverPreinitPatches() {
         uint8_t *tmp =
             scanBytes(m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            unprotectCode(tmp, 1);
+            hpatch.addCode(tmp, 1);
             *static_cast<uint8_t *>(tmp) = 0xc3;
         }
     }
 }
 
 void AppHandler::clientPreinitPatches() {
+    PatchHandler& hpatch = *patchHandler();
   {
     static auto pat = BSF("680000C1005168????????53");
     uint8_t *adr =
         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
     if (adr) {
       adr += 1;
-      unprotectCode(adr, 4);
+      hpatch.addCode(adr, 4);
       // Fix window mode CreateWindowExA style
       *(unsigned *)adr = WS_SYSMENU + WS_CAPTION + WS_MINIMIZEBOX;
     }
@@ -2957,7 +3030,7 @@ void AppHandler::clientPreinitPatches() {
         scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
     if (adr) {
       adr += 1;
-      unprotectCode(adr, 4);
+      hpatch.addCode(adr, 4);
       // Fix window mode AdjustWindowRect style
       *(unsigned *)adr = WS_SYSMENU + WS_CAPTION + WS_MINIMIZEBOX;
     }
@@ -2966,35 +3039,35 @@ void AppHandler::clientPreinitPatches() {
   if (static auto pat = BSF("74??A1????????85C075??6A006A00FF15");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-    unprotectCode(adr, 1);
+    hpatch.addCode(adr, 1);
     *static_cast<uint8_t *>(adr) = 0xEB;
   }
   // FixDinputLag
   if (static auto pat = BSF("74??6A02578BCEE8????????8B");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-    unprotectCode(adr, 1);
+    hpatch.addCode(adr, 1);
     *static_cast<uint8_t *>(adr) = 0xEB;
   }
   // NoICMPDLL
   if (static auto pat = BSF("74??E8????????68????????FF");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-    unprotectCode(adr, 1);
+    hpatch.addCode(adr, 1);
     *static_cast<uint8_t *>(adr) = 0xEB;
   }
   // NoPBCLDLL
   if (static auto pat = BSF("A1????????85C00F85????????C7");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-    unprotectCode(adr, 1);
+    hpatch.addCode(adr, 1);
     *static_cast<uint8_t *>(adr) = 0xC3;
   }
   // NoMutex
   if (static auto pat = BSF("6A006A00FF15????????8BF885FF74");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-    unprotectCode(adr, 5);
+    hpatch.addCode(adr, 5);
     static uint8_t d[] = {0x58, 0x31, 0xC0, 0xEB, 0x05};
     memcpy(adr, reinterpret_cast<uint8_t *>(&d), 5);
   }
@@ -3004,7 +3077,7 @@ void AppHandler::clientPreinitPatches() {
           scanBytes(m_Exec, m_ExecSz,
                     reinterpret_cast<uint8_t *>(&pat))) {
     adr += 6;
-    unprotectCode(adr, 7);
+    hpatch.addCode(adr, 7);
     static uint8_t d[] = {0x01, 0x00, 0x00, 0x00, 0x58, 0xEB, 0x38};
     memcpy(adr, reinterpret_cast<uint8_t *>(&d), 7);
   }
@@ -3129,9 +3202,9 @@ void AppHandler::initClient() {
         uint8_t *tmp =
             scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         if(tmp) {
-            unprotectCode(tmp, 24);
+            hpatch.addCode(tmp, 24);
             *reinterpret_cast<uintptr_t *>(tmp + 1) = reinterpret_cast<uintptr_t>(L"https://github.com/Vityacv/fearservmod");
-            *reinterpret_cast<uintptr_t *>(tmp + 19) = reinterpret_cast<uintptr_t>(L"FearServMod, build date: " __DATE__ ". Check github for updates!");
+            *reinterpret_cast<uintptr_t *>(tmp + 19) = reinterpret_cast<uintptr_t>(L"FearServMod build date: " __DATE__ ". Check github for updates!");
         }
     }
     patchZeroConfig(hpatch, hsplice, m_Client, m_ClientSz);
@@ -3355,7 +3428,7 @@ void AppHandler::initClient() {
         void *tmp = scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         m_isMultiplayerGameClient = (uint8_t *)((uint8_t *)tmp + 1) +
                                     (*(uintptr_t *)((uint8_t *)tmp + 1)) + 4;
-        unprotectCode(m_isMultiplayerGameClient, 100);
+        // hpatch.addCode(m_isMultiplayerGameClient, 100);
         hsplice.spliceUp(tmp, (void *)hookSwitchToMP);
     }
 
@@ -3374,7 +3447,7 @@ void AppHandler::initClient() {
         uint8_t *tmp =
             scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-            unprotectCode(tmp, 100);
+            hpatch.addCode(tmp, 100);
             *(unsigned short *)(tmp) = 0x9050;
 
             hsplice.spliceUp(tmp, (void *)hookStoryModeView);
@@ -3396,7 +3469,7 @@ void AppHandler::initClient() {
         tmp = scanBytes(
             (uint8_t *)tmp, (m_ClientSz + m_Client) - tmp, reinterpret_cast<uint8_t *>(&pat));
         if (tmp) {
-          unprotectCode(tmp, 100);
+          hpatch.addCode(tmp, 100);
           m_flashlightAdr[i] = tmp;
           // memcpy(tmp,moveax0,5);
         }
@@ -3405,6 +3478,7 @@ void AppHandler::initClient() {
         if (i == 2) break;
         }
     }
+    hpatch.restoreProtection();
 }
 
 uintptr_t AppHandler::getCfgInt(char *pathCfg, char *valStr, int def) {
@@ -3427,11 +3501,14 @@ size_t AppHandler::getGlobalCfgInt(wchar_t *pathCfg, wchar_t *valStr) {
 void AppHandler::setMpGame(bool state)
 {
     uint8_t d[] = {0xB0, 0x01, 0xC3};
+    PatchHandler& hpatch = *patchHandler();
+    hpatch.addCode(m_isMultiplayerGameClient,3);
     memcpy((unsigned char *)m_isMultiplayerGameClient, d, 3);
     if (state)
         *(m_isMultiplayerGameClient + 1) = 1;
     else
         *(m_isMultiplayerGameClient + 1) = 0;
+
 }
 
 void AppHandler::setFlashlight(bool state) {

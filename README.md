@@ -120,7 +120,8 @@ Explosion flickering on high refresh rate monitors, like 144hz etc<br>
 Disable load of ICMP.dll, PBCL.dll, PBSV.dll<br>
 Crash on pressing ESC while downloading content<br>
 Crash on pressing TAB when server have more than 16 players<br>
-Run multiple instances and no render pause when unfocused<br>
+Run multiple instances<br>
+No render pause when unfocused<br>
 Disable intro on start game<br>
 Fast switch weapon bug<br>
 Grenade throw +5 fake when move +drop +C<br>
@@ -129,7 +130,8 @@ Retail version can connect to Combat servers<br>
 Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
 Server DoS fake players spam<br>
-Client DoS chat and team broadcast spam<br>
+Client DoS chat spam<br>
+Client DoS team broadcast spam<br>
 Vote hack<br>
 Vote new map crash clients with out of index hack<br>
 Multiple kills of same target bug<br>
@@ -137,26 +139,28 @@ Clear vote process after map loaded<br>
 Early respawn crash<br>
 Animation speed crash<br>
 RunSpeed hack v1<br>
-Invalid skey and guid crash<br>
+Server invalid skey crash<br>
+Server invalid guid crash<br>
 Negative fRate crash<br>
 Force load on new map crash<br>
-Server crash when joined 2 players with name 0xFFFF<br>
+Server hang when joined 2 players with name 0xFFFF<br>
 Server FindObjectsCb log spam<br>
 Empty server config file name on first startup<br>
 Missing creation of AdditionalContent folder<br>
 Player early respawn bug<br>
+Ladder animation glitch<br>
 Chat string size limit<br>
 Style window mode<br>
 Host options hack<br>
 Pause server hack<br>
 Render stimulus crash hack<br>
 Object alpha crash hack<br>
-Frag self hack<br>
+Frag self unlimited ammo hack<br>
+Unlimited drop grenade hack<br>
 Get weapon hack<br>
 Get health hack<br>
 Get armor hack<br>
 Get gear hack<br>
-Unlimited drop grenade hack<br>
 Fake fire position hack<br>
 Invalid skin hack<br>
 Bulletproof hack v1 and v2<br>
@@ -165,7 +169,8 @@ Send damage hack<br>
 Send sounds hack<br>
 Pickup distance hack (2m limit)<br>
 Invalid team hack<br>
-Slowmo without recharger or not charged hack<br>
+Slowmo activate without recharge hack<br>
+Slowmo activate without recharger hack<br>
 Teleport to players hack<br>
 Teleport to respawn checkpoints hack<br>
 Teleport using SetObjectPos hack<br>
@@ -173,16 +178,16 @@ Stealth join server hack<br>
 Rapid fire timer in future hack<br>
 Rapid fire invalid msg hack<br>
 Rapid fire unarmed hack<br>
-Ladder animation glitch<br>
 Remote flashlight hack<br>
 Melee ammo mod hack<br>
 Weapon fire drop ammo hack<br>
 Weapon switch drop ammo hack<br>
 Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
+Enhanced vote ban<br>
 Enhanced server log<br>
 
-# How to launch using wine (wine is not emulator)
+# How to launch game or server in linux using wine
 To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:
 ```
 WINEDLLOVERRIDES="winmm=n,b" wine FEARMP

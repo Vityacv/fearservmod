@@ -822,6 +822,7 @@ bool callbackReturnTrue() {
 void SdkHandler::initClient() {
     AppHandler &handler = *m_appHandler;
     SpliceHandler &hsplice = *handler.spliceHandler();
+    PatchHandler& hpatch = *handler.patchHandler();
     uint8_t *gClient = handler.m_Client;
     unsigned char *gFearExe = handler.m_Exec;
     uintptr_t gFearExeSz = handler.m_ExecSz;
@@ -837,7 +838,7 @@ void SdkHandler::initClient() {
     // handler.m_databaseSz = GetModuleSize((HMODULE)handler.m_database);
     g_pLTDatabase = getDatabaseMgr();
     getLTServerClient(gFearExe, gFearExeSz);
-    unprotectMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
+    hpatch.addMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
                                                     uintptr_t *)g_pLTClient) +
                                                 0x1E0),
                  sizeof(void *));
@@ -878,7 +879,7 @@ void SdkHandler::initClient() {
                 (unsigned char *)currentTmp, modSz-(currentTmp-tmp),
                 BYTES_SEARCH_FORMAT("C74018000080BF"));
             auto patch_point = currentTmp+3;
-            unprotectCode(patch_point, 4);
+            hpatch.addCode(patch_point, 4);
             memset(patch_point, 0, 4);
         }
     }
@@ -965,6 +966,7 @@ void SdkHandler::initClient() {
 
 void SdkHandler::Update() {
     AppHandler &handler = *m_appHandler;
+    PatchHandler& hpatch = *handler.patchHandler();
     if (*(uintptr_t *)handler.m_gameClientStruct &&
         *(unsigned *)((
             unsigned char *)((*(uintptr_t *)(handler.m_gameClientStruct)) +
@@ -985,11 +987,15 @@ void SdkHandler::Update() {
                 g_pGameSpyBrowser_RequestServerListAdr =
                     ((unsigned char *)(*(uintptr_t *)(g_pGameSpyBrowser)) +
                      0x8);
-                unprotectMem(
+                hpatch.addMem(
                     (unsigned char *)g_pGameSpyBrowser_RequestServerListAdr,
                     100);
                 g_pGameSpyBrowser_RequestServerList = (void *)*(
                     uintptr_t *)g_pGameSpyBrowser_RequestServerListAdr;
+            } else {
+                hpatch.addMem(
+                    (unsigned char *)g_pGameSpyBrowser_RequestServerListAdr,
+                    100);
             }
 //            _asm{
 //                int 3
@@ -1127,6 +1133,9 @@ void SdkHandler::setExeType(bool state){
           (void *)(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTClient) +
                                 0x1E0),
           4, PAGE_READWRITE, (PDWORD)&tmp);*/
+    PatchHandler& hpatch = *m_appHandler->patchHandler();
+    hpatch.addMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
+                                                    uintptr_t *)g_pLTClient) +0x1E0),sizeof(void *));
     if (state)
         *(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTClient) + 0x1E0) =
             (uintptr_t)m_appHandler->m_isMultiplayerGameClient;
@@ -1138,7 +1147,7 @@ void SdkHandler::setExeType(bool state){
         (void *)(uintptr_t *)((unsigned char *)(*(uintptr_t *)g_pLTServer) +
                               0x1EC),
         4, PAGE_READWRITE, (PDWORD)&tmp);*/
-        unprotectMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
+        hpatch.addMem((unsigned char *)(uintptr_t *)((unsigned char *)(*(
                                                         uintptr_t *)g_pLTServer) +
                                                     0x1EC),
                      sizeof(void *));
@@ -1154,6 +1163,7 @@ void SdkHandler::setExeType(bool state){
     } else
         m_appHandler->setMpGame(0);
     m_appHandler->m_bExeType = state;
+    hpatch.restoreProtection();
 };
 
 void SdkHandler::requestMasterServerCallback(const char *pBuffer,
@@ -1374,7 +1384,7 @@ void SdkHandler::hookCheckConnectedNickname(SpliceHandler::reg *p) {
     while (*tptr)
         tptr++;
     uintptr_t length = (tptr - ptr) * 2;
-    IsTextUnicode((void *)ptr, length, &isUni);
+    MyRtlIsTextUnicode((void *)ptr, length, &isUni);
     if (isUni & IS_TEXT_UNICODE_ILLEGAL_CHARS) {
         memcpy(reinterpret_cast<wchar_t*>(ptr), L"Player", sizeof(L"Player"));
     }
@@ -1445,6 +1455,29 @@ void SdkHandler::hookUDPConnReq(SpliceHandler::reg *p) {
     //        LeaveCriticalSection(&pSdk->g_ipchunkSection);
 }
 
+
+void SdkHandler::hookVotePassTempBan(SpliceHandler::reg *p) {
+    auto &inst = *ExecutionHandler::instance()->sdkHandler();
+    HCLIENT hTargetClient = reinterpret_cast<HCLIENT>(p->tax);
+    uint32_t voteType = *reinterpret_cast<uint32_t*>(p->tsi+0x10);
+    if(voteType != 2)
+        return;
+    uint8_t aTcpIp[4];
+    uint16_t nPort;
+    inst.getClientAddr(hTargetClient, aTcpIp, &nPort);
+    EnterCriticalSection(static_cast<CRITICAL_SECTION*>(inst.g_ipchunkSection.get()));
+    auto& blockedIp = inst.m_blockedIpToTS;
+    auto ip = *reinterpret_cast<uint32_t*>(aTcpIp);
+    DBGLOG("trying to block ip %p", ip)
+    auto blockedIpIter = blockedIp.find(ip);
+    if(blockedIpIter == blockedIp.end()) {
+        DBGLOG("timer %d", blockedIp[ip])
+        blockedIp[ip] = inst.getRealTimeMS();
+    }
+    DBGLOG("skipping ip %p", ip)
+    LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(inst.g_ipchunkSection.get()));
+}
+
 void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
         SdkHandler &inst = *ExecutionHandler::instance()->sdkHandler();
         sockaddr_in *sock = (sockaddr_in *)(p->tsi + 0x94);
@@ -1453,49 +1486,81 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
         uint32_t ip = sock->sin_addr.s_addr;
         uint16_t port = sock->sin_port;
         uint32_t timestamp = inst.getRealTimeMS();
-        auto& data = inst.m_ipData;
-        if(data.find(ip) != data.end() && data[ip].find(port) != data[ip].end()){
+        {
+          auto &data = inst.m_blockedIpToTS;
+          auto dataTarget = data.find(ip);
+          if (dataTarget != data.end()) {
+            uint32_t delta = timestamp - dataTarget->second;
+            if (delta > 60 * 60 * 1000) {
+              DBGLOG("removing ip %p", ip)
+              data.erase(dataTarget);
+            } else if (delta > 1500) {
+              DBGLOG("blocking %p", ip)
+              p->tax = 1;
+              p->state = 2;
+            }
+          }
+          if ((int(timestamp/1000) % 60) == 0) {
+            for (auto it = data.begin(); it != data.end();) {
+              uint32_t delta = timestamp - it->second;
+              bool erased;
+              if (delta > 60 * 60 * 1000) {
+                it = data.erase(it);
+                erased = true;
+              } else erased = false;
+              if (erased)
+                continue;
+              ++it;
+            }
+          }
+        }
+        {
+          auto &data = inst.m_ipData;
+          if (data.find(ip) != data.end() &&
+              data[ip].find(port) != data[ip].end()) {
             uint32_t delta = timestamp - data[ip][port];
-            if(delta > 10000 || data.count(ip) > 1) {
-                p->tax = 1;
-                p->state = 2;
+            if (delta > 10000 || data.count(ip) > 1) {
+              p->tax = 1;
+              p->state = 2;
             }
-        } else {
-            for(auto it = data.begin(); it != data.end();) {
-                auto key = it->first;
-                bool erased = false;
-                for(auto item : data[key]) {
-                    uint32_t delta = timestamp - item.second;
-                    if(delta > 30000) {
-                        it = data.erase(it);
-                        erased = true;
-                        break;
-                    }
+          }
+          if ((int(timestamp/1000) % 5) == 0) {
+            for (auto it = data.begin(); it != data.end();) {
+              auto key = it->first;
+              bool erased = false;
+              for (auto item : data[key]) {
+                uint32_t delta = timestamp - item.second;
+                if (delta > 30000) {
+                  it = data.erase(it);
+                  erased = true;
+                  break;
                 }
-                if(erased)
-                    continue;
-                ++it;
+              }
+              if (erased)
+                continue;
+              ++it;
             }
-//            uint32_t buf[1024];
-//            int index = 0;
-//            auto itEnd = data.end();
-//            for(auto it = data.begin(); it != itEnd; ++it){
-//                auto key = it->first;
-//                for(auto item : data[key]){
-//                    uint32_t delta = timestamp - item.second;
-//                    if(delta > 30000) {
-//                        buf[index] = key;
-//                        ++index;
-//                    }
-//                    if(index>1000)
-//                        break;
-//                }
-//                if(index>1000)
-//                    break;
-//            }
-//            for(int i = 0; i != index; ++i){
-//                data.erase(buf[index]);
-//            }
+            //            uint32_t buf[1024];
+            //            int index = 0;
+            //            auto itEnd = data.end();
+            //            for(auto it = data.begin(); it != itEnd; ++it){
+            //                auto key = it->first;
+            //                for(auto item : data[key]){
+            //                    uint32_t delta = timestamp - item.second;
+            //                    if(delta > 30000) {
+            //                        buf[index] = key;
+            //                        ++index;
+            //                    }
+            //                    if(index>1000)
+            //                        break;
+            //                }
+            //                if(index>1000)
+            //                    break;
+            //            }
+            //            for(int i = 0; i != index; ++i){
+            //                data.erase(buf[index]);
+            //            }
+          }
         }
         LeaveCriticalSection(static_cast<CRITICAL_SECTION*>(inst.g_ipchunkSection.get()));
         }

@@ -1,5 +1,5 @@
 project(fearservmod)
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 26)
 file(GLOB_RECURSE src RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(entry "entry")

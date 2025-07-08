@@ -195,6 +195,7 @@ void AppHandler::hookStoryModeOff(SpliceHandler::reg *p) {
     if (lvlName) {
         switch (StringUtil::hash_rt(lvlName)) {
         case StringUtil::hash_ct("01_Intro"):
+        case StringUtil::hash_ct("XP_Intro"):
         case StringUtil::hash_ct("07_ATC_Roof"):
         case StringUtil::hash_ct("XP2_W01"):
         case StringUtil::hash_ct("XP2_W06"):
@@ -324,6 +325,7 @@ void AppHandler::hookRandomWeapon(SpliceHandler::reg *p)
           sdk.isXP2 ? wepsmpstr_xp2[sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]] : wepsmpstr[sdk.m_randomWepTable[sdk.m_currentRandomWeaponInd]];
       sdk.m_currentRandomWeapon =
           sdk.g_pLTDatabase->GetRecordB(sdk.m_hCatWeapons, szWep);
+      sdk.m_currentRandomWeaponStr = szWep;
       ((void(__thiscall *)(void *, const char *, uintptr_t,
                            uintptr_t))sdk.CCommandMgr_QueueCommand)(
           sdk.pCmdMgr, "msg Player RESETINVENTORY", 0, 0);
@@ -530,6 +532,20 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
             *(const char **)(tmp + 1) = version;// + NUM(UNIX_TIMESTAMP);
         }
     }
+    void *func = (void *)GetProcAddress(GetModuleHandle(_T("ntdll.dll")),
+                                        _C("wine_get_version"));
+    if (func) {
+      static auto pat =
+          BSF("7505B8????????8B8D????????8B115068????????FF????8D");
+      unsigned char *tmp =
+          scanBytes((unsigned char *)inst.m_Server, inst.m_ServerSz,
+                    reinterpret_cast<uint8_t *>(&pat));
+      if (tmp) {
+        hpatch.addCode(tmp, 1);
+        *static_cast<uint8_t *>(tmp) = 0xeb;
+      }
+    }
+
     {
         static auto pat = BSF("E8????????8BC8E8????????8D4C????FF15????????8B");
         unsigned char *tmp = scanBytes(
@@ -1314,12 +1330,24 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
             CWeaponDB *, HAMMODATA, const char *, uintptr_t,
             uintptr_t))sdk.g_pWeaponDB_GetInt32)(sdk.g_pWeaponDB, hAmmoData,
                                                    "Type", 0, 0);
+        DBGLOG("AMMO %p %p", inst.m_bRandWep, ammoType)
+        if (inst.m_bRandWep) {
+          char str[64];
+          int i = 0;
+          if (sdk.m_currentRandomWeaponStr == "Frag Grenade" ||
+              sdk.m_currentRandomWeaponStr == "Proximity" ||
+              sdk.m_currentRandomWeaponStr == "Remote Charge") {
+            sprintf(str, "msg Player (ACQUIREWEAPON %s)",
+                    sdk.m_currentRandomWeaponStr);
+            ((void(__thiscall *)(void *, char *, uintptr_t, uintptr_t))
+                 sdk.CCommandMgr_QueueCommand)(sdk.pCmdMgr, str, 0, 0);
+          }
+        }
       }
       if ((hWeapon && StringUtil::hash_rt((char *)*(uintptr_t *)(hWeapon)) ==
                           StringUtil::hash_ct("Turret_Remote")) ||
           ammoType == TRIGGER)
         break;
-
       pMsgRead->ReadData((void *)&firePos, 0x60);
       if (firePos.x == 0.0 && firePos.y == 0.0 && firePos.z == 0.0)
         p->state = 1;
@@ -2412,7 +2440,7 @@ void AppHandler::configHandle()
             }
         }
 
-        {
+        { // Fix W06_Landing_Zone
             static auto pat = BSF("E8????????84C074??8A??????????84C075??83??????75??8B");
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
@@ -2421,6 +2449,19 @@ void AppHandler::configHandle()
                 memcpy(tmp, moveax0, 5);
             }
         }
+        { // Fix autodoors crash Church_02, Hospital_03
+            static auto pat = BSF("74??8B8424????????50558D");
+            unsigned char *tmp = scanBytes(
+                (unsigned char *)m_eServer, m_eServerSz, reinterpret_cast<uint8_t *>(&pat));
+            if (tmp) {
+                tmp += 1;
+                hsdk.g_pChurchEndTest = tmp;
+                hsdk.m_churchEndTestOrig = *(tmp);
+                // hpatch.addCode(tmp, 1);
+                // *tmp = 0;
+            }
+        }
+        
         {
             static auto pat = BSF("74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B");
             unsigned char *tmp =
@@ -2464,12 +2505,31 @@ void AppHandler::configHandle()
             *(unsigned short *)(tmp) = 0x9090;
         }
         {
+            static auto pat = BSF("750332C0C356E8");
+            unsigned char *tmp =
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+            if (tmp) {
+                hpatch.addCode(tmp);
+                *(uintptr_t *)(tmp) = 0x01b00075;
+            }
+        }
+        /*{
             static auto pat = BSF("56E8????????8B??????????E8????????8B??????????8B");
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
             if (tmp) {
                 hpatch.addCode(tmp);
                 *(uintptr_t *)(tmp) = 0x90c301b0;
+            }
+        }*/
+        {
+            static auto pat = BSF("76106A02E8????????C6");
+            unsigned char *tmp =
+                scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+            if (tmp) {
+                tmp+=1;
+                hsdk.g_pUndergroundTest = tmp;
+                hsdk.m_undergroundOrig = *tmp;
             }
         }
         {
@@ -2635,19 +2695,18 @@ void AppHandler::configHandle()
         // spliceUp(scanBytes((unsigned char *)gServer, gServerSz,(char
         // *)"51535556578B3933DB4F894C2410"),(void *)hookReadProps);
         /*{
+            static auto pat = BSF("E8????????84C074??8B??????????85C074??33??8A??????????6A00");
       unsigned char *tmp = scanBytes(
-          (unsigned char *)gServer, gServerSz,
-          (char *)"E8????????84C074??8B??????????85C074??33??8A??????????6A00");
-    //check in coop if (tmp) { patchData::addCode(tmp, 5); memcpy(tmp, moveax0,
-    5);
+          (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+    //check in coop
+      if (tmp) { hpatch.addCode(tmp, 5); memcpy(tmp, moveax0, 5);
       }
-    }*/
-        /*{
+    }
+        {
+            static auto pat = BSF("E8????????84C074??8B????50E8????????83C40484C074");
       unsigned char *tmp =
-          scanBytes((unsigned char *)gServer, gServerSz,
-                    (char
-    *)"E8????????84C074??8B????50E8????????83C40484C074");//FriendlyFire,
-    CPlayerObj::ProcessDamageMsg if (tmp) { patchData::addCode(tmp, 5);
+          scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));//FriendlyFire, CPlayerObj::ProcessDamageMsg
+    if (tmp) { hpatch.addCode(tmp, 5);
         memcpy(tmp, moveax0, 5);
       }
     }*/
@@ -2691,18 +2750,20 @@ void AppHandler::configHandle()
 
         if (m_bCoop) {
             /*{
-            unsigned char * tmp=scanBytes((unsigned char *)gServer, gServerSz,
-                              (char
-         *)"E8????????84C074??F6??????74??68????????8B??E8????????85C074");
-         //WorldModel::PostReadProp if (tmp) { patchData::addCode(tmp, 5);
+                static auto pat = BSF("E8????????84C074??F6??????74??68????????8B??E8????????85C074");
+            unsigned char * tmp=scanBytes((unsigned char *)m_Server, m_ServerSz,reinterpret_cast<uint8_t *>(&pat));
+         //WorldModel::PostReadProp
+            if (tmp) { hpatch.addCode(tmp, 5);
               memcpy(tmp, moveax0, 5);
             }
           }
           {
+            static auto pat = BSF("E8????????84??0F??????????8B??????????8D????????8B");
             unsigned char *tmp = scanBytes(
-                (unsigned char *)gServer, gServerSz,
-                (char *)"E8????????84??0F??????????8B??????????8D????????8B");
-         //WorldModel::OnObjectCreated if (tmp) { patchData::addCode(tmp, 5);
+                (unsigned char *)m_Server, m_ServerSz,
+                reinterpret_cast<uint8_t *>(&pat));
+         //WorldModel::OnObjectCreated
+            if (tmp) { hpatch.addCode(tmp, 5);
               memcpy(tmp, moveax0, 5);
             }
           }*/
@@ -2913,6 +2974,13 @@ void AppHandler::init()
         // hsplice.spliceUp(
         //     scanBytes((unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
         //     (void *)hookLoadGameServer);
+    }
+        if (static auto pat = BSF("6A02681101000050C6");
+          uint8_t *adr =
+              scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+        adr+=1;
+        hpatch.addCode(adr, 1);
+        *static_cast<uint8_t *>(adr) = 0x10;
     }
     {
       static auto pat = BSF("8B0D????????83C40C5056FF97");
@@ -3199,6 +3267,16 @@ void AppHandler::initClient() {
       m_Client = reinterpret_cast<uint8_t *>(m_ClientModule +
                                            exec_section->VirtualAddress);
       m_ClientSz = exec_section->SizeOfRawData;
+    }
+    {  // Fix link MOTD XP2
+        static auto pat = BSF("8D5424??895424??8D54");
+        uint8_t *tmp =
+            scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            uint8_t d[] = {0x8B, 0x55, 0x08, 0x90};
+            hpatch.addCode(tmp,4);
+            memcpy(tmp, reinterpret_cast<uint8_t*>(&d), 4);
+        }
     }
     {  // Message of the day
         static auto pat = BSF("68????????894C2418FF15????????8D");

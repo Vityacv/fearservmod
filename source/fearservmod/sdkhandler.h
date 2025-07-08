@@ -293,7 +293,6 @@ class SdkHandler {
     uint32_t m_timerGamespyServ;
     uint8_t CArsenal_m_pAmmo;
     uint8_t uDT_CRUSH = 0;
-    uint8_t ukPEDropWeapon;
     uint8_t *g_pScreenMultiAdr;
     uint8_t *g_pScreenMulti = 0;
     bool m_isDoGameSpy = 0;
@@ -312,6 +311,7 @@ class SdkHandler {
     void *unknownFunc2;
     void *getStructFromString1;
     uint8_t * g_doConnectIpAdrExit;
+    uint8_t m_nVoteBanDuration;
 
     static constexpr uint8_t m_mapsIndex[] = {0,  1,  2,  3,  4,  5,
                                               6,  7,  8,  9,  10, 11,
@@ -334,6 +334,7 @@ class SdkHandler {
     std::unordered_map<uint32_t, uint32_t> m_blockedIpToTS;
     uint8_t ukPEPrevSpawnPoint;
     uint8_t ukPENextSpawnPoint;
+    uint8_t ukPEDropWeapon;
     HRECORD m_hGlobalRecord;
     CServerMissionMgr **g_pServerMissionMgrAdr;
     void *g_pGameModeMgr_instance;
@@ -348,6 +349,10 @@ class SdkHandler {
     void *g_pWeaponDB_GetBool;
     void *CArsenal_GetCurWeapon;
     void *m_spawnLogOffset;
+    uint8_t * g_pChurchEndTest;
+    uint8_t m_churchEndTestOrig;
+    uint8_t * g_pUndergroundTest;
+    uint8_t m_undergroundOrig;
     CWeaponDB *g_pWeaponDB;
     uint32_t CArsenal_m_hCurWeapon;
     uint32_t CCharacter_m_bOnGround;
@@ -366,6 +371,7 @@ class SdkHandler {
     uint8_t m_currentRandomWeaponInd=17;
     uint32_t m_randomWeaponTime = 0;
     HWEAPON m_currentRandomWeapon;
+    const char * m_currentRandomWeaponStr;
     HRECORD m_hSlowMoHandles[20];
     uint8_t m_randomSlowmoTable[20];
     uint8_t m_currentRandomSlowMoInd=13;

@@ -18,6 +18,7 @@
 #define kGearUse 2
 #define kMaxChatHistory 25
 #define kMaxChatLength 64
+#define PROJECTILE 1
 #define TRIGGER 2
 
 #define HGEAR void*

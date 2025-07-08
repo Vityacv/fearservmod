@@ -598,6 +598,18 @@ void SdkHandler::initServer() {
             scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
         g_pBootWithReason = getVal4FromRel(tmp + 13);
     }
+    /*{
+        static auto pat = BSF("740D8B4D14894424??894C24??EB");
+        g_pChurchEndTest =
+            scanBytes((unsigned char *)gEServer, gEServerSz, reinterpret_cast<uint8_t *>(&pat));
+    }
+    { // fix W09_Underground
+        static auto pat = BSF("E8????????84C074268B0D????????6A02");
+        g_pUndergroundTest =
+            scanBytes((unsigned char *)Server, ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        memcpy(&m_undergroundOrig, g_pUndergroundTest, 5);
+    }*/
+    
 
     {
         static auto pat = BSF("D986????????D94424??D84C24??D94424??D84C24??DEC1D94424??D84C24??DEC1D9C1");
@@ -1279,18 +1291,32 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
         }
         ((void(__thiscall *)(void *))sdk.g_pServerVoteMgr_ClearVote)(
             sdk.g_pServerVoteMgr);
+    ServerSettings *pServSettings = (ServerSettings *)((
+        unsigned char *)(((GameModeMgr * (*)())
+                              sdk.g_pGameModeMgr_instance)() +
+                         sdk.GameModeMgr_ServerSettings));
+    sdk.m_nVoteBanDuration = pServSettings->m_nVoteBanDuration;
+    DBGLOG("READING m_nVoteBanDuration %d", sdk.m_nVoteBanDuration)
         if (app.m_bCoop) {
             char *lvlName = sdk.getCurrentLevelName();
             unsigned skinState = 9;
             // aData->setPatchHoleKillHives(0);
             app.flagPatchHoleKillHives = -1;
-            app.setCoopDoSpawn(0);
+            app.setCoopDoSpawn(1);
             sdk.checkPointState = 0;
+            bool isChurch = false;
+            bool isMines = false;
+            bool isUnder = false;
             if (lvlName) {
+                DBGLOG("LVLNAME %s",lvlName)
                 switch (StringUtil::hash_rt(lvlName)) {
                 case StringUtil::hash_ct("07_ATC_Roof"):
                     skinState = 0;
                     // aData->setCoopDoSpawn(1);
+                    break;
+                case StringUtil::hash_ct("XP_Intro"):
+                    // app.setCoopDoSpawn(1);
+                    // skinState = 0;
                     break;
                 case StringUtil::hash_ct("02_Docks"):
                     skinState = 0;
@@ -1298,7 +1324,23 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     break;
                 case StringUtil::hash_ct("XP2_W06"):
                     skinState = 0;
-                    app.setCoopDoSpawn(1);
+                    // app.setCoopDoSpawn(1);
+                    break;
+                case StringUtil::hash_ct("XP2_W09"):
+                    isUnder = true;
+                    app.setCoopDoSpawn(0);
+                    break;
+                case StringUtil::hash_ct("XP2_W14"):
+                    sdk.m_bfreeMovement = 1;
+                    isMines = true;
+                    break;
+                // case StringUtil::hash_ct("21_Alma"):
+                case StringUtil::hash_ct("XP2_W16"):
+                    app.setCoopDoSpawn(0);
+                    break;
+                case StringUtil::hash_ct("XP_CHU02"):
+                case StringUtil::hash_ct("XP_HOS03"):
+                    isChurch = true;
                     break;
                 case StringUtil::hash_ct("13_Hives"):
                     app.flagPatchHoleKillHives = 0;
@@ -1308,13 +1350,26 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     //  aData->setCoopDoSpawn(1);
                     //  break;
                 }
-
+                // hpatch.addCode(reinterpret_cast<uint8_t*>(sdk.g_pChurchEndTest), sizeof(uintptr_t));
+                // *(sdk.g_pChurchEndTest)=isChurch ? 0x75 : 0x74;
+                // hpatch.restoreProtection(reinterpret_cast<uint8_t*>(sdk.g_pChurchEndTest));
+                hpatch.addCode(reinterpret_cast<uint8_t*>(sdk.g_pChurchEndTest), sizeof(uintptr_t));
+                *(sdk.g_pChurchEndTest)=isChurch ? 0 : sdk.m_churchEndTestOrig;
+                hpatch.restoreProtection(reinterpret_cast<uint8_t*>(sdk.g_pChurchEndTest));
+                hpatch.addCode(reinterpret_cast<uint8_t*>(sdk.g_pUndergroundTest), sizeof(uint8_t));
+                if(isUnder) {
+                    *sdk.g_pUndergroundTest = 0x0;
+                }
+                else {
+                    *sdk.g_pUndergroundTest = sdk.m_undergroundOrig;
+                }
+                hpatch.restoreProtection(reinterpret_cast<uint8_t*>(sdk.g_pUndergroundTest));
                 app.skinState = skinState;
                 hpatch.addCode(reinterpret_cast<uint8_t*>(app.m_skinStr), sizeof(uintptr_t));
                 *app.m_skinStr = (char *)"Player";
                 hpatch.restoreProtection(reinterpret_cast<uint8_t*>(app.m_skinStr));
                 app.m_storyModeCnt = 0;
-                if (app.m_preventNoclip)
+                if (app.m_preventNoclip && !isMines)
                     sdk.m_bfreeMovement = 0;
                 //*(unsigned short *)(aData->aFreeMovement) = 0x9090;
             }
@@ -1494,7 +1549,8 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
           auto dataTarget = data.find(ip);
           if (dataTarget != data.end()) {
             uint32_t delta = timestamp - dataTarget->second;
-            if (delta > 60 * 60 * 1000) {
+            DBGLOG("READING m_nVoteBanDuration %d", inst.m_nVoteBanDuration)
+            if (delta > inst.m_nVoteBanDuration * 60 * 1000) {
               DBGLOG("removing ip %p", ip)
               data.erase(dataTarget);
             } else if (delta > 1500) {
@@ -1507,7 +1563,7 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
             for (auto it = data.begin(); it != data.end();) {
               uint32_t delta = timestamp - it->second;
               bool erased;
-              if (delta > 60 * 60 * 1000) {
+              if (delta > inst.m_nVoteBanDuration * 60 * 1000) {
                 it = data.erase(it);
                 erased = true;
               } else erased = false;

@@ -26,7 +26,7 @@ class AppHandler {
     uint8_t *m_flashlightAdr[2];
     uint8_t m_flashlight1[5] = {0x31, 0xC0, 0x90, 0x90, 0x90};
     uint8_t m_flashlight2[5] = {0x31, 0xC0, 0x90, 0x90, 0x90};
-    uint8_t m_coopDoSpawn[5] = {0x31, 0xC0, 0x90, 0x90, 0x90};
+    uint8_t m_coopDoSpawn[5] = {0xB8, 0x00, 0x00, 0x00, 0x00};
     uint8_t *m_SPModeSpawn;
     uint8_t *m_patchHoleKillHives;
     bool m_bFlashlight = 0;

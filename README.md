@@ -145,6 +145,7 @@ Negative fRate crash<br>
 Force load on new map crash<br>
 Server hang when joined 2 players with name 0xFFFF<br>
 Server FindObjectsCb log spam<br>
+Server crash after Unable to load the selected map<br>
 Empty server config file name on first startup<br>
 Missing creation of AdditionalContent folder<br>
 Player early respawn bug<br>
@@ -186,6 +187,7 @@ Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
 Enhanced vote ban<br>
 Enhanced server log<br>
+Show linux type of server when running in linux wine<br>
 
 # How to launch game or server in linux using wine
 To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:

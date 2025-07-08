@@ -1340,6 +1340,7 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     break;
                 case StringUtil::hash_ct("XP_CHU02"):
                 case StringUtil::hash_ct("XP_HOS03"):
+                case StringUtil::hash_ct("XP2_W08"):
                     isChurch = true;
                     break;
                 case StringUtil::hash_ct("13_Hives"):

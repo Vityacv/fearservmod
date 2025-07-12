@@ -169,8 +169,12 @@ void AppHandler::hookSwitchToMP(SpliceHandler::reg *p) {
 }
 
 void AppHandler::hookStoryModeOn(SpliceHandler::reg *p) {
-    auto &inst = *ExecutionHandler::instance()->sdkHandler();
-    inst.m_bfreeMovement = 0;
+    auto &sdk = *ExecutionHandler::instance()->sdkHandler();
+    auto &inst = *ExecutionHandler::instance()->appHandler();
+    // auto &inst = *ExecutionHandler::instance()->sdkHandler();
+    if(sdk.m_bfreeMovement < 2)
+        sdk.m_bfreeMovement = 1;
+    inst.m_bIgnoreSpawn = 1;
 }
 
 void AppHandler::hookDoorTimer(SpliceHandler::reg *p) {
@@ -203,7 +207,9 @@ void AppHandler::hookStoryModeOff(SpliceHandler::reg *p) {
         }
     }
     //*(unsigned short *)(aData->aFreeMovement) = 0x9090;
-    sdk.m_bfreeMovement = 0;
+    if(sdk.m_bfreeMovement < 2)
+        sdk.m_bfreeMovement = 0;
+    inst.m_bIgnoreSpawn = 0;
 }
 
 void AppHandler::hookfRateFix(SpliceHandler::reg *p) {
@@ -1075,6 +1081,10 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         p->state = 1;
         break;
       }
+        if(inst.m_bCoop && inst.m_bIgnoreSpawn) {
+        p->state=1;
+        break;
+        }
     } break;
     case MID_PICKUPITEM_ACTIVATE:
     case MID_PICKUPITEM_ACTIVATE_EX: {
@@ -1979,6 +1989,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         p->state = 1;
     } break;
     case MID_PLAYER_CLIENTMSG: {
+      unsigned curTime = sdk.getRealTimeMS();
       unsigned char CP = pMsgRead->ReadBits(8);
       switch (CP) {
       case CP_DAMAGE:
@@ -2002,6 +2013,11 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         if (!inst.m_bCoop)
           p->state = 1;
         break;
+      case CP_MOTION_STATUS: {
+        if (inst.m_bCoop && sdk.m_AnimationLevel)
+            sdk.m_motionStatusTimer = curTime;
+        }
+        break;
       case CP_WEAPON_STATUS:
         unsigned char WS = pMsgRead->ReadBits(8);
         switch (WS) {
@@ -2010,6 +2026,11 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           break;
         }
         break;
+      }
+      if (inst.m_bCoop && sdk.m_AnimationLevel && CP != CP_MOTION_STATUS){
+        if(curTime - sdk.m_motionStatusTimer > 3000) 
+            sdk.m_AnimationLevel = 0;
+            inst.m_bIgnoreSpawn = 0;
       }
     }
     }
@@ -2583,7 +2604,7 @@ void AppHandler::configHandle()
             if (tmp) {
                 hpatch.addCode(tmp);
                 m_SPModeSpawn = tmp;
-                setCoopDoSpawn(1);
+                // setCoopDoSpawn(1);
                 // memcpy(tmp,moveax0,5);
             }
         }

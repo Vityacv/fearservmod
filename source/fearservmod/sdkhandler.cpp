@@ -221,11 +221,11 @@ void SdkHandler::updateMovement(CPlayerObj *pPlayerObj) {
                                                  CPlayerObj_m_vLastClientPos));
 
         // check to see if we've exceeded the maximum allowed distance
-        if (fDistSqr > fMaxDistance * fMaxDistance) {
+        if (m_bfreeMovement != 3 && fDistSqr > fMaxDistance * fMaxDistance) {
           unsigned timeMs = getRealTimeMS();
           // if (s_vtAlwaysForceClientToServerPos.GetFloat())
-          if(*(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_ePlayerState) == ePlayerState_Alive && !m_bfreeMovement && !pPlData->bLadderInUse/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
-                                           CCharacter_m_hLadderObject)*/)
+          if(*(unsigned *)((unsigned char *)pPlayerObj + CPlayerObj_m_ePlayerState) == ePlayerState_Alive && !m_bfreeMovement && !pPlData->bLadderInUse)/*!*(HOBJECT *)((unsigned char *)pPlayerObj +
+                                           CCharacter_m_hLadderObject)*/
           {
             // force the client to our position
             ((void(__thiscall *)(CPlayerObj *, bool))
@@ -1056,6 +1056,11 @@ void SdkHandler::setRespawn(HOBJECT hObjResp) {
             char *lvlName = getCurrentLevelName();
             if (lvlName) {
                 switch (StringUtil::hash_rt(lvlName)) {
+                case StringUtil::hash_ct("01_Intro"):
+                    newPos = LTVector{1888.590332f, -1442.537598f, -2011.615112f};
+                    // newPos = LTVector{2022.09f, -1445.78f, -2034.28f};
+                    checkPointState = 1;
+                    break;
                 case StringUtil::hash_ct("07_ATC_Roof"):
                     newPos = LTVector{1566.47f, 2085.51f, 3938.72f};
                     checkPointState = 1;
@@ -1070,6 +1075,10 @@ void SdkHandler::setRespawn(HOBJECT hObjResp) {
                     break;
                 case StringUtil::hash_ct("18_Facility_Upper"):
                     newPos = LTVector{-1340.0f, -1040.0f, -100.0f};
+                    checkPointState = 1;
+                    break;
+                case StringUtil::hash_ct("21_Alma"):
+                    newPos = LTVector{-9456.72f, -2254.61f, -5574.49f};
                     checkPointState = 1;
                     break;
                 case StringUtil::hash_ct("09_Bishop_Rescue"):
@@ -1101,9 +1110,18 @@ void SdkHandler::setRespawn(HOBJECT hObjResp) {
                     checkPointState = 1;
                     break;
                 case StringUtil::hash_ct("XP_HOS02"):
-                    newPos = LTVector{512.0f, 21424.1f, -3840.0f};
+                    // newPos = LTVector{512.0f, 21424.1f, -3840.0f};
+                    newPos = LTVector{772.354858f, 21419.646484f, -4251.256836f};
                     checkPointState = 1;
                     break;
+                case StringUtil::hash_ct("20_Vault"):
+                    newPos = LTVector{486.154480f, -4909.899902f, -2748.564209f};
+                    checkPointState = 1;
+                    break;
+                // case StringUtil::hash_ct("XP2_W05"):
+                //     newPos = LTVector{724.873230f, -1900.707153f, -7961.581543f};
+                //     checkPointState = 1;
+                //     break;
                 case StringUtil::hash_ct("XP2_W06"):
                     newPos = LTVector{-24186.0f, -6460.0f, -65997.0f};
                     checkPointState = 1;
@@ -1302,38 +1320,60 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
             unsigned skinState = 9;
             // aData->setPatchHoleKillHives(0);
             app.flagPatchHoleKillHives = -1;
-            app.setCoopDoSpawn(1);
+            app.setCoopDoSpawn(0);
             sdk.checkPointState = 0;
             bool isChurch = false;
             bool isMines = false;
             bool isUnder = false;
+            sdk.m_AnimationLevel = 0;
+            sdk.m_motionStatusTimer = 0;
+            app.m_bIgnoreSpawn = 0;
+            if (app.m_preventNoclip)
+                sdk.m_bfreeMovement = 0;
             if (lvlName) {
                 DBGLOG("LVLNAME %s",lvlName)
                 switch (StringUtil::hash_rt(lvlName)) {
+                case StringUtil::hash_ct("01_Intro"):
+                    sdk.m_bfreeMovement = 3;
+                    // skinState = 0;
+                    // app.setCoopDoSpawn(1);
+                    break;
+                //     skinState = 0;
+                //     break;
                 case StringUtil::hash_ct("07_ATC_Roof"):
                     skinState = 0;
                     // aData->setCoopDoSpawn(1);
                     break;
                 case StringUtil::hash_ct("XP_Intro"):
-                    // app.setCoopDoSpawn(1);
+                    // sdk.m_bIgnoreSpawn = 1;
+                    sdk.m_bfreeMovement = 2;
+                    app.setCoopDoSpawn(1);
                     // skinState = 0;
                     break;
                 case StringUtil::hash_ct("02_Docks"):
-                    skinState = 0;
+                    // skinState = 0;
                     // aData->setCoopDoSpawn(1);
                     break;
+                case StringUtil::hash_ct("XP2_W01"):
+                    sdk.m_bfreeMovement = 2;
+                    // skinState = 0;
+                    // app.setCoopDoSpawn(1);
+                    break;
                 case StringUtil::hash_ct("XP2_W06"):
+                    // sdk.m_bfreeMovement = 1;
+                    app.m_bIgnoreSpawn = 1;
+                    isUnder = true;
                     skinState = 0;
+                    sdk.m_AnimationLevel = 1;
                     // app.setCoopDoSpawn(1);
                     break;
                 case StringUtil::hash_ct("XP2_W09"):
                     isUnder = true;
                     app.setCoopDoSpawn(0);
                     break;
-                case StringUtil::hash_ct("XP2_W14"):
-                    sdk.m_bfreeMovement = 1;
-                    isMines = true;
-                    break;
+                // case StringUtil::hash_ct("XP2_W14"):
+                //     sdk.m_bfreeMovement = 2;
+                //     break;
                 // case StringUtil::hash_ct("21_Alma"):
                 case StringUtil::hash_ct("XP2_W16"):
                     app.setCoopDoSpawn(0);
@@ -1347,7 +1387,12 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     app.flagPatchHoleKillHives = 0;
                     // aData->setPatchHoleKillHives(1);
                     break;
-                    // default:
+                case StringUtil::hash_ct("22_Aftermath"):
+                    app.setCoopDoSpawn(1);
+                    break;
+                // default:
+                //     sdk.m_bIgnoreSpawn = 1;
+                //     break;
                     //  aData->setCoopDoSpawn(1);
                     //  break;
                 }
@@ -1370,8 +1415,8 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                 *app.m_skinStr = (char *)"Player";
                 hpatch.restoreProtection(reinterpret_cast<uint8_t*>(app.m_skinStr));
                 app.m_storyModeCnt = 0;
-                if (app.m_preventNoclip && !isMines)
-                    sdk.m_bfreeMovement = 0;
+                // if (app.m_preventNoclip && !isMines)
+                //     sdk.m_bfreeMovement = 0;
                 //*(unsigned short *)(aData->aFreeMovement) = 0x9090;
             }
         }
@@ -1527,7 +1572,6 @@ void SdkHandler::hookVotePassTempBan(SpliceHandler::reg *p) {
     EnterCriticalSection(static_cast<CRITICAL_SECTION*>(inst.g_ipchunkSection.get()));
     auto& blockedIp = inst.m_blockedIpToTS;
     auto ip = *reinterpret_cast<uint32_t*>(aTcpIp);
-    DBGLOG("trying to block ip %p", ip)
     auto blockedIpIter = blockedIp.find(ip);
     if(blockedIpIter == blockedIp.end()) {
         DBGLOG("timer %d", blockedIp[ip])
@@ -1550,7 +1594,7 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
           auto dataTarget = data.find(ip);
           if (dataTarget != data.end()) {
             uint32_t delta = timestamp - dataTarget->second;
-            DBGLOG("READING m_nVoteBanDuration %d", inst.m_nVoteBanDuration)
+            // DBGLOG("READING m_nVoteBanDuration %d", inst.m_nVoteBanDuration)
             if (delta > inst.m_nVoteBanDuration * 60 * 1000) {
               DBGLOG("removing ip %p", ip)
               data.erase(dataTarget);

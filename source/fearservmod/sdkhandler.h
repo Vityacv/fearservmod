@@ -370,6 +370,8 @@ class SdkHandler {
     uint8_t m_randomWepTable[20];
     uint8_t m_currentRandomWeaponInd=17;
     uint32_t m_randomWeaponTime = 0;
+    uint32_t m_motionStatusTimer = 0;
+    bool m_AnimationLevel = 0;
     HWEAPON m_currentRandomWeapon;
     const char * m_currentRandomWeaponStr;
     HRECORD m_hSlowMoHandles[20];
@@ -380,7 +382,7 @@ class SdkHandler {
     void *g_pGetNetClientData;
     uint8_t isXP2 = 0;
     unsigned char m_uDT_CRUSH = 0;
-    bool m_bfreeMovement = 0;
+    uint8_t m_bfreeMovement = 0;
     void *CPlayerObj_UpdateMovement = 0;
     bool IsMasterServerRequestWorking() {
         return m_isMasterServerRequestWorking;

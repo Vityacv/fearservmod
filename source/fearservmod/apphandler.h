@@ -49,6 +49,7 @@ class AppHandler {
     bool m_bCoop = 0;
     bool m_bAdditionalContent = 0;
     bool m_bRandWep = 0;
+    bool m_bIgnoreSpawn = 0;
     bool m_bExeType;
     uint8_t skinState;
     bool bCustomSkins = 0;

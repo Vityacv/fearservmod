@@ -129,6 +129,7 @@ Controls reset if select non english keyboard and close game<br>
 Retail version can connect to Combat servers<br>
 Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
+XP2 MOTD link click<br>
 Server DoS fake players spam<br>
 Client DoS chat spam<br>
 Client DoS team broadcast spam<br>
@@ -187,7 +188,7 @@ Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
 Enhanced vote ban<br>
 Enhanced server log<br>
-Show linux type of server when running in linux wine<br>
+Server platform type "L" when running in linux wine<br>
 
 # How to launch game or server in linux using wine
 To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:

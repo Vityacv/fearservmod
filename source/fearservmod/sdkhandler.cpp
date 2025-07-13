@@ -1114,6 +1114,10 @@ void SdkHandler::setRespawn(HOBJECT hObjResp) {
                     newPos = LTVector{772.354858f, 21419.646484f, -4251.256836f};
                     checkPointState = 1;
                     break;
+                case StringUtil::hash_ct("XP_SUB01"):
+                    newPos = LTVector{10430.282227f, 1690.105957f, 10393.751953f};
+                    checkPointState = 1;
+                    break;
                 case StringUtil::hash_ct("20_Vault"):
                     newPos = LTVector{486.154480f, -4909.899902f, -2748.564209f};
                     checkPointState = 1;
@@ -1341,7 +1345,7 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                 //     skinState = 0;
                 //     break;
                 case StringUtil::hash_ct("07_ATC_Roof"):
-                    skinState = 0;
+                    // skinState = 0;
                     // aData->setCoopDoSpawn(1);
                     break;
                 case StringUtil::hash_ct("XP_Intro"):
@@ -1361,11 +1365,11 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     break;
                 case StringUtil::hash_ct("XP2_W06"):
                     // sdk.m_bfreeMovement = 1;
-                    app.m_bIgnoreSpawn = 1;
-                    isUnder = true;
+                    // app.m_bIgnoreSpawn = 1;
+                    // isUnder = true;
                     skinState = 0;
                     sdk.m_AnimationLevel = 1;
-                    // app.setCoopDoSpawn(1);
+                    app.setCoopDoSpawn(1);
                     break;
                 case StringUtil::hash_ct("XP2_W09"):
                     isUnder = true;
@@ -1792,10 +1796,10 @@ void SdkHandler::hookUseSkin1(SpliceHandler::reg *p) {
     auto &sdk = *ExecutionHandler::instance()->sdkHandler();
     PatchHandler& hpatch = *app.patchHandler();
     hpatch.addCode(reinterpret_cast<uint8_t*>(app.m_skinStr), sizeof(uintptr_t));
-    if (!app.skinState) {
+    if (!app.skinState && sdk.m_AnimationLevel) {
       p->tax = (uintptr_t)sdk.getModelStruct((char *)"Player");
       *app.m_skinStr = (char *)"Player";
-      app.skinState++;
+      // app.skinState++;
     } else {
       p->tax = (uintptr_t)sdk.getModelStruct((char *)"DeltaForce_multi");
       *app.m_skinStr = (char *)"DeltaForce_multi";

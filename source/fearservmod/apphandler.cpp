@@ -174,7 +174,7 @@ void AppHandler::hookStoryModeOn(SpliceHandler::reg *p) {
     // auto &inst = *ExecutionHandler::instance()->sdkHandler();
     if(sdk.m_bfreeMovement < 2)
         sdk.m_bfreeMovement = 1;
-    inst.m_bIgnoreSpawn = 1;
+    // inst.m_bIgnoreSpawn = 1;
 }
 
 void AppHandler::hookDoorTimer(SpliceHandler::reg *p) {
@@ -209,7 +209,8 @@ void AppHandler::hookStoryModeOff(SpliceHandler::reg *p) {
     //*(unsigned short *)(aData->aFreeMovement) = 0x9090;
     if(sdk.m_bfreeMovement < 2)
         sdk.m_bfreeMovement = 0;
-    inst.m_bIgnoreSpawn = 0;
+    // if(!sdk.m_AnimationLevel)
+    //     inst.m_bIgnoreSpawn = 0;
 }
 
 void AppHandler::hookfRateFix(SpliceHandler::reg *p) {
@@ -2028,9 +2029,11 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         break;
       }
       if (inst.m_bCoop && sdk.m_AnimationLevel && CP != CP_MOTION_STATUS){
-        if(curTime - sdk.m_motionStatusTimer > 3000) 
+        if(curTime - sdk.m_motionStatusTimer > 3000) {
+            DBGLOG("DISABLING SPAWN BLOCK %p", curTime - sdk.m_motionStatusTimer)
             sdk.m_AnimationLevel = 0;
             inst.m_bIgnoreSpawn = 0;
+        }
       }
     }
     }

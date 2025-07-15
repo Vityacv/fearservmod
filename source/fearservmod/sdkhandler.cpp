@@ -1782,8 +1782,10 @@ void SdkHandler::hookOnConnectServer(
                 p->origFunc = (uintptr_t)hookOnConnectServerRet;
                 DBGLOG("%p tramp return 2", p->tax)
             } else {
-                p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
+                // p->origFunc = (uintptr_t)handler.g_doConnectIpAdrExit;
                 p->tax = status;
+                p->tflags |= 1 << 6; 
+                p->state=2;
             }
         }
 

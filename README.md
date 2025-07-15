@@ -146,7 +146,7 @@ Negative fRate crash<br>
 Force load on new map crash<br>
 Server hang when joined 2 players with name 0xFFFF<br>
 Server FindObjectsCb log spam<br>
-Server crash after Unable to load the selected map<br>
+Server crash after failed initialization<br>
 Empty server config file name on first startup<br>
 Missing creation of AdditionalContent folder<br>
 Player early respawn bug<br>

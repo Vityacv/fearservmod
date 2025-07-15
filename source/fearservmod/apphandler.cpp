@@ -3002,9 +3002,11 @@ void AppHandler::init()
         if (static auto pat = BSF("6A02681101000050C6");
           uint8_t *adr =
               scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+        hpatch.addCode(adr, 9);
+        *reinterpret_cast<uint8_t*>(adr) = 0xb8;
+        *reinterpret_cast<uint32_t *>(adr+5) = 0x0cebd0ff;
         adr+=1;
-        hpatch.addCode(adr, 1);
-        *static_cast<uint8_t *>(adr) = 0x10;
+        *reinterpret_cast<uint32_t *>(adr) = reinterpret_cast<uint32_t>(ExitProcess);
     }
     {
       static auto pat = BSF("8B0D????????83C40C5056FF97");
@@ -3167,14 +3169,15 @@ void AppHandler::clientPreinitPatches() {
     memcpy(adr, reinterpret_cast<uint8_t *>(&d), 5);
   }
   // NoLosingFocus
-  if (static auto pat = BSF("C705????????000000008B116A");
+  if (static auto pat = BSF("C705????????000000008B116A06");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz,
                     reinterpret_cast<uint8_t *>(&pat))) {
-    adr += 6;
-    hpatch.addCode(adr, 7);
-    static uint8_t d[] = {0x01, 0x00, 0x00, 0x00, 0x58, 0xEB, 0x38};
-    memcpy(adr, reinterpret_cast<uint8_t *>(&d), 7);
+    adr+=2;
+    hpatch.addCode(adr, 14);
+    *reinterpret_cast<uint32_t *>(adr) = *reinterpret_cast<uint32_t *>(adr)+12;
+    *reinterpret_cast<uint32_t *>(adr+4) = 1;
+    *reinterpret_cast<uint32_t *>(adr+8) = 0x9038eb58;
   }
 }
 

@@ -3169,15 +3169,24 @@ void AppHandler::clientPreinitPatches() {
     memcpy(adr, reinterpret_cast<uint8_t *>(&d), 5);
   }
   // NoLosingFocus
-  if (static auto pat = BSF("C705????????000000008B116A06");
+  if (static auto pat = BSF("6A07FF50??A1????????85");
       uint8_t *adr =
           scanBytes(m_Exec, m_ExecSz,
                     reinterpret_cast<uint8_t *>(&pat))) {
-    adr+=2;
-    hpatch.addCode(adr, 14);
-    *reinterpret_cast<uint32_t *>(adr) = *reinterpret_cast<uint32_t *>(adr)+12;
-    *reinterpret_cast<uint32_t *>(adr+4) = 1;
-    *reinterpret_cast<uint32_t *>(adr+8) = 0x9038eb58;
+    adr+=1;
+    hpatch.addCode(adr, 1);
+    *reinterpret_cast<uint8_t *>(adr) = 6;
+  }
+  if (static auto pat = BSF("C705????????000000008B11");
+      uint8_t *adr =
+          scanBytes(m_Exec, m_ExecSz,
+                    reinterpret_cast<uint8_t *>(&pat))) {
+    adr+=6;
+    hpatch.addCode(adr, 28);
+    *reinterpret_cast<uint8_t *>(adr) = 1;
+    *reinterpret_cast<uint8_t *>(adr+7) = 7;
+    *reinterpret_cast<uint8_t *>(adr+22) = 0xb8;
+    *reinterpret_cast<uint32_t *>(adr+23) = 0;
   }
 }
 

@@ -16,26 +16,26 @@ Allows to run small servers by edited game archives (about 600 mb)<br>
 # How to play F.E.A.R. v1.08
 1. Install game
 2. Replace FEAR.exe and FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
-4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+3. Put https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
+4. Launch the game and select Multiplayer - Client Settings - CD Key - type random text (shold be unique for every player in same server)
 
 # How to play F.E.A.R. Combat v1.08
 1. Find free game on https://github.com/anzz1/openspy-client
 2. Install game and apply v1.08 update
 3. Replace FEARMP.exe to FEAR.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-4. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
-5. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+4. Put https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
+5. Launch the game and select Multiplayer - Client Settings - CD Key - type random text (shold be unique for every player in same server)
 
 # How to play F.E.A.R. Perseus Mandate v1.0
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
-4. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+3. Put https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
+4. Launch the game and select Multiplayer - Client Settings - CD Key - type random text (shold be unique for every player in same server)
 
 # How to play Coop Mode based on F.E.A.R. Platinum
 1. Install game
 2. Replace FEARXP2.exe from "No-CD patch" https://github.com/anzz1/openspy-client
-3. Put winmm.dll https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
+3. Put https://github.com/Vityacv/fearservmod/blob/master/bin/winmm.dll to game folder
 4. Open Default.archcfg in notepad and replace content with:
 ```
 ; FEAR ARCHIVES
@@ -63,13 +63,19 @@ FEARA_XP.Arch00
 FEARL_XP.Arch00
 FEARE_XP.Arch00
 ```
-5. Run server and close, open ServerOptionsXXXX.txt and add on top of it:
+5. Launch the game and change following settings:<br>
+    • Multiplayer - Host - Bandwidth - T3 (avoid lags)<br>
+    • Multiplayer - Client Settings - CD Key - type random text (shold be unique for every player in same server)<br>
+    • Multiplayer - Client Settings - Bandwidth - T3 (avoid lags)<br>
+6. Open ServerOptions0000.txt and add on top of it:
 ```
 [Extra]
 CoopMode=1
+
+[SinglePlayer]
+SessionName=Coop Mode
 ```
-6. Use FEARXP2.exe to play and FEARServerXP.exe to start local or public server<br>
-7. Run game and in client settings type random text into CDKey (shold be unique for every player in same server)
+7. Use FEARXP2.exe to play and FEARServerXP.exe to start local or public server<br>
 
 Coop mode includes all 55 maps from:<br>
 F.E.A.R.<br>
@@ -78,13 +84,8 @@ F.E.A.R. Perseus Mandate
 
 Players can use "Call vote" -> "Next map" or "New map" to select specific map (to scroll list use PageUp/PageDown)<br>
 
-#### Additional options in ServerOptionsXXXX.txt for all type of game servers:
-1. Fix AI for custom user maps
-```
-[Extra]
-BotsMP=1
-```
-2. Synchronize all objects on map for all players (bottles, boxes, etc)
+#### Additional options in ServerOptions0000.txt for all type of game servers:
+1. Synchronize all objects on map for all players (bottles, boxes, etc)
 ```
 [Extra]
 SyncObjects=1
@@ -130,6 +131,7 @@ Retail version can connect to Combat servers<br>
 Combat version can connect to Retail servers<br>
 Connect from favorites to remote servers<br>
 XP2 MOTD link click<br>
+XP2 AI for custom user maps<br>
 Server DoS fake players spam<br>
 Client DoS chat spam<br>
 Client DoS team broadcast spam<br>

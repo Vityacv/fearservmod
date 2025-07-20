@@ -375,9 +375,6 @@ void AppHandler::hookComposeArchives(SpliceHandler::reg *p){
 
 void AppHandler::hookGameMode(SpliceHandler::reg *p) {
     memcpy((void *)p->tax, L"SinglePlayer", 13 * 2);
-    wchar_t *val = (wchar_t *)((unsigned char *)p->tax - 0x208);
-    memcpy((void *)val, L"SinglePlayer", 13 * 2);
-    memcpy((void *)((unsigned char *)p->tsi + 4), "SinglePlayer", 13);
 }
 
 void AppHandler::hookGameMode2(SpliceHandler::reg *p) {
@@ -2557,13 +2554,21 @@ void AppHandler::configHandle()
             }
         }
         {
-            static auto pat = BSF("8B????????????8D????????????83C4183B??74");
+            static auto pat = BSF("8D9424????????50899424");
             unsigned char *tmp = scanBytes(
                 (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
-            if (tmp) {
-                hsplice.spliceUp(tmp + 7, (void *)hookGameMode);
+            if(tmp) {
+                hsplice.spliceUp(tmp, (void *)hookGameMode);
             }
         }
+        // {
+        //     static auto pat = BSF("8B????????????8D????????????83C4183B??74");
+        //     unsigned char *tmp = scanBytes(
+        //         (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        //     if (tmp) {
+        //         hsplice.spliceUp(tmp + 7, (void *)hookGameMode);
+        //     }
+        // }
         {
             static auto pat = BSF("E8????????84C074??8B0D????????68????????E8????????D9");
             unsigned char *tmp = scanBytes(
@@ -2623,15 +2628,6 @@ void AppHandler::configHandle()
     }
     if (m_bBotsMP) {
         {
-            static auto pat = BSF("E8????????84C074??8B??8B??FF??????????84??74??E8????????8A");
-            unsigned char *tmp = scanBytes(
-                (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
-            if (tmp) {
-                hpatch.addCode(tmp);
-                memcpy(tmp, moveax0, 5);
-            }
-        }
-        {
             static auto pat = BSF("E8????????84??0F??????????E8????????8A??????????05????????84??74??8B");
             unsigned char *tmp =
                 scanBytes((unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
@@ -2639,6 +2635,15 @@ void AppHandler::configHandle()
                 hpatch.addCode(tmp);
                 memcpy(tmp, moveax0, 5);
             }
+        }
+    }
+    {
+        static auto pat = BSF("E8????????84C074??8B??8B??FF??????????84??74??E8????????8A");
+        unsigned char *tmp = scanBytes(
+            (unsigned char *)m_Server, m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            hpatch.addCode(tmp);
+            memcpy(tmp, moveax0, 5);
         }
     }
     {
@@ -2999,14 +3004,23 @@ void AppHandler::init()
         //     scanBytes((unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)),
         //     (void *)hookLoadGameServer);
     }
-        if (static auto pat = BSF("6A02681101000050C6");
+    //     if (static auto pat = BSF("6A02681101000050C6");
+    //       uint8_t *adr =
+    //           scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
+    //     hpatch.addCode(adr, 9);
+    //     *reinterpret_cast<uint8_t*>(adr) = 0xb8;
+    //     *reinterpret_cast<uint32_t *>(adr+5) = 0x0cebd0ff;
+    //     adr+=1;
+    //     *reinterpret_cast<uint32_t *>(adr) = reinterpret_cast<uint32_t>(ExitProcess);
+    // }
+    if (static auto pat = BSF("6A006A02681101000050C6");
           uint8_t *adr =
               scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat))) {
-        hpatch.addCode(adr, 9);
-        *reinterpret_cast<uint8_t*>(adr) = 0xb8;
-        *reinterpret_cast<uint32_t *>(adr+5) = 0x0cebd0ff;
-        adr+=1;
-        *reinterpret_cast<uint32_t *>(adr) = reinterpret_cast<uint32_t>(ExitProcess);
+        uint8_t d[] = {0x6A, 0x00, 0x6A, 0xFF, 0xB8, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xD0, 0xEB, 0x0A};
+        hpatch.addCode(adr, 13);
+        memcpy(adr, reinterpret_cast<uint8_t*>(&d), sizeof(d)); // no logos
+        //6A006AFFB800000000FFD0EB0A
+        *reinterpret_cast<uint32_t *>(adr+5) = reinterpret_cast<uint32_t>(TerminateProcess);
     }
     {
       static auto pat = BSF("8B0D????????83C40C5056FF97");

@@ -11,7 +11,7 @@ Allows coop mode based on F.E.A.R. Platinum<br>
 Allows to play all singleplayer maps F.E.A.R. Platinum in F.E.A.R. Perseus Mandate<br>
 Allows connect to servers created on retail version to free version and vice versa<br>
 Allows to create 64 players servers<br>
-Allows to run small servers by edited game archives (about 600 mb)<br>
+[Allows to run small servers by edited game archives (about 600 mb)](#tiny-serv)<br>
 
 # How to play F.E.A.R. v1.08
 1. Install game
@@ -84,14 +84,14 @@ F.E.A.R. Perseus Mandate
 
 Players can use "Call vote" -> "Next map" or "New map" to select specific map (to scroll list use PageUp/PageDown)<br>
 
-#### Additional options in ServerOptions0000.txt for all type of game servers:
+#### Additional options in ServerOptions0000.txt for all type of game servers
 1. Synchronize all objects on map for all players (bottles, boxes, etc)
 ```
 [Extra]
 SyncObjects=1
 ```
 
-#### OpenSpy is default master server, but if you want connect to alternative server, add following lines to gamecfg.txt:
+#### OpenSpy is default master server, but if you want connect to alternative server, add following lines to gamecfg.txt
 
 ```
 [Client]
@@ -104,8 +104,28 @@ NS2=n2.fear-combat.org
 Available=fear.avail.fear-combat.org
 Master=fear.m.fear-combat.org
 ```
+#### Tiny Server Builder for FEAR, FEAR XP2<a id="tiny-serv"></a>
+This script creates tiny server build where stored only required files to run server, good for use in limited storage space server environments<br>
+Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
+<details>
+  <summary>Installers SHA256 hashes</summary>
 
-#### Portable mode and Window mode:
+| Name | SHA256 Hash |
+|----------------------------------|------------------------------------------------------------------|
+| fearcombat_en_107.exe | 28d12729d866fc36d13ab3761c8826edc4eedb3c76d0c823302a4a25cb265bed |
+| fearcombat_update_en_107_108.exe | b016866880353a608f5f37184e833e7a25be12227cb671457a1b600b9f1b350b |
+| fear_publictools_108.exe | 11aaa4128528403f7bc9ea5119c68051c62b92a99e6411dfd749af55e9b19df8 |
+
+</details>
+
+1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writeable folder with enough space<br>
+2. Add to folder with a script ArchiveEdit.exe, MFC71u.dll, msvcp71.dll, msvcr71.dll<br>
+3. Run script and specify game folder (right click to paste path)<br>
+5. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
+
+Also tiny Coop Mode XP2 (regular too) server is supported, replace the filter "Release" "ReleaseXP2" in the script to "ReleaseMultiplayer" "MultiplayerXP2"
+
+#### Portable mode and Window mode
 If you want to run a game in portable mode, create cmd file:<br>
 Start /b FEARMP.exe -UserDirectory Config<br>
 Start /b FEARServer.exe -UserDirectory Config<br>

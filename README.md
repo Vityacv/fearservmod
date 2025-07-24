@@ -11,7 +11,7 @@ Allows coop mode based on F.E.A.R. Platinum<br>
 Allows to play all singleplayer maps F.E.A.R. Platinum in F.E.A.R. Perseus Mandate<br>
 Allows connect to servers created on retail version to free version and vice versa<br>
 Allows to create 64 players servers<br>
-[Allows to run small servers by edited game archives (about 600 mb)](#tiny-serv)<br>
+[Allows to run tiny servers after rebuild (about 600 mb for XP2)](#tiny-serv)<br>
 
 # How to play F.E.A.R. v1.08
 1. Install game
@@ -105,7 +105,7 @@ Available=fear.avail.fear-combat.org
 Master=fear.m.fear-combat.org
 ```
 #### Tiny Server Builder for FEAR, FEAR XP2<a id="tiny-serv"></a>
-This script creates tiny server build where stored only required files to run server, good for use in limited storage space server environments<br>
+This script creates tiny server build where stored only required files to run server, useful for servers with limited storage<br>
 Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
 <details>
   <summary>Installers SHA256 hashes</summary>
@@ -118,20 +118,20 @@ Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be
 
 </details>
 
-1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writeable folder with enough space<br>
+1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writeable folder with enough disk space<br>
 2. Add to folder with a script ArchiveEdit.exe, MFC71u.dll, msvcp71.dll, msvcr71.dll<br>
 3. Run script and specify game folder (right click to paste path)<br>
-5. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
+4. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
 
-Also tiny Coop Mode XP2 (regular too) server is supported, replace the filter "Release" "ReleaseXP2" in the script to "ReleaseMultiplayer" "MultiplayerXP2"
+Also tiny Coop Mode server for orignal game and XP2 is supported, replace the filter "Release" "ReleaseXP2" in the script to "ReleaseMultiplayer" "MultiplayerXP2"
 
 #### Portable mode and Window mode
 If you want to run a game in portable mode, create cmd file:<br>
-Start /b FEARMP.exe -UserDirectory Config<br>
-Start /b FEARServer.exe -UserDirectory Config<br>
+start /B "" FEARMP.exe -UserDirectory Config<br>
+start /B "" FEARServer.exe -UserDirectory Config<br>
 
 If you want run game in window mode:<br>
-Start /b FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
+start /B "" FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
 
 # List of fixes
 Use DRM-free FEAR.exe as FEARMP.exe for better performance<br>

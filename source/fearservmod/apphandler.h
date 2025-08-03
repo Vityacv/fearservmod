@@ -45,6 +45,7 @@ class AppHandler {
     char** m_skinStr;
     int m_preventNoclip = 0;
     unsigned m_storyModeCnt;
+    uint32_t m_nVoteBanDuration = 60;
     char flagPatchHoleKillHives=-1;
     bool m_bCoop = 0;
     bool m_bAdditionalContent = 0;

@@ -311,7 +311,7 @@ class SdkHandler {
     void *unknownFunc2;
     void *getStructFromString1;
     uint8_t * g_doConnectIpAdrExit;
-    uint8_t m_nVoteBanDuration;
+    // uint8_t m_nVoteBanDuration;
 
     static constexpr uint8_t m_mapsIndex[] = {0,  1,  2,  3,  4,  5,
                                               6,  7,  8,  9,  10, 11,

@@ -527,6 +527,42 @@ void AppHandler::hookLoadGameServer(SpliceHandler::reg *p)
                                            exec_section->VirtualAddress);
       inst.m_ServerSz = exec_section->SizeOfRawData;
     }
+    // {
+    //     unsigned char *adr = inst.m_Server + 0x189213;
+    //     hpatch.addCode(adr, 6);
+    //     *reinterpret_cast<uint8_t *>(adr) = 0xA3;
+    //     *reinterpret_cast<uint32_t **>(adr+1) = &inst.m_nVoteBanDuration;
+    //     *reinterpret_cast<uint8_t *>(adr+5) = 0x90;
+    // }
+    // {
+    //     unsigned char *adr = inst.m_Server + 0x1656e9;
+    //     hpatch.addCode(adr, 7);
+    //     *reinterpret_cast<uint8_t *>(adr) = 0xA1;
+    //     *reinterpret_cast<uint32_t **>(adr+1) = &inst.m_nVoteBanDuration;
+    //     *reinterpret_cas t<uint16_t *>(adr+5) = 0x9090;
+    // }
+    {
+        static auto pat = BSF("8886FF0000008D4424??50");
+        uint8_t *adr = scanBytes(
+            inst.m_Server, inst.m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (adr) {
+            hpatch.addCode(adr, 6);
+            *reinterpret_cast<uint8_t *>(adr) = 0xA3;
+            *reinterpret_cast<uint32_t **>(adr+1) = &inst.m_nVoteBanDuration;
+            *reinterpret_cast<uint8_t *>(adr+5) = 0x90;
+        }
+    }
+    {
+        static auto pat = BSF("0FB680BF070000894424");
+        uint8_t *adr = scanBytes(
+            inst.m_Server, inst.m_ServerSz, reinterpret_cast<uint8_t *>(&pat));
+        if (adr) {
+            hpatch.addCode(adr, 7);
+            *reinterpret_cast<uint8_t *>(adr) = 0xA1;
+            *reinterpret_cast<uint32_t **>(adr+1) = &inst.m_nVoteBanDuration;
+            *reinterpret_cast<uint16_t *>(adr+5) = 0x9090;
+        }
+    }
     {
         static auto pat = BSF("68????????68????????FF50??E8");
         unsigned char *tmp = scanBytes(
@@ -1924,20 +1960,26 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         p->state = 1;
     } break;
     case MID_VOTE: {
+        DBGLOG("VOTEBAN DURATION", inst.m_nVoteBanDuration)
       unsigned voteTime = sdk.getRealTimeMS();
       if (pMsgRead->ReadBits(3) == eVote_Start) {
-        EnterCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
+        EnterCriticalSection(
+            static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         p->state = sdk.checkPlayerStatus(pGameClientData);
         if (pPlData->lastVoteTime) {
-
+          ServerSettings *pServSettings = (ServerSettings *)((
+              unsigned char *)(((GameModeMgr * (*)())
+                                    sdk.g_pGameModeMgr_instance)() +
+                               sdk.GameModeMgr_ServerSettings));
           // printf("value_test %d", value_test);
-          unsigned voteDelay = 3000;
+          unsigned voteDelay = pServSettings->m_nVoteDelay;//pServSettings->m_nVoteLifetime + pServSettings->m_nVoteDelay;
           // if(voteDelay)
           // voteDelay-=250; //server timer may lag with client
           unsigned delta = voteTime - pPlData->lastVoteTime;
-          if (delta < voteDelay) {
+          if (pServSettings->m_nVoteDelay != 0 && delta < voteDelay*1000) {
             p->state = 1;
-            LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
+            LeaveCriticalSection(
+                static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
             break;
           }
         }
@@ -1968,6 +2010,10 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         } else if (type == eVote_TeamKick) {
           unsigned nTargetId = pMsgRead->ReadBits(0x20);
           HCLIENT hTargetClient = sdk.g_pLTServer->GetClientHandle(nTargetId);
+          if ((HCLIENT)p->v0 == hTargetClient) {
+             p->state = 1;
+             break;
+          }
           GameClientData *pGameTargetData =
               sdk.getGameClientData(hTargetClient);
           if (!pGameTargetData) {
@@ -1977,6 +2023,13 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           if (*(unsigned char *)(pGameClientData + 0x74) !=
               *(unsigned char *)(pGameTargetData + 0x74)) // team
             p->state = 1;
+        } else if(type == eVote_Ban || type == eVote_Kick) {
+          unsigned nTargetId = pMsgRead->ReadBits(0x20);
+          HCLIENT hTargetClient = sdk.g_pLTServer->GetClientHandle(nTargetId);
+          if ((HCLIENT)p->v0 == hTargetClient) {
+             p->state = 1;
+             break;
+          }
         }
       }
       
@@ -2820,6 +2873,16 @@ void AppHandler::configHandle()
         } else {
         }
     }
+    { // No reset VoteBanDuration on close server
+      static auto pat = BSF("0FB696FF0000005268????????8D");
+      unsigned char *adr = (unsigned char *)(unsigned *)(scanBytes(
+          (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)));
+      if (adr) {
+        hpatch.addCode(reinterpret_cast<uint8_t*>(adr), 2);
+        *reinterpret_cast<uint16_t *>(adr) = 0x39EB;
+      }
+    }
+    
     if(hsdk.isXP2)
         reinterpret_cast<ILTServerXP2*>(hsdk.g_pLTServer)->CPrintNoArgs("FearServMod build date: " __DATE__);
     else
@@ -3202,6 +3265,16 @@ void AppHandler::clientPreinitPatches() {
     *reinterpret_cast<uint8_t *>(adr+22) = 0xb8;
     *reinterpret_cast<uint32_t *>(adr+23) = 0;
   }
+  // if (static auto pat = BSF("C705????????000000008B116A06");
+  //     uint8_t *adr =
+  //         scanBytes(m_Exec, m_ExecSz,
+  //                   reinterpret_cast<uint8_t *>(&pat))) {
+  //   adr+=2;
+  //   hpatch.addCode(adr, 14);
+  //   *reinterpret_cast<uint32_t *>(adr) = *reinterpret_cast<uint32_t *>(adr)+12;
+  //   *reinterpret_cast<uint32_t *>(adr+4) = 1;
+  //   *reinterpret_cast<uint32_t *>(adr+8) = 0x9038eb58;
+  // }
 }
 
 void AppHandler::hookSwitchToModeXP(SpliceHandler::reg *p) {
@@ -3274,6 +3347,8 @@ void AppHandler::initClient() {
 //                             reinterpret_cast<void *>(hookPlayWave));
 //        }
 //    }
+    
+
     {
         static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
         uint8_t *tmp =
@@ -3311,12 +3386,30 @@ void AppHandler::initClient() {
         }
         m_ClientModule = reinterpret_cast<uint8_t *>(adr);
     }
+
+    // {
+    //   static auto pat = BSF("0F B6 86 FF 00 00 00 50 68 ?? ?? ?? ?? 8D");
+    //   unsigned char *adr = (unsigned char *)(unsigned *)(scanBytes(
+    //       (unsigned char *)m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat)));
+    //   if (adr) {
+    //     hpatch.addCode(reinterpret_cast<uint8_t*>(adr), 2);
+    //     *reinterpret_cast<uint16_t *>(adr) = 0x39EB;
+    //   }
+    // }
     {
       auto exec_section =
           GetModuleFirstExecSection(reinterpret_cast<HMODULE>(m_ClientModule));
       m_Client = reinterpret_cast<uint8_t *>(m_ClientModule +
                                            exec_section->VirtualAddress);
       m_ClientSz = exec_section->SizeOfRawData;
+    }
+    {
+        static auto pat = BSF("74108B11FF520484C07407C686");
+        uint8_t *tmp = scanBytes(m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat));
+        if (tmp) {
+            hpatch.addCode(tmp,2);
+            *(uint16_t *)(tmp) = 0x09EB;  // kick GameSpy key
+        }
     }
     {  // Fix link MOTD XP2
         static auto pat = BSF("8D5424??895424??8D54");
@@ -3376,14 +3469,14 @@ void AppHandler::initClient() {
 //        }
 //    }
     patchClientServer(m_Exec, m_ExecSz);
-    {
-        static auto pat = BSF("74278D4C2410518D54240852");
-        uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
-        if (tmp) {
-            hpatch.addCode(tmp,2);
-            *(uint16_t *)(tmp) = 0x53EB;  // kick GameSpy key
-        }
-    }
+    // {
+    //     static auto pat = BSF("74278D4C2410518D54240852");
+    //     uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));
+    //     if (tmp) {
+    //         hpatch.addCode(tmp,2);
+    //         *(uint16_t *)(tmp) = 0x53EB;  // kick GameSpy key
+    //     }
+    // }
     // {
     //     static auto pat = BSF("837C24??0175??33D2");
     //     uint8_t *tmp = scanBytes(m_Exec, m_ExecSz, reinterpret_cast<uint8_t *>(&pat));

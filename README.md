@@ -39,22 +39,48 @@ Allows to create 64 players servers<br>
 4. Open Default.archcfg in notepad and replace content with:
 ```
 ; FEAR ARCHIVES
-../FEAR.Arch00
-../FEARA.Arch00
-../FEARL.Arch00
-../FEARA_2.Arch00
-../FEARA_3.Arch00
-../FEARL_3.Arch00
-../FEARL_5.Arch00
-../FEARA_7.Arch00
-../FEARL_7.Arch00
-../FEARA_8.Arch00
-../FEARL_8.Arch00
+..\FEAR.Arch00
+..\FEARA.Arch00
+..\FEARL.Arch00
+..\FEARE.Arch00
+..\FEAR_1.Arch00
+..\FEARA_1.Arch00
+..\FEARL_1.Arch00
+..\FEARE_1.Arch00
+..\FEAR_2.Arch00
+..\FEARA_2.Arch00
+..\FEARL_2.Arch00
+..\FEARE_2.Arch00
+..\FEAR_3.Arch00
+..\FEARA_3.Arch00
+..\FEARL_3.Arch00
+..\FEARE_3.Arch00
+..\FEAR_4.Arch00
+..\FEARA_4.Arch00
+..\FEARL_4.Arch00
+..\FEARE_4.Arch00
+..\FEAR_5.Arch00
+..\FEARA_5.Arch00
+..\FEARL_5.Arch00
+..\FEARE_5.Arch00
+..\FEAR_6.Arch00
+..\FEARA_6.Arch00
+..\FEARL_6.Arch00
+..\FEARE_6.Arch00
+..\FEAR_7.Arch00
+..\FEARA_7.Arch00
+..\FEARL_7.Arch00
+..\FEARE_7.Arch00
+..\FEAR_8.Arch00
+..\FEARA_8.Arch00
+..\FEARL_8.Arch00
+..\FEARE_8.Arch00
 
 ; FEAR XP ARCHIVES
-../FEARXP/FEAR_XP.Arch00
-../FEARXP/FEARA_XP.Arch00
-../FEARXP/FEARL_XP.Arch00
+..\FEARXP\FEAR_XP.Arch00
+..\FEARXP\FEARA_XP.Arch00
+..\FEARXP\FEARL_XP.Arch00
+..\FEARXP\FEARE_XP.Arch00
 
 ; FEAR XP2 ARCHIVES
 FEAR_XP.Arch00
@@ -102,13 +128,13 @@ Master=http://master.fear-combat.org/api/serverlist-ingame.php
 NS1=n1.fear-combat.org
 NS2=n2.fear-combat.org
 Available=fear.avail.fear-combat.org
-Master=fear.m.fear-combat.org
+Master=master.fear-combat.org
 ```
 #### Tiny Server Builder for FEAR, FEAR XP2<a id="tiny-serv"></a>
 This script creates tiny server build where stored only required files to run server, useful for servers with limited storage<br>
 Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
 <details>
-  <summary>Installers SHA256 hashes</summary>
+  <summary>Original installers SHA256 hashes</summary>
 
 | Name | SHA256 Hash |
 |----------------------------------|------------------------------------------------------------------|
@@ -127,11 +153,11 @@ Also tiny Coop Mode server for orignal game and XP2 is supported, replace the fi
 
 #### Portable mode and Window mode
 If you want to run a game in portable mode, create cmd file:<br>
-start /B "" FEARMP.exe -UserDirectory Config<br>
-start /B "" FEARServer.exe -UserDirectory Config<br>
+start "" FEARMP.exe -UserDirectory Config<br>
+start "" FEARServer.exe -UserDirectory Config<br>
 
 If you want run game in window mode:<br>
-start /B "" FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
+start "" FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
 
 # List of fixes
 Use DRM-free FEAR.exe as FEARMP.exe for better performance<br>
@@ -208,6 +234,7 @@ Weapon fire drop ammo hack<br>
 Weapon switch drop ammo hack<br>
 Weapon reload drop ammo hack<br>
 Pickup objects of enemy or team hack<br>
+Enhanced vote delay<br>
 Enhanced vote ban<br>
 Enhanced server log<br>
 Server platform type "L" when running in linux wine<br>

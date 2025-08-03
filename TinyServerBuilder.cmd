@@ -24,7 +24,7 @@ for /f "usebackq tokens=*" %%A in ("%GameDir%\Default.archcfg") do (
 if "%%~xA" == ".Arch00" (
 ArchiveEdit.exe -Decompress "Archs" "%GameDir%\%%A"
 ))
-robocopy.exe "Archs" "Arch" "*.ini" "*.dat" "*.AnmTree00p" "*.Gamdb00p" "*.Strdb00p" "*.Model00p" "*.World00p" /NFL /S /XF "WorldEdit.ini" /XD "Prefabs" "Release" "ReleaseXP2"
+robocopy.exe "Archs" "Arch" /NFL /S "*.ini" "*.dat" "*.AnmTree00p" "*.Gamdb00p" "*.Strdb00p" "*.Model00p" "*.Objects00p" "*.World00p" /XF "WorldEdit.ini" /XD "Prefabs" "Release" "ReleaseXP2"
 robocopy.exe "Archs" "%FEARServer%" "GameServer.dll"
 robocopy.exe "%GameDir%" "%FEARServer%" "%FEARServer%.exe" "EngineServer.dll" "GameDatabase.dll" "Monolith.PropertyGrid.dll" "StringEditRuntime.dll" "MFC71u.dll" "msvcp71.dll" "msvcr71.dll" "enginemsg.txt" "serverreadme.txt"
 (

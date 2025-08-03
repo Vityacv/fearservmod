@@ -1317,8 +1317,6 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
         unsigned char *)(((GameModeMgr * (*)())
                               sdk.g_pGameModeMgr_instance)() +
                          sdk.GameModeMgr_ServerSettings));
-    sdk.m_nVoteBanDuration = pServSettings->m_nVoteBanDuration;
-    DBGLOG("READING m_nVoteBanDuration %d", sdk.m_nVoteBanDuration)
         if (app.m_bCoop) {
             char *lvlName = sdk.getCurrentLevelName();
             unsigned skinState = 9;
@@ -1347,6 +1345,9 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                 case StringUtil::hash_ct("07_ATC_Roof"):
                     // skinState = 0;
                     // aData->setCoopDoSpawn(1);
+                    // skinState = 0;
+                    // sdk.m_AnimationLevel = 1;
+                    // app.setCoopDoSpawn(1);
                     break;
                 case StringUtil::hash_ct("XP_Intro"):
                     // sdk.m_bIgnoreSpawn = 1;
@@ -1587,6 +1588,7 @@ void SdkHandler::hookVotePassTempBan(SpliceHandler::reg *p) {
 
 void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
         SdkHandler &inst = *ExecutionHandler::instance()->sdkHandler();
+        AppHandler &app = *ExecutionHandler::instance()->appHandler();
         sockaddr_in *sock = (sockaddr_in *)(p->tsi + 0x94);
         {
         EnterCriticalSection(static_cast<CRITICAL_SECTION*>(inst.g_ipchunkSection.get()));
@@ -1599,7 +1601,7 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
           if (dataTarget != data.end()) {
             uint32_t delta = timestamp - dataTarget->second;
             // DBGLOG("READING m_nVoteBanDuration %d", inst.m_nVoteBanDuration)
-            if (delta > inst.m_nVoteBanDuration * 60 * 1000) {
+            if (delta > app.m_nVoteBanDuration * 60 * 1000) {
               DBGLOG("removing ip %p", ip)
               data.erase(dataTarget);
             } else if (delta > 1500) {
@@ -1612,7 +1614,7 @@ void SdkHandler::hookCheckUDPDisconnect(SpliceHandler::reg *p) {
             for (auto it = data.begin(); it != data.end();) {
               uint32_t delta = timestamp - it->second;
               bool erased;
-              if (delta > inst.m_nVoteBanDuration * 60 * 1000) {
+              if (delta > app.m_nVoteBanDuration * 60 * 1000) {
                 it = data.erase(it);
                 erased = true;
               } else erased = false;

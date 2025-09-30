@@ -138,12 +138,14 @@ start "" FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenH
 # Tiny Server Builder
 This script creates tiny server build where stored only required files to run server, useful for servers with limited storage. Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
 <details>
-<summary>Original installers SHA256 hashes</summary>
+  <summary>Original installers SHA256 hashes</summary>
+
 | Name | SHA256 Hash |
 |----------------------------------|------------------------------------------------------------------|
 | fearcombat_en_107.exe | 28d12729d866fc36d13ab3761c8826edc4eedb3c76d0c823302a4a25cb265bed |
 | fearcombat_update_en_107_108.exe | b016866880353a608f5f37184e833e7a25be12227cb671457a1b600b9f1b350b |
 | fear_publictools_108.exe | 11aaa4128528403f7bc9ea5119c68051c62b92a99e6411dfd749af55e9b19df8 |
+
 </details>
 
 1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writable folder with enough disk space<br>
@@ -218,7 +220,7 @@ Server teleport to respawn checkpoints hack<br>
 Server teleport using SetObjectPos hack<br>
 Server player no clip hack<br>
 Server player early respawn glitch<br>
-Server stealth join server hack<br>
+Server stealth join hack<br>
 Server weapon fast switch glitch<br>
 Server weapon fake fire position hack<br>
 Server weapon rapid fire timer in future hack<br>

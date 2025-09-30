@@ -22,7 +22,7 @@ foreach ($ArchCfg in (Get-Content -Path "$GameDir\Default.archcfg") -like "*.Arc
 Start-Process -Wait -FilePath "$PSScriptRoot\ArchiveEdit.exe" -ArgumentList "-Decompress ""$PSScriptRoot\Archs"" ""$GameDir\$ArchCfg"""
 }
 Get-ChildItem -Force -Recurse -LiteralPath "$PSScriptRoot\Archs" | ForEach-Object {
-if ($_.Name -like "*.ini" -or $_.Name -like "*.dat" -or $_.Name -like "*.AnmTree00p" -or $_.Name -like "*.Gamdb00p" -or $_.Name -like "*.Strdb00p" -or $_.Name -like "*.Model00p" -or $_.Name -like "*.Objects00p" -or $_.Name -like "*.World00p" -and $_.Name -notlike "WorldEdit.ini" -and $_.DirectoryName -notlike "*\Prefabs\*" -and $_.DirectoryName -notlike "*\Worlds\Release" -and $_.DirectoryName -notlike "*\Worlds\ReleaseXP2"){
+if ($_.Name -like "*.AnmTree00p" -or $_.Name -like "*.Gamdb00p" -or $_.Name -like "*.Strdb00p" -or $_.Name -like "*.Model00p" -or $_.Name -like "*.Objects00p" -or $_.Name -like "*.World00p" -or $_.Name -like "*.ini" -and $_.Name -notlike "WorldEdit.ini" -and $_.DirectoryName -notlike "*\Prefabs\*" -and $_.DirectoryName -notlike "*\Worlds\Release" -and $_.DirectoryName -notlike "*\Worlds\ReleaseXP2"){
 New-Item -Force -ItemType Directory -Path ("$PSScriptRoot\Arch"+$_.DirectoryName.Substring(("$PSScriptRoot\Archs").Length)) | Out-Null
 Move-Item -Force -LiteralPath $_.FullName -Destination ("$PSScriptRoot\Arch"+$_.FullName.Substring(("$PSScriptRoot\Archs").Length))
 }}
@@ -36,7 +36,8 @@ Set-Content -Force -Encoding unicode -Path "$PSScriptRoot\Arch\$FEAR.Arch00s" -V
 Version=2
 Packed=..\$FEARServer\$FEAR.Arch00
 Download=False
-CRC=True
+CRC=False
+NoCRCFile=True
 [Folder Include]
 .=Folders:True,Files:True
 [Extension Include]

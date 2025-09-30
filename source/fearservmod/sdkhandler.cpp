@@ -885,11 +885,13 @@ void SdkHandler::initClient() {
             GetModuleFirstExecSection(reinterpret_cast<HMODULE>(tmp));
         tmp = reinterpret_cast<uint8_t *>(tmp + exec_section->VirtualAddress);
         auto modSz = exec_section->SizeOfRawData;
-        auto currentTmp = tmp;
+        uint8_t * currentTmp = tmp;
         for(int i = 0; i != 2; ++i){
             currentTmp = scanBytes(
                 (unsigned char *)currentTmp, modSz-(currentTmp-tmp),
                 BYTES_SEARCH_FORMAT("C74018000080BF"));
+            if (currentTmp == nullptr)
+                break;
             auto patch_point = currentTmp+3;
             hpatch.addCode(patch_point, 4);
             memset(patch_point, 0, 4);

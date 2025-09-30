@@ -6,7 +6,7 @@ F.E.A.R. Perseus Mandate v1.0
 # Features list
 Multiplayer works again thanks to openspy.net<br>
 Client side fixes (fps drops, flickering)<br>
-Server side fixes (anti-cheat, crash hacks)<br>
+Server side fixes (hacks, crashes, glitches)<br>
 Allows coop mode based on F.E.A.R. Platinum (contains 55 maps)<br>
 Allows to play all singleplayer maps F.E.A.R. Platinum in F.E.A.R. Perseus Mandate<br>
 Allows play on servers created on retail version to free version and vice versa<br>
@@ -127,33 +127,33 @@ NS1=n1.fear-combat.org
 NS2=n2.fear-combat.org
 
 ```
-#### Portable mode and Window mode
+#### Portable and Window and Field of View tweaks
+
 If you want to run a game in portable mode, create cmd file:<br>
-start "" FEARMP.exe -UserDirectory Config<br>
-start "" FEARServer.exe -UserDirectory Config<br>
+```
+start "" FEARMP.exe -UserDirectory Config
+start "" FEARServer.exe -UserDirectory Config
+```
+```
+start "" FEARXP2.exe -UserDirectory Config +GammaB 1 +GammaG 1 +GammaR 1
+start "" FEARServerXP.exe -UserDirectory Config
+```
 
 If you want to run game in window mode:<br>
+```
 start "" FEARMP.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
+```
+```
+start "" FEARXP2.exe -UserDirectory Config +Windowed 1 +ScreenWidth 1024 +ScreenHeight 768
+```
 
-# Tiny Server Builder
-This script creates tiny server build where stored only required files to run server, useful for servers with limited storage. Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
-<details>
-  <summary>Original installers SHA256 hashes</summary>
-
-| Name | SHA256 Hash |
-|----------------------------------|------------------------------------------------------------------|
-| fearcombat_en_107.exe | 28d12729d866fc36d13ab3761c8826edc4eedb3c76d0c823302a4a25cb265bed |
-| fearcombat_update_en_107_108.exe | b016866880353a608f5f37184e833e7a25be12227cb671457a1b600b9f1b350b |
-| fear_publictools_108.exe | 11aaa4128528403f7bc9ea5119c68051c62b92a99e6411dfd749af55e9b19df8 |
-
-</details>
-
-1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writable folder with enough disk space<br>
-2. Add to folder with a script ArchiveEdit.exe, MFC71u.dll, msvcp71.dll, msvcr71.dll<br>
-3. Run script and specify game folder (right click to paste path)<br>
-4. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
-
-Also, tiny coop mode server is supported, in the script replace the filter "Release" "ReleaseXP2" to "ReleaseMultiplayer" "MultiplayerXP2"
+If you want to change the Field of View (FoV):<br>
+```
+start "" FEARMP.exe -UserDirectory Config +FovYWidescreen 95.0 +FovY 95.0
+```
+```
+start "" FEARXP2.exe -UserDirectory Config +GammaB 1 +GammaG 1 +GammaR 1 +FovYWidescreen 95.0 +FovY 95.0
+```
 
 # List of fixes
 Client DRM-free FEAR.exe as FEARMP.exe for better performance<br>
@@ -237,6 +237,26 @@ Server log show client ip:port<br>
 Server enhanced vote delay<br>
 Server enhanced vote ban<br>
 Server platform type "L" when running in linux wine<br>
+
+# Tiny Server Builder
+This script creates tiny server build where stored only required files to run server, useful for servers with limited storage. Find the ArchiveEdit in official public SDK, it also needs F.E.A.R. Combat to be installed first<br>
+<details>
+  <summary>Original installers SHA256 hashes</summary>
+
+| Name | SHA256 Hash |
+|----------------------------------|------------------------------------------------------------------|
+| fearcombat_en_107.exe | 28d12729d866fc36d13ab3761c8826edc4eedb3c76d0c823302a4a25cb265bed |
+| fearcombat_update_en_107_108.exe | b016866880353a608f5f37184e833e7a25be12227cb671457a1b600b9f1b350b |
+| fear_publictools_108.exe | 11aaa4128528403f7bc9ea5119c68051c62b92a99e6411dfd749af55e9b19df8 |
+
+</details>
+
+1. Put batch script https://github.com/Vityacv/fearservmod/blob/master/TinyServerBuilder.cmd to writable folder with enough disk space<br>
+2. Add to folder with a script ArchiveEdit.exe, MFC71u.dll, msvcp71.dll, msvcr71.dll<br>
+3. Run script and specify game folder (right click to paste path)<br>
+4. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
+
+Also, tiny coop mode server is supported, in the script replace the filter "Release" "ReleaseXP2" to "ReleaseMultiplayer" "MultiplayerXP2"
 
 # How to launch game or server on Linux using Wine
 To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:

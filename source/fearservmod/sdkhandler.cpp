@@ -1370,9 +1370,9 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
                     // sdk.m_bfreeMovement = 1;
                     // app.m_bIgnoreSpawn = 1;
                     // isUnder = true;
-                    skinState = 0;
+                    // skinState = 0;
                     sdk.m_AnimationLevel = 1;
-                    app.setCoopDoSpawn(1);
+                    app.setCoopDoSpawn(0);
                     break;
                 case StringUtil::hash_ct("XP2_W09"):
                     isUnder = true;

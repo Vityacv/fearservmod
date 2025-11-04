@@ -279,7 +279,7 @@ void AppHandler::hookEnterSlowMo(SpliceHandler::reg *p)
     }
     else
       sdk.m_currentRandomSlowMoInd++;
-    p->v0 = (uintptr_t)sdk.m_hSlowMoHandles[sdk.m_randomSlowmoTable[rand()%13/*sdk.m_currentRandomSlowMoInd*/]];
+    //p->v0 = (uintptr_t)sdk.m_hSlowMoHandles[sdk.m_randomSlowmoTable[rand()%13/*sdk.m_currentRandomSlowMoInd*/]];
     //p->v0 = (uintptr_t)sdk.m_hFastForward;
 }
 
@@ -1236,8 +1236,8 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           }
           if (!inst.bCustomSkins) {
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
-            case StringUtil::hash_ct("Melee_JabRight"):
-                spawnLog = true;
+            // case StringUtil::hash_ct("Melee_JabRight"):
+            //     spawnLog = true;
             case StringUtil::hash_ct("Melee_JabLeft"):
               // unarmFireDelay = 0x100;
               if (hAnimPenult >= 0x10C && hAnimPenult <= 0x116)
@@ -1824,7 +1824,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
       }
       if(pPlData->invalidSpeed)
         p->state = 1;
-      
+
     } break;
     case MID_CLIENTCONNECTION:
       switch (pMsgRead->ReadBits(8)) {
@@ -1986,7 +1986,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
         pPlData->lastVoteTime = voteTime;
         LeaveCriticalSection(static_cast<CRITICAL_SECTION *>(sdk.g_pldataSection.get()));
         unsigned char type = pMsgRead->ReadBits(3);
-        if (type >= kNumVoteTypes) { 
+        if (type >= kNumVoteTypes) {
             p->state = 1;
             break;
         } else {
@@ -2032,7 +2032,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           }
         }
       }
-      
+
     } break;
     case MID_PLAYER_EVENT: {
       unsigned char type = pMsgRead->ReadBits(8);
@@ -2535,7 +2535,7 @@ void AppHandler::configHandle()
                 // *tmp = 0;
             }
         }
-        
+
         {
             static auto pat = BSF("74??0F????8B??????????89??????????EB??A1????????C7??????????010000008B");
             unsigned char *tmp =
@@ -2882,7 +2882,7 @@ void AppHandler::configHandle()
         *reinterpret_cast<uint16_t *>(adr) = 0x39EB;
       }
     }
-    
+
     if(hsdk.isXP2)
         reinterpret_cast<ILTServerXP2*>(hsdk.g_pLTServer)->CPrintNoArgs("FearServMod build date: " __DATE__);
     else
@@ -3347,7 +3347,7 @@ void AppHandler::initClient() {
 //                             reinterpret_cast<void *>(hookPlayWave));
 //        }
 //    }
-    
+
 
     {
         static auto pat = BSF("8B??????????85F60F??????????A1????????F6C40174");
@@ -3446,7 +3446,7 @@ void AppHandler::initClient() {
               (unsigned char *)m_Client, m_ClientSz, reinterpret_cast<uint8_t *>(&pat))+6,
           (void *)hookMaxPlayersHUD);
     }
-    
+
     // {
     //     static auto pat = BSF("E8????????84C00F84????????8B750C");
     //     uint8_t *tmp = scanBytes(
@@ -3457,7 +3457,7 @@ void AppHandler::initClient() {
     //         memcpy(tmp, reinterpret_cast<uint8_t*>(&d), sizeof(d)); // no logos
     //     }
     // }
-    
+
     // m_ClientSz = GetModuleSize(reinterpret_cast<HMODULE>(m_Client));
 //    {
 //        uint8_t *tmp =
@@ -3747,4 +3747,3 @@ void AppHandler::setFlashlight(bool state) {
         m_bFlashlight = !m_bFlashlight;
     }
 }
-

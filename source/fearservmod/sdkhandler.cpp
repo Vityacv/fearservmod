@@ -1305,6 +1305,7 @@ void SdkHandler::hookOnMapLoaded(SpliceHandler::reg *p) {
         if (app.m_bRandWep) {
             srand(time(0));
             app.m_bDisableLights = rand() % 2;
+            sdk.m_randomWeaponTime = 0;
 //            sdk.m_currentRandomWeaponInd = 0;
 //            unsigned char *in = sdk.m_randomWepTable;
 //            int i;

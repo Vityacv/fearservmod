@@ -1236,7 +1236,7 @@ void AppHandler::hookMID(SpliceHandler::reg *p){
           }
           if (!inst.bCustomSkins) {
             switch (StringUtil::hash_rt((char *)*(uintptr_t *)(hAmmo))) {
-            // case StringUtil::hash_ct("Melee_JabRight"):
+            case StringUtil::hash_ct("Melee_JabRight"):
             //     spawnLog = true;
             case StringUtil::hash_ct("Melee_JabLeft"):
               // unarmFireDelay = 0x100;
@@ -3301,6 +3301,33 @@ void AppHandler::initClient() {
                 if (cfg[i] == '\\') {
                     sz = i + 1;
                     break;
+                }
+            }
+            // Ensure default client settings exist so graphics sliders start sane.
+            TCHAR settingsPath[1024];
+            memset(settingsPath, 0, sizeof(settingsPath));
+            const TCHAR *settingsName = _T("settings.cfg");
+            int trimmedDirLen = sz;
+            const size_t settingsPathMax =
+                sizeof(settingsPath) / sizeof(settingsPath[0]);
+            if (trimmedDirLen >= static_cast<int>(settingsPathMax)) {
+                trimmedDirLen = static_cast<int>(settingsPathMax - 1);
+            }
+            memcpy(settingsPath, cfg, trimmedDirLen * sizeof(TCHAR));
+            memcpy(settingsPath + trimmedDirLen, settingsName,
+                   sizeof(TCHAR) * sizeof("settings.cfg"));
+            if (GetFileAttributes(settingsPath) ==
+                INVALID_FILE_ATTRIBUTES) {
+                HANDLE settingsFile =
+                    CreateFile(settingsPath, GENERIC_WRITE, 0, nullptr,
+                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+                if (settingsFile != INVALID_HANDLE_VALUE) {
+                    static const char settingsDefaults[] =
+                        "GammaB 1\r\nGammaG 1\r\nGammaR 1\r\nVSyncOnFlip 1\r\n";
+                    DWORD written = 0;
+                    WriteFile(settingsFile, settingsDefaults,
+                              sizeof(settingsDefaults) - 1, &written, nullptr);
+                    CloseHandle(settingsFile);
                 }
             }
             TCHAR *cfgName = _T("gamecfg.txt");

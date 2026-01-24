@@ -217,7 +217,7 @@ This script creates tiny server build where stored only required files to run se
 4. Wait till script completes and find new server builds in FEARServer or FEARServerXP folders<br>
 
 Also, tiny coop mode server is supported, in the script replaces the filter "Release" "ReleaseXP2" to "ReleaseMultiplayer" "MultiplayerXP2" and two "Default.archcfg" to "CoopMode.archcfg"<br>
-To build combined server with singleplayer and multiplayer maps - remove the filter "*.Objects00p" "Release" "ReleaseXP2" and for multiplayer mode use copy of "CoopMode.archcfg" as "Default.archcfg"
+To build combined server with singleplayer and multiplayer maps - remove the filter "*.Objects00p" "Release" "ReleaseXP2" and for multiplayer maps use copy of "CoopMode.archcfg" as "Default.archcfg"
 
 # How to launch game or server on Linux using Wine
 To launch FEARMP.exe you will need to instruct wine to load winmm.dll from game folder first and then load system winmm.dll using environment variable:
@@ -226,7 +226,7 @@ WINEDLLOVERRIDES="winmm.dll=n,b" wine FEARMP.exe
 ```
 Same variable is needed to run FEARServer.exe, but you also can disable load of gecko engine and .net
 ```
-WINEDLLOVERRIDES="winmm.dll=n,b;mscoree.dll;mshtml.dll" wine FEARServer.exe
+WINEDLLOVERRIDES="winmm.dll=n,b;mscoree.dll,mshtml.dll=" wine FEARServer.exe
 ```
 
 # How to compile
